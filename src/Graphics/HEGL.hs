@@ -181,86 +181,89 @@ type VertExpr = GLExpr VertexDomain
 type FragExpr = GLExpr FragmentDomain
 
 
+makeGL () = GLExpr (genID ())
+
+
 -- * Expressions: Main definitions
 
 instance GLPrim t => Enum (GLExpr d t) where
-    toEnum x = Const (genID ()) (toEnum x)
+    toEnum x = makeGL () $ Const (toEnum x)
     fromEnum x = undefined
 
 instance (GLNumeric (Elt t), GLType t, Num t) => Num (GLExpr d t) where
-    x + y = OpAdd (genID ()) x y
-    x - y = OpSubt (genID ()) x y
-    x * y = OpMult (genID ()) x y
-    negate x = OpNeg (genID ()) x
-    abs x = Abs (genID ()) x
-    signum x = Sign (genID ()) x
-    fromInteger x = Const (genID ()) (fromInteger x)
+    x + y = makeGL () $ OpAdd x y
+    x - y = makeGL () $ OpSubt x y
+    x * y = makeGL () $ OpMult x y
+    negate x = makeGL () $ OpNeg x
+    abs x = makeGL () $ Abs x
+    signum x = makeGL () $ Sign x
+    fromInteger x = makeGL () $ Const (fromInteger x)
 
 instance (GLFloating (Elt t), GLType t, Fractional t) => Fractional (GLExpr d t) where
-    x / y = OpDiv (genID ()) x y
-    fromRational x = Const (genID ()) (fromRational x)
+    x / y = makeGL () $ OpDiv x y
+    fromRational x = makeGL () $ Const (fromRational x)
 
 instance Floating (GLExpr d Float) where
     pi = 3.141592653589793238
-    sin x = Sin (genID ()) x
-    cos x = Cos (genID ()) x
-    tan x = Tan (genID ()) x
-    asin x = Asin (genID ()) x
-    acos x = Acos (genID ()) x
-    atan x = Atan (genID ()) x
-    x ** y = Pow (genID ()) x y
-    exp x = Exp (genID ()) x
-    sqrt x = Sqrt (genID ()) x
-    log x = Log (genID ()) x
+    sin x = makeGL () $ Sin x
+    cos x = makeGL () $ Cos x
+    tan x = makeGL () $ Tan x
+    asin x = makeGL () $ Asin x
+    acos x = makeGL () $ Acos x
+    atan x = makeGL () $ Atan x
+    x ** y = makeGL () $ Pow x y
+    exp x = makeGL () $ Exp x
+    sqrt x = makeGL () $ Sqrt x
+    log x = makeGL () $ Log x
 
 
 -- * Expressions: Lifts from raw types
 
-glLift0 x = HostVar $ GLLift0 (genID ()) x
-glLift1 f x = HostVar $ GLLift1 (genID ()) f x
-glLift2 f x y = HostVar $ GLLift2 (genID ()) f x y
+glLift0 x = let id = genID () in \x -> GLExpr id $ HostVar (GLLift0 id x)
+glLift1 f x = let id = genID () in \x -> GLExpr id $ HostVar (GLLift1 id f x)
+glLift2 f x y = let id = genID () in \x -> GLExpr id $ HostVar (GLLift2 id f x y)
 -- TODO: add remaining lifts, up to glLift6
 
 
 -- * Generic expression constructors
 
 const :: GLType t => ConstExpr t -> GLExpr d t
-const x = Const (genID ()) (evalConst x) where
+const x = makeGL () $ Const (evalConst x) where
     evalConst = undefined
 
 uniform :: GLType t => HostExpr t -> GLExpr d t
-uniform x = Uniform (genID ()) x
+uniform x = makeGL () $ Uniform x
 
 prec :: GLType t => HostExpr t -> HostExpr t -> HostExpr t
-prec x0 x = HostVar $ HostPrec (genID ()) x0 x
+prec x0 x = let id = genID () in GLExpr id $ HostVar $ HostPrec id x0 x
 
 vert :: GLPrim t => [ConstExpr t] -> VertExpr t
-vert inp = Inp (genID ()) inp
+vert inp = makeGL () $ Inp inp
 
 frag :: GLPrim t => VertExpr t -> FragExpr t
-frag x = Frag (genID ()) x
+frag x = makeGL () $ Frag x
 
 
 -- * Vector, matrix, and array constructors
 
-vec2 x y = GLVec2 (genID ()) x y
-vec3 x y z = GLVec3 (genID ()) x y z
-vec4 x y z w = GLVec4 (genID ()) x y z w
+vec2 x y = makeGL () $ GLVec2 x y
+vec3 x y z = makeGL () $ GLVec3 x y z
+vec4 x y z w = makeGL () $ GLVec4 x y z w
 -- TODO: synthesize all mat constructors using $- and $| operators
-mat2x2 x y = GLMat2x2 (genID ()) x y
-mat3x3 x y z = GLMat3x3 (genID ()) x y z
-mat4x4 x y z w = GLMat4x4 (genID ()) x y z w
+mat2x2 x y = makeGL () $ GLMat2x2 x y
+mat3x3 x y z = makeGL () $ GLMat3x3 x y z
+mat4x4 x y z w = makeGL () $ GLMat4x4 x y z w
 
-pre x y = Pre (genID ()) x y
-app x y = App (genID ()) x y
+pre x y = makeGL () $ Pre x y
+app x y = makeGL () $ App x y
 
 infixr 9 $-
 infixr 8 $|
 
-x $- y = Conc (genID ()) x y
-x $| y = HorConc (genID ()) x y
+x $- y = makeGL () $ Conc x y
+x $| y = makeGL () $ HorConc x y
 
-arr xs = GLArray (genID ()) xs
+arr xs = makeGL () $ GLArray xs
 
 -- * Deconstruction and indexing
 
@@ -280,41 +283,41 @@ instance GLType (Vec 4 t) => Deconstructible (GLExpr d (Vec 4 t)) where
     type Decon (GLExpr d (Vec 4 t)) = (GLExpr d t, GLExpr d t, GLExpr d t, GLExpr d t) 
     decon = undefined
 
-x_ v = OpCoord (genID ()) CoordX v
-y_ v = OpCoord (genID ()) CoordY v
-z_ v = OpCoord (genID ()) CoordZ v
-w_ v = OpCoord (genID ()) CoordW v
-xy_ v = OpCoordMulti (genID ()) (CoordX `CoordCons` (CoordY `CoordCons` CoordNil)) v
-xz_ v = OpCoordMulti (genID ()) (CoordX `CoordCons` (CoordZ `CoordCons` CoordNil)) v
-xw_ v = OpCoordMulti (genID ()) (CoordX `CoordCons` (CoordW `CoordCons` CoordNil)) v
-yx_ v = OpCoordMulti (genID ()) (CoordY `CoordCons` (CoordX `CoordCons` CoordNil)) v
-yz_ v = OpCoordMulti (genID ()) (CoordY `CoordCons` (CoordZ `CoordCons` CoordNil)) v
-yw_ v = OpCoordMulti (genID ()) (CoordY `CoordCons` (CoordW `CoordCons` CoordNil)) v
-zx_ v = OpCoordMulti (genID ()) (CoordZ `CoordCons` (CoordX `CoordCons` CoordNil)) v
-zy_ v = OpCoordMulti (genID ()) (CoordZ `CoordCons` (CoordY `CoordCons` CoordNil)) v
-zw_ v = OpCoordMulti (genID ()) (CoordZ `CoordCons` (CoordW `CoordCons` CoordNil)) v
-wx_ v = OpCoordMulti (genID ()) (CoordX `CoordCons` (CoordX `CoordCons` CoordNil)) v
-wy_ v = OpCoordMulti (genID ()) (CoordX `CoordCons` (CoordY `CoordCons` CoordNil)) v
-wz_ v = OpCoordMulti (genID ()) (CoordX `CoordCons` (CoordZ `CoordCons` CoordNil)) v
-xyz_ v = OpCoordMulti (genID ()) (CoordX `CoordCons` (CoordY `CoordCons` (CoordZ `CoordCons` CoordNil))) v
+x_ v = makeGL () $ OpCoord CoordX v
+y_ v = makeGL () $ OpCoord CoordY v
+z_ v = makeGL () $ OpCoord CoordZ v
+w_ v = makeGL () $ OpCoord CoordW v
+xy_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` CoordNil)) v
+xz_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordZ `CoordCons` CoordNil)) v
+xw_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordW `CoordCons` CoordNil)) v
+yx_ v = makeGL () $ OpCoordMulti (CoordY `CoordCons` (CoordX `CoordCons` CoordNil)) v
+yz_ v = makeGL () $ OpCoordMulti (CoordY `CoordCons` (CoordZ `CoordCons` CoordNil)) v
+yw_ v = makeGL () $ OpCoordMulti (CoordY `CoordCons` (CoordW `CoordCons` CoordNil)) v
+zx_ v = makeGL () $ OpCoordMulti (CoordZ `CoordCons` (CoordX `CoordCons` CoordNil)) v
+zy_ v = makeGL () $ OpCoordMulti (CoordZ `CoordCons` (CoordY `CoordCons` CoordNil)) v
+zw_ v = makeGL () $ OpCoordMulti (CoordZ `CoordCons` (CoordW `CoordCons` CoordNil)) v
+wx_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordX `CoordCons` CoordNil)) v
+wy_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` CoordNil)) v
+wz_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordZ `CoordCons` CoordNil)) v
+xyz_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` (CoordZ `CoordCons` CoordNil))) v
 -- TODO: remaining 23 cases
 
-col0 m = OpCol (genID ()) Col0 m
-col1 m = OpCol (genID ()) Col1 m
-col2 m = OpCol (genID ()) Col2 m
-col3 m = OpCol (genID ()) Col3 m
+col0 m = makeGL () $ OpCol Col0 m
+col1 m = makeGL () $ OpCol Col1 m
+col2 m = makeGL () $ OpCol Col2 m
+col3 m = makeGL () $ OpCol Col3 m
 
 
 -- * Expression type conversion
 
-toFloat x = ToFloat (genID ()) x
-toInt x = ToInt (genID ()) x
-toUInt x = ToUInt (genID ()) x
+toFloat x = makeGL () $ ToFloat x
+toInt x = makeGL () $ ToInt x
+toUInt x = makeGL () $ ToUInt x
 
 
 -- * Custom function support
 
-makeFuncParam () = FuncParam (genID ())
+makeFuncParam () = makeGL () $ FuncParam
 
 glFunc1 :: (GLType t, GLType t1) => 
     (GLExpr d t1 -> GLExpr d t) -> 
@@ -350,105 +353,107 @@ infixl 6 .^
 infixl 7 .*
 infixl 7 .@
 
-x .% y = OpMod (genID ()) x y
-x .< y = OpLessThan (genID ()) x y
-x .<= y = OpLessThanEqual (genID ()) x y
-x .> y = OpGreaterThan (genID ()) x y
-x .>= y = OpGreaterThanEqual (genID ()) x y
-x .== y = OpEqual (genID ()) x y
-x ./= y = OpNotEqual (genID ()) x y
-x .&& y = OpAnd (genID ()) x y
-x .|| y = OpOr (genID ()) x y
-x .^^ y = OpXor (genID ()) x y
-not x = OpNot (genID ()) x
-cond x y z = OpCond (genID ()) x y z
-neg x = OpCompl (genID ()) x
-x .<< y = OpLshift (genID ()) x y
-x .>> y = OpRshift (genID ()) x y
-x .& y = OpBitAnd (genID ()) x y
-x .| y = OpBitOr (genID ()) x y
-x .^ y = OpBitXor (genID ()) x y
-x .* y = OpScalarMult (genID ()) x y
-x .@ y = OpMatrixMult (genID ()) x y
+x .% y = makeGL () $ OpMod x y
+x .< y = makeGL () $ OpLessThan x y
+x .<= y = makeGL () $ OpLessThanEqual x y
+x .> y = makeGL () $ OpGreaterThan x y
+x .>= y = makeGL () $ OpGreaterThanEqual x y
+x .== y = makeGL () $ OpEqual x y
+x ./= y = makeGL () $ OpNotEqual x y
+x .&& y = makeGL () $ OpAnd x y
+x .|| y = makeGL () $ OpOr x y
+x .^^ y = makeGL () $ OpXor x y
+not x = makeGL () $ OpNot x
+cond x y z = makeGL () $ OpCond x y z
+neg x = makeGL () $ OpCompl x
+x .<< y = makeGL () $ OpLshift x y
+x .>> y = makeGL () $ OpRshift x y
+x .& y = makeGL () $ OpBitAnd x y
+x .| y = makeGL () $ OpBitOr x y
+x .^ y = makeGL () $ OpBitXor x y
+x .* y = makeGL () $ OpScalarMult x y
+x .@ y = makeGL () $ OpMatrixMult x y
 
-radians x = Radians (genID ()) x
-degrees x = Degrees (genID ()) x
-sin x = Sin (genID ()) x
-cos x = Cos (genID ()) x
-tan x = Tan (genID ()) x
-asin x = Asin (genID ()) x
-acos x = Acos (genID ()) x
-atan x = Atan (genID ()) x
+radians x = makeGL () $ Radians x
+degrees x = makeGL () $ Degrees x
+sin x = makeGL () $ Sin x
+cos x = makeGL () $ Cos x
+tan x = makeGL () $ Tan x
+asin x = makeGL () $ Asin x
+acos x = makeGL () $ Acos x
+atan x = makeGL () $ Atan x
 
-pow x y = Pow (genID ()) x y
-exp x = Exp (genID ()) x
-log x = Log (genID ()) x
-exp2 x = Exp2 (genID ()) x
-log2 x = Log2 (genID ()) x
-sqrt x = Sqrt (genID ()) x
+pow x y = makeGL () $ Pow x y
+exp x = makeGL () $ Exp x
+log x = makeGL () $ Log x
+exp2 x = makeGL () $ Exp2 x
+log2 x = makeGL () $ Log2 x
+sqrt x = makeGL () $ Sqrt x
 
-floor x = Floor (genID ()) x
-trunc x = Trunc (genID ()) x
-round x = Round (genID ()) x
-roundEven x = RoundEven (genID ()) x
-ceil x = Ceil (genID ()) x
-fract x = Fract (genID ()) x
-mod x y = Mod (genID ()) x y
-min x y = Min (genID ()) x y
-max x y = Max (genID ()) x y
-clamp x y z = Clamp (genID ()) x y z
-mix x y z = Mix (genID ()) x y z
-step x y = Step (genID ()) x y
-smoothstep x y z = Smoothstep (genID ()) x y z
+floor x = makeGL () $ Floor x
+trunc x = makeGL () $ Trunc x
+round x = makeGL () $ Round x
+roundEven x = makeGL () $ RoundEven x
+ceil x = makeGL () $ Ceil x
+fract x = makeGL () $ Fract x
+mod x y = makeGL () $ Mod x y
+min x y = makeGL () $ Min x y
+max x y = makeGL () $ Max x y
+clamp x y z = makeGL () $ Clamp x y z
+mix x y z = makeGL () $ Mix x y z
+step x y = makeGL () $ Step x y
+smoothstep x y z = makeGL () $ Smoothstep x y z
 
-length x = Length (genID ()) x
-distance x y = Distance (genID ()) x  y
-dot x y = Dot (genID ()) x y
-cross x y = Cross (genID ()) x y
-normalize x = Normalize (genID ()) x
-faceforward x y z = Faceforward (genID ()) x y z
-reflect x y = Reflect (genID ()) x y
-refract x y z = Refract (genID ()) x y z
+length x = makeGL () $ Length x
+distance x y = makeGL () $ Distance x  y
+dot x y = makeGL () $ Dot x y
+cross x y = makeGL () $ Cross x y
+normalize x = makeGL () $ Normalize x
+faceforward x y z = makeGL () $ Faceforward x y z
+reflect x y = makeGL () $ Reflect x y
+refract x y z = makeGL () $ Refract x y z
 
-matrixCompMult x y = MatrixCompMult (genID ()) x y
-outerProduct x y = OuterProduct (genID ()) x y
-transpose x = Transpose (genID ()) x
-determinant x = Determinant (genID ()) x
-inverse x = Inverse (genID ()) x
+matrixCompMult x y = makeGL () $ MatrixCompMult x y
+outerProduct x y = makeGL () $ OuterProduct x y
+transpose x = makeGL () $ Transpose x
+determinant x = makeGL () $ Determinant x
+inverse x = makeGL () $ Inverse x
 
-lessThan x y = LessThan (genID ()) x y
-lessThanEqual x y = LessThanEqual (genID ()) x y
-greaterThan x y = GreaterThan (genID ()) x y
-greaterThanEqual x y = GreaterThanEqual (genID ()) x y
-equal x y = Equal (genID ()) x y
-notEqual x y = NotEqual (genID ()) x y
-any x = Any (genID ()) x
-all x = All (genID ()) x
-compl x = Compl (genID ()) x
+lessThan x y = makeGL () $ LessThan x y
+lessThanEqual x y = makeGL () $ LessThanEqual x y
+greaterThan x y = makeGL () $ GreaterThan x y
+greaterThanEqual x y = makeGL () $ GreaterThanEqual x y
+equal x y = makeGL () $ Equal x y
+notEqual x y = makeGL () $ NotEqual x y
+any x = makeGL () $ Any x
+all x = makeGL () $ All x
+compl x = makeGL () $ Compl x
 
 
 -- * Builtin I/O variables
 
+makeHostVar con id = GLExpr id $ HostVar (con id)
+
 time :: HostExpr Float
-time = HostVar $ IOFloat undefined
+time = makeHostVar IOFloat undefined
 
 mouseLeft :: HostExpr Bool
-mouseLeft = HostVar $ IOBool undefined
+mouseLeft = makeHostVar IOBool undefined
 
 mouseRight :: HostExpr Bool
-mouseRight = HostVar $ IOBool undefined
+mouseRight = makeHostVar IOBool undefined
 
 mouseWheel :: HostExpr Float
-mouseWheel = HostVar $ IOFloat undefined
+mouseWheel = makeHostVar IOFloat undefined
 
 mouseX :: HostExpr Float
-mouseX = HostVar $ IOFloat undefined
+mouseX = makeHostVar IOFloat undefined
 
 mouseY :: HostExpr Float
-mouseY = HostVar $ IOFloat undefined
+mouseY = makeHostVar IOFloat undefined
 
 mousePos :: HostExpr (Vec 2 Float)
-mousePos = GLVec2 (genID ()) mouseX mouseY
+mousePos = makeGL () $ GLVec2 mouseX mouseY
 
 
 -- * Drawables

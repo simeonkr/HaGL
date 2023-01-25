@@ -43,8 +43,8 @@ cachedEval expr = do
 
 eval :: GLExpr HostDomain t -> StateT EvalState IO t
 
-eval (Const id x) = return x
+eval (GLExpr id (Const x)) = return x
 
-eval (GLVec2 id x y) = undefined
+eval (GLExpr id (GLVec2 x y)) = undefined
 
     

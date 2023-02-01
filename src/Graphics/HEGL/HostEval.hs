@@ -9,6 +9,7 @@ import Control.Monad.State.Lazy
 import Data.Functor.Identity
 
 import qualified Graphics.HEGL.Util.DepMap as DepMap
+import Graphics.HEGL.Numerical
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
 
@@ -37,7 +38,7 @@ cachedEval expr = do
         Just (Identity val) -> return val
         Nothing -> do
             val :: t <- eval expr
-            modify (\s -> s { cache = DepMap.insert expr (Identity val) (cache s)})
+            modify (\s -> s { cache = DepMap.insert expr (Identity val) (cache s) })
             return val
 
 
@@ -45,6 +46,8 @@ eval :: GLExpr HostDomain t -> StateT EvalState IO t
 
 eval (GLExpr id (Const x)) = return x
 
-eval (GLExpr id (GLVec2 x y)) = undefined
-
+eval (GLExpr id (GLVec2 x y)) = do
+    x <- cachedEval x
+    y <- cachedEval y
+    return $ x %| m0 %- y %| m0
     

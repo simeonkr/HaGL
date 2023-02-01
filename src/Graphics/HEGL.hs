@@ -170,9 +170,9 @@ import Prelude
 import Graphics.Rendering.OpenGL.GL.PrimitiveMode (PrimitiveMode(..))
 import qualified Graphics.Rendering.OpenGL as OpenGL
 
+import Graphics.HEGL.Numerical (Mat, Vec, RowVec, fromMapping, fromList)
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
-import Graphics.HEGL.Numerical
 import Graphics.HEGL.ExprID (genID)
 
 type ConstExpr = GLExpr ConstDomain
@@ -257,11 +257,11 @@ mat4x4 x y z w = makeGL () $ GLMat4x4 x y z w
 pre x y = makeGL () $ Pre x y
 app x y = makeGL () $ App x y
 
-infixr 9 $-
-infixr 8 $|
+infixr 9 $|
+infixr 8 $-
 
-x $- y = makeGL () $ Conc x y
 x $| y = makeGL () $ HorConc x y
+x $- y = makeGL () $ Conc x y
 
 arr xs = makeGL () $ GLArray xs
 

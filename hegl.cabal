@@ -23,6 +23,7 @@ library
     Graphics.HEGL.Lib.Math
     Graphics.HEGL.Examples
   other-modules:
+    Graphics.HEGL.Util
     Graphics.HEGL.Util.Types
     Graphics.HEGL.Util.DepMap
     Graphics.HEGL.Numerical
@@ -45,6 +46,8 @@ library
   build-depends:       
     base,
     array,
+    matrix,
+    containers,
     unordered-containers,
     mtl,
     hashable,

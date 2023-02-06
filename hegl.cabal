@@ -23,6 +23,7 @@ library
     Graphics.HEGL.Lib.Math
     Graphics.HEGL.Examples
   other-modules:
+    Graphics.HEGL.TH
     Graphics.HEGL.Util
     Graphics.HEGL.Util.Types
     Graphics.HEGL.Util.DepMap
@@ -45,6 +46,7 @@ library
     PartialTypeSignatures
   build-depends:       
     base,
+    template-haskell,
     array,
     matrix,
     containers,

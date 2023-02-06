@@ -8,6 +8,8 @@ Stability   : experimental
 
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -ddump-splices #-}
 
 module Graphics.HEGL (
     -- * Raw types
@@ -58,7 +60,10 @@ module Graphics.HEGL (
     yx_, yz_, yw_,
     zx_, zy_, zw_,
     wx_, wy_, wz_,
-    xyz_,
+    xyz_, xyw_, xzy_, xzw_, xwy_, xwy_,
+    yxz_, yxw_, yzx_, yzw_, ywx_, ywz_,
+    zxy_, zxw_, zyx_, zyw_, zwx_, zwy_,
+    wxy_, wxz_, wyx_, wyz_, wxz_, wxy_,
     col0, col1, col2, col3,
     -- * Type conversion
     toFloat,
@@ -174,6 +179,7 @@ import Graphics.HEGL.Numerical (Mat, Vec, RowVec, fromMapping, fromList)
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
 import Graphics.HEGL.ExprID (genID)
+import Graphics.HEGL.TH
 
 type ConstExpr = GLExpr ConstDomain
 type HostExpr = GLExpr HostDomain
@@ -287,20 +293,8 @@ x_ v = makeGL () $ OpCoord CoordX v
 y_ v = makeGL () $ OpCoord CoordY v
 z_ v = makeGL () $ OpCoord CoordZ v
 w_ v = makeGL () $ OpCoord CoordW v
-xy_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` CoordNil)) v
-xz_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordZ `CoordCons` CoordNil)) v
-xw_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordW `CoordCons` CoordNil)) v
-yx_ v = makeGL () $ OpCoordMulti (CoordY `CoordCons` (CoordX `CoordCons` CoordNil)) v
-yz_ v = makeGL () $ OpCoordMulti (CoordY `CoordCons` (CoordZ `CoordCons` CoordNil)) v
-yw_ v = makeGL () $ OpCoordMulti (CoordY `CoordCons` (CoordW `CoordCons` CoordNil)) v
-zx_ v = makeGL () $ OpCoordMulti (CoordZ `CoordCons` (CoordX `CoordCons` CoordNil)) v
-zy_ v = makeGL () $ OpCoordMulti (CoordZ `CoordCons` (CoordY `CoordCons` CoordNil)) v
-zw_ v = makeGL () $ OpCoordMulti (CoordZ `CoordCons` (CoordW `CoordCons` CoordNil)) v
-wx_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordX `CoordCons` CoordNil)) v
-wy_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` CoordNil)) v
-wz_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordZ `CoordCons` CoordNil)) v
-xyz_ v = makeGL () $ OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` (CoordZ `CoordCons` CoordNil))) v
--- TODO: remaining 23 cases
+$(gen2DCoordDecls)
+$(gen3DCoordDecls)
 
 col0 m = makeGL () $ OpCol Col0 m
 col1 m = makeGL () $ OpCol Col1 m

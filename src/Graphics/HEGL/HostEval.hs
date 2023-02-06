@@ -45,9 +45,19 @@ cachedEval expr = do
 eval :: GLExpr HostDomain t -> StateT EvalState IO t
 
 eval (GLExpr id (Const x)) = return x
+eval (GLExpr id (Uniform x)) = undefined
+eval (GLExpr id (HostVar x)) = undefined
+eval (GLExpr id (Inp x)) = error "Attempted to evaluate in VertexDomain"
+eval (GLExpr id (Frag x)) = error "Attempted to evaluate in FragmentDomain"
+eval (GLExpr id FuncParam) = undefined
 
 eval (GLExpr id (GLVec2 x y)) = do
-    x <- cachedEval x
-    y <- cachedEval y
-    return $ x %| m0 %- y %| m0
+    x' <- cachedEval x
+    y' <- cachedEval y
+    return $ x' %| m0 %- y' %| m0
+eval (GLExpr id (GLVec3 x y z)) = do
+    x' <- cachedEval x
+    y' <- cachedEval y
+    z' <- cachedEval z
+    return $ x' %| m0 %- y' %| m0 %- z' %| m0
     

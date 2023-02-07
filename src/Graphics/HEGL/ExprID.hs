@@ -1,5 +1,6 @@
 module Graphics.HEGL.ExprID (
     ExprID,
+    IOVarID,
     genID
 ) where
 
@@ -7,6 +8,7 @@ import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
 
 type ExprID = Int
+type IOVarID = String
 
 {-# NOINLINE unsafeCounter #-}
 unsafeCounter :: IORef Int

@@ -1,5 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -dth-dec-file #-}
 
 module Graphics.HEGL.HostEval (
     hostEval
@@ -12,10 +14,13 @@ import qualified Graphics.HEGL.Util.DepMap as DepMap
 import Graphics.HEGL.Numerical
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
+import Graphics.HEGL.TH (genGlExprId)
 
+
+$genGlExprId
 
 instance DepMap.GenHashable (GLExpr HostDomain) where
-    genHash = glExprId
+    genHash = getExprId
 
 
 type HostVarEvaluator = forall t0. GLType t0 => HostVar t0 -> IO t0
@@ -44,18 +49,18 @@ cachedEval expr = do
 
 eval :: GLExpr HostDomain t -> StateT EvalState IO t
 
-eval (GLExpr id (Const x)) = return x
-eval (GLExpr id (Uniform x)) = undefined
-eval (GLExpr id (HostVar x)) = undefined
-eval (GLExpr id (Inp x)) = error "Attempted to evaluate in VertexDomain"
-eval (GLExpr id (Frag x)) = error "Attempted to evaluate in FragmentDomain"
-eval (GLExpr id FuncParam) = undefined
+eval (Const id x) = return x
+eval (Uniform id x) = undefined
+eval (HostVar id x) = undefined
+eval (Inp id _) = error "Attempted to evaluate in VertexDomain"
+eval (Frag id _) = error "Attempted to evaluate in FragmentDomain"
+eval (FuncParam id) = undefined
 
-eval (GLExpr id (GLVec2 x y)) = do
+eval (GLVec2 id x y) = do
     x' <- cachedEval x
     y' <- cachedEval y
     return $ x' %| m0 %- y' %| m0
-eval (GLExpr id (GLVec3 x y z)) = do
+eval (GLVec3 id x y z) = do
     x' <- cachedEval x
     y' <- cachedEval y
     z' <- cachedEval z

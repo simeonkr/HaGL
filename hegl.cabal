@@ -23,7 +23,7 @@ library
     Graphics.HEGL.Lib.Math
     Graphics.HEGL.Examples
   other-modules:
-    Graphics.HEGL.TH
+    Graphics.HEGL.TH.HEGL
     Graphics.HEGL.Util
     Graphics.HEGL.Util.Types
     Graphics.HEGL.Util.DepMap
@@ -31,6 +31,7 @@ library
     Graphics.HEGL.GLType
     Graphics.HEGL.GLExpr
     Graphics.HEGL.ExprID
+    Graphics.HEGL.GLAST
     Graphics.HEGL.HostEval
     Graphics.HEGL.Backends.GLUT
     Graphics.HEGL.Backends.Image

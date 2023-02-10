@@ -1,7 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -dth-dec-file #-}
 
 module Graphics.HEGL.HostEval (
     hostEval
@@ -14,24 +12,21 @@ import qualified Graphics.HEGL.Util.DepMap as DepMap
 import Graphics.HEGL.Numerical
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
-import Graphics.HEGL.TH (genGlExprId)
 
-
-$genGlExprId
 
 instance DepMap.GenHashable (GLExpr HostDomain) where
-    genHash = getExprId
+    genHash = glExprId
 
 
-type HostVarEvaluator = forall t0. GLType t0 => HostVar t0 -> IO t0
+type IOEvaluator = forall t0. GLType t0 => GLExpr HostDomain t0 -> IO t0
 
 
-hostEval ::  GLType t => HostVarEvaluator -> GLExpr HostDomain t -> IO t
-hostEval hve expr = evalStateT (cachedEval expr) (EvalState hve DepMap.empty)
+hostEval ::  GLType t => IOEvaluator -> GLExpr HostDomain t -> IO t
+hostEval ioev expr = evalStateT (cachedEval expr) (EvalState ioev DepMap.empty)
 
 
 data EvalState = EvalState {
-    hostVarEvaluator :: HostVarEvaluator,
+    ioEvaluator :: IOEvaluator,
     cache :: DepMap.DepMap (GLExpr HostDomain) Identity
 }
 
@@ -49,18 +44,17 @@ cachedEval expr = do
 
 eval :: GLExpr HostDomain t -> StateT EvalState IO t
 
-eval (Const id x) = return x
-eval (Uniform id x) = undefined
-eval (HostVar id x) = undefined
-eval (Inp id _) = error "Attempted to evaluate in VertexDomain"
-eval (Frag id _) = error "Attempted to evaluate in FragmentDomain"
-eval (FuncParam id) = undefined
+eval (GLAtom _ (Const x)) = return x
+eval (GLAtom _ (Uniform x)) = undefined
+eval (GLAtom _ (Inp _)) = error "Attempted to evaluate in VertexDomain"
+eval (GLAtom _ (Frag _)) = error "Attempted to evaluate in FragmentDomain"
+eval (GLAtom _ FuncParam) = undefined
 
-eval (GLVec2 id x y) = do
+eval (GLGenExpr _ (GLVec2 x y)) = do
     x' <- cachedEval x
     y' <- cachedEval y
     return $ x' %| m0 %- y' %| m0
-eval (GLVec3 id x y z) = do
+eval (GLGenExpr _ (GLVec3 x y z)) = do
     x' <- cachedEval x
     y' <- cachedEval y
     z' <- cachedEval z

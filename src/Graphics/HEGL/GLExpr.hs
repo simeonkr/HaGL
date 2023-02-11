@@ -3,25 +3,30 @@ module Graphics.HEGL.GLExpr (
     GLAtom(..),
     GLGenExpr(..),
     ShaderDomain(..),
-    glExprId,
+    IOVarID,
     GLCoord(..),
     GLCoordList(..),
-    GLCol(..)
+    GLCol(..),
+    glExprID,
+    ConstExpr,
+    HostExpr,
+    VertExpr,
+    FragExpr
 ) where
 
 import GHC.TypeNats
 
 import Graphics.HEGL.GLType
 import Graphics.HEGL.Numerical
-import Graphics.HEGL.ExprID (ExprID, IOVarID)
+import Graphics.HEGL.ExprID (ExprID)
 import Graphics.HEGL.Util.Types
 
 
 -- * Expression definitions
 
 data GLExpr :: ShaderDomain -> * -> * where
-    GLAtom :: ExprID -> GLAtom d t -> GLExpr d t
-    GLGenExpr :: ExprID -> GLGenExpr d t -> GLExpr d t
+    GLAtom :: GLType t => ExprID -> GLAtom d t -> GLExpr d t
+    GLGenExpr :: GLType t => ExprID -> GLGenExpr d t -> GLExpr d t
 
 
 -- Irreducible variables and placeholders
@@ -266,12 +271,9 @@ data ShaderDomain = ConstDomain | HostDomain | VertexDomain | FragmentDomain
     deriving (Eq, Ord)
 
 
-glExprId :: GLExpr d t -> ExprID
-glExprId (GLAtom id _) = id
-glExprId (GLGenExpr id _) = id
-
-
 -- * Internal auxillary types
+
+type IOVarID = String
 
 data GLCoord (m :: Nat) where
     CoordX :: GLCoord 1
@@ -304,3 +306,18 @@ instance Show (GLCol m) where
     show Col1 = "[1]"
     show Col2 = "[2]"
     show Col3 = "[3]"
+
+
+-- * glExprID
+
+glExprID :: GLExpr d t -> ExprID
+glExprID (GLAtom id _) = id
+glExprID (GLGenExpr id _) = id
+
+
+-- * Synonyms
+
+type ConstExpr = GLExpr ConstDomain
+type HostExpr = GLExpr HostDomain
+type VertExpr = GLExpr VertexDomain
+type FragExpr = GLExpr FragmentDomain

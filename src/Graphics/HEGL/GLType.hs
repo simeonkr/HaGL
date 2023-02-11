@@ -17,9 +17,11 @@ type UInt = Word32
 
 class GLType t where
     type Elt t
+    showGlslType :: a t -> String
 
 instance GLType Float where
     type Elt Float = Float
+    showGlslType = const "float"
 instance GLType Double where
     type Elt Double = Double
 instance GLType Int

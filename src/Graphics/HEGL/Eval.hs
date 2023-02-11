@@ -1,7 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Graphics.HEGL.HostEval (
+module Graphics.HEGL.Eval (
     hostEval
 ) where
 
@@ -15,7 +15,7 @@ import Graphics.HEGL.GLExpr
 
 
 instance DepMap.GenHashable (GLExpr HostDomain) where
-    genHash = glExprId
+    genHash = glExprID
 
 
 type IOEvaluator = forall t0. GLType t0 => GLExpr HostDomain t0 -> IO t0

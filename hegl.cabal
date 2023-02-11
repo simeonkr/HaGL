@@ -32,9 +32,10 @@ library
     Graphics.HEGL.GLExpr
     Graphics.HEGL.ExprID
     Graphics.HEGL.GLAST
-    Graphics.HEGL.HostEval
-    Graphics.HEGL.Backends.GLUT
-    Graphics.HEGL.Backends.Image
+    Graphics.HEGL.Eval
+    Graphics.HEGL.GLObj
+    Graphics.HEGL.Backend.GLUT
+    Graphics.HEGL.Backend.Image
   default-extensions:
     GADTs, 
     DataKinds, 

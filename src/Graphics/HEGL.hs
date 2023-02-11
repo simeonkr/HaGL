@@ -172,7 +172,6 @@ module Graphics.HEGL (
 
 import Prelude
 
-import Graphics.Rendering.OpenGL.GL.PrimitiveMode (PrimitiveMode(..))
 import qualified Graphics.Rendering.OpenGL as OpenGL
 
 import Graphics.HEGL.TH.HEGL (gen2DCoordDecls, gen3DCoordDecls)
@@ -180,11 +179,8 @@ import Graphics.HEGL.Numerical (Mat, Vec, RowVec, fromMapping, fromList)
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
 import Graphics.HEGL.ExprID (genID)
-
-type ConstExpr = GLExpr ConstDomain
-type HostExpr = GLExpr HostDomain
-type VertExpr = GLExpr VertexDomain
-type FragExpr = GLExpr FragmentDomain
+import Graphics.HEGL.GLObj
+import Graphics.HEGL.Backend.GLUT
 
 
 -- * Expressions: Main definitions
@@ -450,16 +446,8 @@ mousePos = GLGenExpr (genID ()) $ GLVec2 mouseX mouseY
 class Drawable a where
     draw :: Backend -> a -> IO ()
 
-data GLObj = GLObj {
-    primitiveMode :: PrimitiveMode,
-    indices :: [ConstExpr UInt],
-    position :: VertExpr (Vec 4 Float),
-    color :: FragExpr (Vec 4 Float),
-    discardWhen :: FragExpr Bool
-}
-
 instance Drawable GLObj where
-    draw GLUTBackend = undefined
+    draw GLUTBackend = runGLUT
     draw ImageBackend = undefined
 
 instance Drawable [GLObj] where

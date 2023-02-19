@@ -1,5 +1,6 @@
 module Graphics.HEGL.GLAST (
     GLAST,
+    glastID,
     toGLAST
 ) where
 
@@ -9,11 +10,11 @@ import Graphics.HEGL.ExprID (ExprID)
 
 
 data GLAST where
-    GLASTAtom :: ExprID -> GLTypeinfo -> GLAtom d t -> GLAST
-    GLASTExpr :: ExprID -> GLTypeinfo -> String -> [GLAST] -> GLAST
+    GLASTAtom :: ExprID -> GLTypeInfo -> GLAtom d t -> GLAST
+    GLASTExpr :: ExprID -> GLTypeInfo -> String -> [GLAST] -> GLAST
 
 
-data GLTypeinfo = GLTypeinfo {
+data GLTypeInfo = GLTypeInfo {
     shaderType :: ShaderDomain,
     exprType :: ExprType
 }
@@ -31,11 +32,15 @@ instance IsGLDomain VertexDomain where
 instance IsGLDomain FragmentDomain where
     getShaderType = const FragmentDomain
 
+glastID :: GLAST -> ExprID
+glastID (GLASTAtom id _ _) = id
+glastID (GLASTExpr id _ _ _) = id
 
-makeGLExpr id e = GLASTExpr id (GLTypeinfo (getShaderType e) (showGlslType e))
+
+makeGLExpr id e = GLASTExpr id (GLTypeInfo (getShaderType e) (showGlslType e))
 
 toGLAST :: IsGLDomain d => GLExpr d t -> GLAST
-toGLAST e@(GLAtom id x) = GLASTAtom id (GLTypeinfo (getShaderType e) (showGlslType e)) x
+toGLAST e@(GLAtom id x) = GLASTAtom id (GLTypeInfo (getShaderType e) (showGlslType e)) x
 toGLAST e@(GLGenExpr _ _) = exprToGLAST e
 
 exprToGLAST :: IsGLDomain d => GLExpr d t -> GLAST

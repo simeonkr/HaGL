@@ -34,6 +34,8 @@ library
     Graphics.HEGL.GLAST
     Graphics.HEGL.Eval
     Graphics.HEGL.GLObj
+    Graphics.HEGL.Shader
+    Graphics.HEGL.CodeGen
     Graphics.HEGL.Backend.GLUT
     Graphics.HEGL.Backend.Image
   default-extensions:
@@ -55,7 +57,9 @@ library
     unordered-containers,
     mtl,
     hashable,
+    time,
     OpenGL,
+    OpenGLRaw,
     GLUT
   hs-source-dirs:      src, examples
   default-language:    Haskell2010

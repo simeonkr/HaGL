@@ -7,6 +7,8 @@ module Graphics.HEGL.GLType (
 import Data.Bits
 import Data.Word (Word32)
 import Foreign.Storable (Storable)
+import qualified Graphics.Rendering.OpenGL as OpenGL
+import qualified Graphics.GL as RawGL
 
 import Graphics.HEGL.Numerical
 
@@ -18,6 +20,12 @@ type UInt = Word32
 class GLType t where
     type Elt t
     showGlslType :: a t -> String
+    showGlslVal :: t -> String
+    toStorableList :: [t] -> [Elt t]
+    eltSize :: [t] -> Int
+    numComponents :: [t] -> Int
+    getGlslType :: [t] -> OpenGL.DataType
+    uniformSet :: OpenGL.GLint -> t -> IO ()
 
 instance GLType Float where
     type Elt Float = Float

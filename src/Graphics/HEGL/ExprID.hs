@@ -1,6 +1,7 @@
 module Graphics.HEGL.ExprID (
     ExprID,
-    genID
+    genID,
+    idLabel
 ) where
 
 import Data.IORef
@@ -18,3 +19,6 @@ genID () = unsafePerformIO $ do
     id <- readIORef unsafeCounter
     writeIORef unsafeCounter (id + 1)
     return id
+
+idLabel :: ExprID -> String
+idLabel id = "x" ++ show id

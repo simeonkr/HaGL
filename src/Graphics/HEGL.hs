@@ -180,6 +180,7 @@ import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
 import Graphics.HEGL.ExprID (genID)
 import Graphics.HEGL.GLObj
+import Graphics.HEGL.Eval
 import Graphics.HEGL.Backend.GLUT
 
 
@@ -227,8 +228,7 @@ glLift2 f x y = GLAtom (genID ()) $ GLLift2 f x y
 -- * Generic expression constructors
 
 const :: GLType t => ConstExpr t -> GLExpr d t
-const x = GLAtom (genID ()) $ Const (evalConst x) where
-    evalConst = undefined
+const x = GLAtom (genID ()) $ Const (constEval x)
 
 uniform :: GLType t => HostExpr t -> GLExpr d t
 uniform x = GLAtom (genID ()) $ Uniform x
@@ -447,11 +447,12 @@ class Drawable a where
     draw :: Backend -> a -> IO ()
 
 instance Drawable GLObj where
-    draw GLUTBackend = runGLUT
-    draw ImageBackend = undefined
+    draw GLUTBackend obj = runGLUT [obj]
+    draw ImageBackend obj = undefined
 
 instance Drawable [GLObj] where
-    draw = undefined
+    draw GLUTBackend objs = runGLUT objs
+    draw ImageBackend objs = undefined
 
 points = GLObj OpenGL.Points
 lines = GLObj OpenGL.Lines

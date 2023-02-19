@@ -3,14 +3,17 @@
 module Graphics.HEGL.Util.DepMap (
     GenHashable(..),
     DepMap,
+    Graphics.HEGL.Util.DepMap.mapWithKey,
+    Graphics.HEGL.Util.DepMap.traverseWithKey,
     Graphics.HEGL.Util.DepMap.empty,
     Graphics.HEGL.Util.DepMap.insert,
     Graphics.HEGL.Util.DepMap.lookup) 
 where
 
-import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable(..))
 import Unsafe.Coerce (unsafeCoerce)
+
+import qualified Data.HashMap.Strict as HashMap
 
 
 class GenHashable k where
@@ -37,11 +40,19 @@ empty :: GenHashable k => DepMap k v
 empty = DepMap (HashMap.empty :: HashMap.HashMap (DMK k) (DMV v))
 
 insert :: GenHashable k => k t -> v t -> DepMap k v -> DepMap k v
-insert key val (DepMap em) = DepMap $ HashMap.insert (DMK key) (DMV val) em
+insert key val (DepMap hm) = DepMap $ HashMap.insert (DMK key) (DMV val) hm
 
 lookup :: GenHashable k => k t -> DepMap k v -> Maybe (v t)
-lookup key (DepMap em) = HashMap.lookup (DMK key) em >>= 
+lookup key (DepMap hm) = HashMap.lookup (DMK key) hm >>= 
     \(DMV val) -> return $ unsafeCoerce val
+
+mapWithKey :: (forall t. k t -> v1 t -> v2 t) -> DepMap k v1 -> DepMap k v2
+mapWithKey f (DepMap hm) = DepMap hm' where
+    hm' = HashMap.mapWithKey (\(DMK k) (DMV v) -> DMV (f k $ unsafeCoerce v)) hm 
+
+traverseWithKey :: Applicative a => (forall t. k t -> v1 t -> a (v2 t)) -> DepMap k v1 -> a (DepMap k v2)
+traverseWithKey f (DepMap hm) = DepMap <$> hm' where
+    hm' = HashMap.traverseWithKey (\(DMK k) (DMV v) -> DMV <$> (f k $ unsafeCoerce v)) hm 
 
 {-data Expr t where
     IntExpr :: Int -> Expr Int

@@ -2,61 +2,72 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Graphics.HEGL.Eval (
+    constEval,
     hostEval
 ) where
 
 import Control.Monad.State.Lazy
 import Data.Functor.Identity
 
-import qualified Graphics.HEGL.Util.DepMap as DepMap
 import Graphics.HEGL.Numerical
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
 
-
-instance DepMap.GenHashable (GLExpr HostDomain) where
-    genHash = glExprID
+import qualified Graphics.HEGL.Util.DepMap as DepMap
 
 
-type IOEvaluator = forall t0. GLType t0 => GLExpr HostDomain t0 -> IO t0
+type IOEvaluator = forall t. GLExpr HostDomain t -> IO t
 
 
-hostEval ::  GLType t => IOEvaluator -> GLExpr HostDomain t -> IO t
-hostEval ioev expr = evalStateT (cachedEval expr) (EvalState ioev DepMap.empty)
+constEval :: GLExpr ConstDomain t -> t
+constEval expr = runIdentity $
+    evalStateT (cachedEval eval expr) (EvalState DepMap.empty)
+
+hostEval ::  IOEvaluator -> GLExpr HostDomain t -> IO t
+hostEval ioev expr = 
+    evalStateT (cachedEval (ioEval ioev) expr) (EvalState DepMap.empty)
 
 
-data EvalState = EvalState {
-    ioEvaluator :: IOEvaluator,
-    cache :: DepMap.DepMap (GLExpr HostDomain) Identity
+data EvalState d = EvalState {
+    cache :: DepMap.DepMap (GLExpr d) Identity
 }
 
+instance DepMap.GenHashable (GLExpr d) where
+    genHash = glExprID
 
-cachedEval :: GLExpr HostDomain t -> StateT EvalState IO t
-cachedEval expr = do
+cachedEval :: Monad a => (GLExpr d t -> StateT (EvalState d) a t) ->
+    GLExpr d t -> StateT (EvalState d) a t
+cachedEval evfn expr = do
     c <- gets cache
     case DepMap.lookup expr c of
         Just (Identity val) -> return val
         Nothing -> do
-            val :: t <- eval expr
+            val :: t <- evfn expr
             modify (\s -> s { cache = DepMap.insert expr (Identity val) (cache s) })
-            return val
+            return val 
 
 
-eval :: GLExpr HostDomain t -> StateT EvalState IO t
+ioEval :: IOEvaluator -> GLExpr HostDomain t -> StateT (EvalState HostDomain) IO t
+
+ioEval ioev e@(GLAtom _ (IOFloat _)) = lift $ ioev e
+ioEval _ e = eval e
+
+
+eval :: Monad a => GLExpr d t -> StateT (EvalState d) a t
 
 eval (GLAtom _ (Const x)) = return x
 eval (GLAtom _ (Uniform x)) = undefined
-eval (GLAtom _ (Inp _)) = error "Attempted to evaluate in VertexDomain"
-eval (GLAtom _ (Frag _)) = error "Attempted to evaluate in FragmentDomain"
+eval (GLAtom _ (Inp _)) = error "Attempted to evaluate an expression in VertexDomain"
+eval (GLAtom _ (Frag _)) = error "Attempted to evaluate an expression in FragmentDomain"
 eval (GLAtom _ FuncParam) = undefined
 
 eval (GLGenExpr _ (GLVec2 x y)) = do
-    x' <- cachedEval x
-    y' <- cachedEval y
+    x' <- eval x
+    y' <- eval y
     return $ x' %| m0 %- y' %| m0
 eval (GLGenExpr _ (GLVec3 x y z)) = do
-    x' <- cachedEval x
-    y' <- cachedEval y
-    z' <- cachedEval z
+    x' <- eval x
+    y' <- eval y
+    z' <- eval z
     return $ x' %| m0 %- y' %| m0 %- z' %| m0
     

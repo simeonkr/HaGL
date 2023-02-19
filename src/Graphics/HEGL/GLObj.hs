@@ -12,7 +12,7 @@ import Graphics.HEGL.GLExpr
 
 data GLObj = GLObj {
     primitiveMode :: PrimitiveMode,
-    indices :: [ConstExpr UInt],
+    indices :: Maybe [ConstExpr UInt],
     position :: VertExpr (Vec 4 Float),
     color :: FragExpr (Vec 4 Float),
     discardWhen :: FragExpr Bool

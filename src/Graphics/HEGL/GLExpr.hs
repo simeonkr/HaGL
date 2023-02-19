@@ -3,6 +3,7 @@ module Graphics.HEGL.GLExpr (
     GLAtom(..),
     GLGenExpr(..),
     ShaderDomain(..),
+    shaderDomains,
     IOVarID,
     GLCoord(..),
     GLCoordList(..),
@@ -283,6 +284,9 @@ data GLGenExpr :: ShaderDomain -> * -> * where
 
 data ShaderDomain = ConstDomain | HostDomain | VertexDomain | FragmentDomain
     deriving (Eq, Ord)
+
+shaderDomains :: [ShaderDomain]
+shaderDomains = [VertexDomain, FragmentDomain]
 
 
 -- * Internal auxillary types

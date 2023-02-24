@@ -49,23 +49,28 @@ exprToGLAST e@(GLGenExpr id (GLVec2 x y)) = (makeGLExpr id e) (showGlslType e) [
 exprToGLAST e@(GLGenExpr id (GLVec3 x y z)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y, toGLAST z]
 exprToGLAST e@(GLGenExpr id (GLVec4 x y z w)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y, toGLAST z, toGLAST w]
 exprToGLAST e@(GLGenExpr id (GLMat2x2 x y)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y]
+exprToGLAST e@(GLGenExpr id (GLMat2x3 x y z)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y, toGLAST z]
+exprToGLAST e@(GLGenExpr id (GLMat2x4 x y z w)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y, toGLAST z, toGLAST w]
+exprToGLAST e@(GLGenExpr id (GLMat3x2 x y)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y]
+exprToGLAST e@(GLGenExpr id (GLMat3x3 x y z)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y, toGLAST z]
+exprToGLAST e@(GLGenExpr id (GLMat3x4 x y z w)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y, toGLAST z, toGLAST w]
+exprToGLAST e@(GLGenExpr id (GLMat4x2 x y)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y]
+exprToGLAST e@(GLGenExpr id (GLMat4x3 x y z)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y, toGLAST z]
 exprToGLAST e@(GLGenExpr id (GLMat4x4 x y z w)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y, toGLAST z, toGLAST w]
-
-exprToGLAST e@(GLGenExpr id (GLArray xs)) = (makeGLExpr id e) "array" (map toGLAST xs)
-exprToGLAST e@(GLGenExpr id (OpArrayElt arr i)) = (makeGLExpr id e) "[]" [toGLAST arr, toGLAST i]
-
 exprToGLAST e@(GLGenExpr id (Pre x y)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y]
 exprToGLAST e@(GLGenExpr id (App x y)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y]
 exprToGLAST e@(GLGenExpr id (Conc x y)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y]
 exprToGLAST e@(GLGenExpr id (HorConc x y)) = (makeGLExpr id e) (showGlslType e) [toGLAST x, toGLAST y]
-
-exprToGLAST e@(GLGenExpr id (ToFloat x)) = (makeGLExpr id e) "float" [toGLAST x]
-exprToGLAST e@(GLGenExpr id (ToInt x)) = (makeGLExpr id e) "int" [toGLAST x]
-exprToGLAST e@(GLGenExpr id (ToUInt x)) = (makeGLExpr id e) "uint" [toGLAST x]
+exprToGLAST e@(GLGenExpr id (GLArray xs)) = (makeGLExpr id e) "array" (map toGLAST xs)
 
 exprToGLAST e@(GLGenExpr id (OpCoord coord x)) = (makeGLExpr id e) ("." ++ show coord) [toGLAST x]
 exprToGLAST e@(GLGenExpr id (OpCoordMulti coordList x)) = (makeGLExpr id e) ("." ++ show coordList) [toGLAST x]
 exprToGLAST e@(GLGenExpr id (OpCol col x)) = (makeGLExpr id e) (show col) [toGLAST x]
+exprToGLAST e@(GLGenExpr id (OpArrayElt arr i)) = (makeGLExpr id e) "[]" [toGLAST arr, toGLAST i]
+
+exprToGLAST e@(GLGenExpr id (ToFloat x)) = (makeGLExpr id e) "float" [toGLAST x]
+exprToGLAST e@(GLGenExpr id (ToInt x)) = (makeGLExpr id e) "int" [toGLAST x]
+exprToGLAST e@(GLGenExpr id (ToUInt x)) = (makeGLExpr id e) "uint" [toGLAST x]
 
 exprToGLAST e@(GLGenExpr id (OpAdd x y)) = (makeGLExpr id e) "+" [toGLAST x, toGLAST y]
 exprToGLAST e@(GLGenExpr id (OpSubt x y)) = (makeGLExpr id e) "-" [toGLAST x, toGLAST y]

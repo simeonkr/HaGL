@@ -42,14 +42,16 @@ data GLAtom :: ShaderDomain -> * -> * where
         GLExpr VertexDomain t -> GLAtom FragmentDomain t
     FuncParam :: GLType t => GLAtom d t
     GLFunc1 :: (GLType t, GLType t1) =>
-        GLExpr d t -> GLExpr d t1 -> 
-                      GLExpr d t1 -> GLAtom d t
+        (GLExpr d t1 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t1 -> GLAtom d t
     GLFunc2 :: (GLType t, GLType t1, GLType t2) =>
-        GLExpr d t -> GLExpr d t1 -> GLExpr d t2 -> 
-                      GLExpr d t1 -> GLExpr d t2 -> GLAtom d t
+        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t2 -> 
+        GLExpr d t1 -> GLExpr d t2 -> GLAtom d t
     GLFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) =>
-        GLExpr d t -> GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 ->
-                      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLAtom d t
+        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLAtom d t
 
     -- IO variables and placeholders exclusive to HostDomain
     IOFloat :: IOVarID -> GLAtom HostDomain Float
@@ -77,8 +79,20 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d (Vec 4 t)
     GLMat2x2 :: (GLPrim t, GLType (Vec 2 t), GLType (Mat 2 2 t)) =>
         GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLGenExpr d (Mat 2 2 t)
+    GLMat2x3 :: (GLPrim t, GLType (Vec 2 t), GLType (Mat 2 3 t)) =>
+        GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLGenExpr d (Mat 2 3 t)
+    GLMat2x4 :: (GLPrim t, GLType (Vec 2 t), GLType (Mat 2 4 t)) =>
+        GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLGenExpr d (Mat 2 4 t)
+    GLMat3x2 :: (GLPrim t, GLType (Vec 3 t), GLType (Mat 3 2 t)) =>
+        GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLGenExpr d (Mat 3 2 t)
     GLMat3x3 :: (GLPrim t, GLType (Vec 3 t), GLType (Mat 3 3 t)) =>
         GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLGenExpr d (Mat 3 3 t)
+    GLMat3x4 :: (GLPrim t, GLType (Vec 3 t), GLType (Mat 3 4 t)) =>
+        GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLGenExpr d (Mat 3 4 t)
+    GLMat4x2 :: (GLPrim t, GLType (Vec 4 t), GLType (Mat 4 2 t)) =>
+        GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLGenExpr d (Mat 4 2 t)
+    GLMat4x3 :: (GLPrim t, GLType (Vec 4 t), GLType (Mat 4 3 t)) =>
+        GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLGenExpr d (Mat 4 3 t)
     GLMat4x4 :: (GLPrim t, GLType (Vec 4 t), GLType (Mat 4 4 t)) =>
         GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLGenExpr d (Mat 4 4 t)
     Pre :: (GLPrim t, GLType (Vec n t), GLType (Vec (n + 1) t)) => 
@@ -92,14 +106,14 @@ data GLGenExpr :: ShaderDomain -> * -> * where
     GLArray :: (GLPrim t, GLType [t]) =>
         [GLExpr HostDomain t] -> GLGenExpr HostDomain [t]
 
-    OpArrayElt :: (GLType [t], GLType t) =>
-        GLExpr d [t] -> GLExpr d Int -> GLGenExpr d t
     OpCoord :: (GLPrim t, GLType (Vec n t), m <= n) =>
         GLCoord m -> GLExpr d (Vec n t) -> GLGenExpr d t
     OpCoordMulti :: (GLPrim t, GLType (Vec n t), GLType (Vec l t), m <= n) =>
         GLCoordList l m -> GLExpr d (Vec n t) -> GLGenExpr d (Vec l t)
     OpCol :: (GLPrim t, GLType (Mat r c t), GLType (Vec r t), m <= c) =>
         GLCol m -> GLExpr d (Mat r c t) -> GLGenExpr d (Vec r t)
+    OpArrayElt :: (GLType [t], GLType t) =>
+        GLExpr d [t] -> GLExpr d Int -> GLGenExpr d t
 
     -- TODO: can these be defined on Mats?
     ToFloat :: GLPrim t =>
@@ -109,17 +123,17 @@ data GLGenExpr :: ShaderDomain -> * -> * where
     ToUInt :: GLPrim t =>
         GLExpr d t -> GLGenExpr d UInt
 
-    OpAdd :: (GLNumeric (Elt t), GLType t) => 
+    OpAdd :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpSubt :: (GLNumeric (Elt t), GLType t) =>
+    OpSubt :: (GLNumeric (GLElt t), GLType t) =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpMult :: (GLNumeric (Elt t), GLType t) => 
+    OpMult :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpDiv :: (GLNumeric (Elt t), GLType t) => 
+    OpDiv :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpMod :: (GLInteger (Elt t), GLType t) =>
+    OpMod :: (GLInteger (GLElt t), GLType t) =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpNeg :: (GLNumeric (Elt t), GLType t) => 
+    OpNeg :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
     OpLessThan :: GLNumeric t =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d Bool
@@ -140,83 +154,83 @@ data GLGenExpr :: ShaderDomain -> * -> * where
     OpCond :: GLType t =>
         GLExpr d Bool -> GLExpr d t -> GLExpr d t -> GLGenExpr d t
     -- TODO: these should not be defined for non-vector matrices
-    OpCompl :: (GLInteger (Elt t), GLType t) => 
+    OpCompl :: (GLInteger (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    OpLshift :: (GLInteger (Elt t), GLType t) => 
+    OpLshift :: (GLInteger (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpRshift :: (GLInteger (Elt t), GLType t) => 
+    OpRshift :: (GLInteger (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpBitAnd :: (GLInteger (Elt t), GLType t) => 
+    OpBitAnd :: (GLInteger (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpBitOr :: (GLInteger (Elt t), GLType t) => 
+    OpBitOr :: (GLInteger (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpBitXor :: (GLInteger (Elt t), GLType t) => 
+    OpBitXor :: (GLInteger (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
     OpScalarMult :: (GLNumeric t, GLType (Mat p q t)) => 
         GLExpr d t -> GLExpr d (Mat p q t) -> GLGenExpr d (Mat p q t)
     OpMatrixMult :: (GLFloating t, GLType (Mat p q t), GLType (Mat q r t), GLType (Mat p r t)) => 
         GLExpr d (Mat p q t) -> GLExpr d (Mat q r t) -> GLGenExpr d (Mat p r t)
 
-    Radians :: (Elt t ~ Float, GLType t) => 
+    Radians :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Degrees :: (Elt t ~ Float, GLType t) => 
+    Degrees :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Sin :: (Elt t ~ Float, GLType t) => 
+    Sin :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Cos :: (Elt t ~ Float, GLType t) => 
+    Cos :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Tan :: (Elt t ~ Float, GLType t) => 
+    Tan :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Asin :: (Elt t ~ Float, GLType t) => 
+    Asin :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Acos :: (Elt t ~ Float, GLType t) => 
+    Acos :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Atan :: (Elt t ~ Float, GLType t) => 
+    Atan :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
 
-    Pow :: (Elt t ~ Float, GLType t) =>
+    Pow :: (GLElt t ~ Float, GLType t) =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Exp :: (Elt t ~ Float, GLType t) => 
+    Exp :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Log :: (Elt t ~ Float, GLType t) => 
+    Log :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Exp2 :: (Elt t ~ Float, GLType t) => 
+    Exp2 :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Log2 :: (Elt t ~ Float, GLType t) => 
+    Log2 :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Sqrt :: (GLFloating (Elt t), GLType t) => 
+    Sqrt :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
     -- TODO: missing Inversesqrt
 
-    Abs :: (GLNumeric (Elt t), GLType t) => 
+    Abs :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Sign :: (GLNumeric (Elt t), GLType t) => 
+    Sign :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Floor :: (GLFloating (Elt t), GLType t) => 
+    Floor :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Trunc :: (GLFloating (Elt t), GLType t) => 
+    Trunc :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Round :: (GLFloating (Elt t), GLType t) => 
+    Round :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    RoundEven :: (GLFloating (Elt t), GLType t) => 
+    RoundEven :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Ceil :: (GLFloating (Elt t), GLType t) => 
+    Ceil :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Fract :: (GLFloating (Elt t), GLType t) => 
+    Fract :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Mod :: (GLFloating (Elt t), GLType t) => 
+    Mod :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Min :: (GLNumeric (Elt t), GLType t) => 
+    Min :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Max :: (GLNumeric (Elt t), GLType t) => 
+    Max :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Clamp :: (GLNumeric (Elt t), GLType t) => 
+    Clamp :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Mix :: (GLFloating (Elt t), GLType t) => 
+    Mix :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Step :: (GLFloating (Elt t), GLType t) => 
+    Step :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Smoothstep :: (GLFloating (Elt t), GLType t) => 
+    Smoothstep :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d t
 
     Length :: GLFloating t =>

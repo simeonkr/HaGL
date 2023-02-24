@@ -1,7 +1,9 @@
 module Graphics.HEGL.GLType (
     UInt,
     GLType(..),
-    GLPrim, GLSingle, GLNumeric, GLFloating, GLSingleNumeric, GLInteger
+    GLElt,
+    GLPrim, GLSingle, GLNumeric, GLFloating, GLSingleNumeric, GLInteger,
+    genDiv
 ) where
 
 import Data.Bits
@@ -17,21 +19,21 @@ import Graphics.HEGL.Numerical
 
 type UInt = Word32
 
-class GLType t where
-    type Elt t
+class (Eq t, Show t) => GLType t where
     showGlslType :: a t -> String
     showGlslVal :: t -> String
-    toStorableList :: [t] -> [Elt t]
+    glMap :: (GLElt t -> GLElt t) -> t -> t
+    glZipWith :: (GLElt t -> GLElt t -> GLElt t) -> t -> t -> t
+    glZipWith3 :: (GLElt t -> GLElt t -> GLElt t -> GLElt t) -> t -> t -> t -> t
+    toStorableList :: [t] -> [GLElt t]
     eltSize :: [t] -> Int
     numComponents :: [t] -> Int
     getGlslType :: [t] -> OpenGL.DataType
     uniformSet :: OpenGL.GLint -> t -> IO ()
 
 instance GLType Float where
-    type Elt Float = Float
     showGlslType = const "float"
-instance GLType Double where
-    type Elt Double = Double
+instance GLType Double
 instance GLType Int
 instance GLType UInt
 instance GLType Bool
@@ -73,6 +75,16 @@ instance GLType [Double]
 instance GLType [Int]
 instance GLType [UInt]
 instance GLType [Bool]
+
+
+type family GLElt t where
+    GLElt (Mat r c t) = t
+    GLElt [t] = t
+    GLElt Float = Float
+    GLElt Double = Double
+    GLElt Int = Int
+    GLElt UInt = UInt
+    GLElt Bool = Bool
 
 
 -- * "Subclasses" of GLType

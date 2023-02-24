@@ -30,7 +30,7 @@ data UniformVar where
     UniformVar :: GLType t => ExprID -> GLExpr HostDomain t -> UniformVar
 
 data InpVar where
-    InpVar :: (GLType t, GLType (Elt t), Storable (Elt t)) => 
+    InpVar :: (GLType t, GLType (GLElt t), Storable (GLElt t)) => 
         ExprID -> [GLExpr ConstDomain t] -> InpVar
 
 

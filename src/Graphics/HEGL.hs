@@ -22,7 +22,7 @@ module Graphics.HEGL (
     fromMapping,
     fromList,
     -- ** Classes
-    GLType(Elt),
+    GLType, GLElt,
     GLPrim, GLSingle, GLNumeric, GLFloating, GLSingleNumeric, GLInteger,
     -- * Expressions: Main definitions
     GLExpr,
@@ -42,12 +42,11 @@ module Graphics.HEGL (
     vert,
     frag,
     -- * Vector, matrix, and array constructors
-    vec2,
-    vec3,
-    vec4,
-    mat2x2,
-    mat3x3,
-    mat4x4,
+    vec2, vec3, vec4,
+    mat2, mat3, mat4,
+    mat2x2, mat2x3, mat2x4,
+    mat3x2, mat3x3, mat3x4,
+    mat4x2, mat4x3, mat4x4,
     pre,
     app,
     ($-),
@@ -65,6 +64,7 @@ module Graphics.HEGL (
     zxy_, zxw_, zyx_, zyw_, zwx_, zwy_,
     wxy_, wxz_, wyx_, wyz_, wxz_, wxy_,
     col0, col1, col2, col3,
+    (%!),
     -- * Type conversion
     toFloat,
     toInt,
@@ -190,7 +190,7 @@ instance GLPrim t => Enum (GLExpr d t) where
     toEnum x = GLAtom (genID ()) $ Const (toEnum x)
     fromEnum x = undefined
 
-instance (GLNumeric (Elt t), GLType t, Num t) => Num (GLExpr d t) where
+instance (GLNumeric (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
     x + y = GLGenExpr (genID ()) $ OpAdd x y
     x - y = GLGenExpr (genID ()) $ OpSubt x y
     x * y = GLGenExpr (genID ()) $ OpMult x y
@@ -199,7 +199,7 @@ instance (GLNumeric (Elt t), GLType t, Num t) => Num (GLExpr d t) where
     signum x = GLGenExpr (genID ()) $ Sign x
     fromInteger x = GLAtom (genID ()) $ Const (fromInteger x)
 
-instance (GLFloating (Elt t), GLType t, Fractional t) => Fractional (GLExpr d t) where
+instance (GLFloating (GLElt t), GLType t, Fractional t) => Fractional (GLExpr d t) where
     x / y = GLGenExpr (genID ()) $ OpDiv x y
     fromRational x = GLAtom (genID ()) $ Const (fromRational x)
 
@@ -248,9 +248,17 @@ frag x = GLAtom (genID ()) $ Frag x
 vec2 x y = GLGenExpr (genID ()) $ GLVec2 x y
 vec3 x y z = GLGenExpr (genID ()) $ GLVec3 x y z
 vec4 x y z w = GLGenExpr (genID ()) $ GLVec4 x y z w
--- TODO: synthesize all mat constructors using $- and $| operators
+mat2 x y = mat2x2 x y
+mat3 x y z = mat3x3 x y z
+mat4 x y z w = mat4x4 x y z w
 mat2x2 x y = GLGenExpr (genID ()) $ GLMat2x2 x y
+mat2x3 x y z = GLGenExpr (genID ()) $ GLMat2x3 x y z
+mat2x4 x y z w = GLGenExpr (genID ()) $ GLMat2x4 x y z w
+mat3x2 x y = GLGenExpr (genID ()) $ GLMat3x2 x y
 mat3x3 x y z = GLGenExpr (genID ()) $ GLMat3x3 x y z
+mat3x4 x y z w = GLGenExpr (genID ()) $ GLMat3x4 x y z w
+mat4x2 x y = GLGenExpr (genID ()) $ GLMat4x2 x y
+mat4x3 x y z = GLGenExpr (genID ()) $ GLMat4x3 x y z
 mat4x4 x y z w = GLGenExpr (genID ()) $ GLMat4x4 x y z w
 
 pre x y = GLGenExpr (genID ()) $ Pre x y
@@ -263,6 +271,7 @@ x $| y = GLGenExpr (genID ()) $ HorConc x y
 x $- y = GLGenExpr (genID ()) $ Conc x y
 
 arr xs = GLGenExpr (genID ()) $ GLArray xs
+
 
 -- * Deconstruction and indexing
 
@@ -294,6 +303,8 @@ col1 m = GLGenExpr (genID ()) $ OpCol Col1 m
 col2 m = GLGenExpr (genID ()) $ OpCol Col2 m
 col3 m = GLGenExpr (genID ()) $ OpCol Col3 m
 
+arr %! i = GLGenExpr (genID ()) $ OpArrayElt arr i
+
 
 -- * Expression type conversion
 
@@ -309,19 +320,19 @@ makeFuncParam () = GLAtom (genID ()) FuncParam
 glFunc1 :: (GLType t, GLType t1) => 
     (GLExpr d t1 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t 
-glFunc1 f = \x0 -> GLAtom (genID ()) $ GLFunc1 (f x) x x0
+glFunc1 f = \x0 -> GLAtom (genID ()) $ GLFunc1 f x x0
     where x = makeFuncParam ()
 
 glFunc2 :: (GLType t, GLType t1, GLType t2) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t 
-glFunc2 f = \x0 y0 -> GLAtom (genID ()) $ GLFunc2 (f x y) x y x0 y0
+glFunc2 f = \x0 y0 -> GLAtom (genID ()) $ GLFunc2 f x y x0 y0
     where (x, y) = (makeFuncParam (), makeFuncParam ())
 
 glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
-glFunc3 f = \x0 y0 z0 -> GLAtom (genID ()) $ GLFunc3 (f x y z) x y z x0 y0 z0
+glFunc3 f = \x0 y0 z0 -> GLAtom (genID ()) $ GLFunc3 f x y z x0 y0 z0
     where (x, y, z) = (makeFuncParam (), makeFuncParam (), makeFuncParam ())
 -- TODO: add remaining lifts, up to glFunc6
 

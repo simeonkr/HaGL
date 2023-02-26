@@ -32,6 +32,7 @@ library
     Graphics.HEGL.GLExpr
     Graphics.HEGL.ExprID
     Graphics.HEGL.GLAST
+    Graphics.HEGL.GLPrint
     Graphics.HEGL.Eval
     Graphics.HEGL.GLObj
     Graphics.HEGL.Shader

@@ -1,5 +1,7 @@
 module Graphics.HEGL.GLAST (
-    GLAST,
+    GLAST(..),
+    GLTypeInfo(..),
+    IsGLDomain(..),
     glastID,
     toGLAST
 ) where

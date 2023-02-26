@@ -188,7 +188,7 @@ import Graphics.HEGL.Backend.GLUT
 
 instance GLPrim t => Enum (GLExpr d t) where
     toEnum x = GLAtom (genID ()) $ Const (toEnum x)
-    fromEnum x = undefined
+    fromEnum x = undefined --FIXME
 
 instance (GLNumeric (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
     x + y = GLGenExpr (genID ()) $ OpAdd x y

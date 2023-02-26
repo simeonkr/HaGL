@@ -36,9 +36,9 @@ data GLAtom :: ShaderDomain -> * -> * where
         t -> GLAtom d t
     Uniform :: GLType t => 
         GLExpr HostDomain t -> GLAtom d t
-    Inp :: GLPrim t => 
+    Inp :: GLInputType t => 
         [GLExpr ConstDomain t] -> GLAtom VertexDomain t
-    Frag :: GLPrim t =>
+    Frag :: GLInputType t =>
         GLExpr VertexDomain t -> GLAtom FragmentDomain t
     FuncParam :: GLType t => GLAtom d t
     GLFunc1 :: (GLType t, GLType t1) =>

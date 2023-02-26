@@ -37,7 +37,19 @@ glastID (GLASTAtom id _ _) = id
 glastID (GLASTExpr id _ _ _) = id
 
 
+makeGLExpr id e@(GLGenExpr _ (GLArray xs)) = GLASTExpr id (GLTypeInfo (getShaderType e) tystr) where
+    tystr = showGlslType e ++ "[" ++ show (length xs) ++ "]"
+makeGLExpr id e@(GLAtom _ (GLLift0 x)) = GLASTExpr id (GLTypeInfo (getShaderType e) tystr) where
+    tystr = showGlslType e ++ showRetArraySize x
+makeGLExpr id e@(GLAtom _ (GLLift1 f _)) = GLASTExpr id (GLTypeInfo (getShaderType e) tystr) where
+    tystr = showGlslType e ++ showRetArraySize (f vd)
+makeGLExpr id e@(GLAtom _ (GLLift2 f _ _)) = GLASTExpr id (GLTypeInfo (getShaderType e) tystr) where
+    tystr = showGlslType e ++ showRetArraySize (f vd vd)
 makeGLExpr id e = GLASTExpr id (GLTypeInfo (getShaderType e) (showGlslType e))
+
+vd = error "GLLift*: Output list length must be independent of list contents"
+showRetArraySize r = if arrayLen r == 1 then "" else "[" ++ show (arrayLen r) ++ "]"
+
 
 toGLAST :: IsGLDomain d => GLExpr d t -> GLAST
 toGLAST e@(GLAtom id x) = GLASTAtom id (GLTypeInfo (getShaderType e) (showGlslType e)) x

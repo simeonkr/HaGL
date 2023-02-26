@@ -153,17 +153,17 @@ eval (GLGenExpr _ (OpMod x y)) = withEv2 x y $ \x y ->
 eval (GLGenExpr _ (OpNeg x)) = withEv1 x $ \x ->
     return $ glMap negate x
 eval (GLGenExpr _ (OpLessThan x y)) = withEv2 x y $ \x y ->
-    return $ fromBool $ x < y
+    return $ x < y
 eval (GLGenExpr _ (OpLessThanEqual x y)) = withEv2 x y $ \x y ->
-    return $ fromBool $ x <= y
+    return $ x <= y
 eval (GLGenExpr _ (OpGreaterThan x y)) = withEv2 x y $ \x y ->
-    return $ fromBool $ x > y
+    return $ x > y
 eval (GLGenExpr _ (OpGreaterThanEqual x y)) = withEv2 x y $ \x y ->
-    return $ fromBool $ x >= y
+    return $ x >= y
 eval (GLGenExpr _ (OpEqual x y)) = withEv2 x y $ \x y ->
-    return $ fromBool $ x == y
+    return $ x == y
 eval (GLGenExpr _ (OpNotEqual x y)) = withEv2 x y $ \x y ->
-    return $ fromBool $ x /= y
+    return $ x /= y
 eval (GLGenExpr _ (OpAnd x y)) = withEv2 x y $ \x y -> 
     return $ x .&. y
 eval (GLGenExpr _ (OpOr x y)) = withEv2 x y $ \x y ->
@@ -173,7 +173,7 @@ eval (GLGenExpr _ (OpXor x y)) = withEv2 x y $ \x y ->
 eval (GLGenExpr _ (OpNot x)) = withEv1 x $ \x -> 
     return $ complement x
 eval (GLGenExpr _ (OpCond x y z)) = withEv3 x y z $ \x y z -> 
-    return $ if (toBool $ x) then y else z
+    return $ if x then y else z
 eval (GLGenExpr _ (OpCompl x)) = withEv1 x $ \x ->
     return $ glMap complement x
 eval (GLGenExpr _ (OpLshift x y)) = withEv2 x y $ \x y -> 
@@ -298,17 +298,17 @@ eval (GLGenExpr _ (Inverse x)) = withEv1 x $ \x ->
     return $ inverse $ x
 
 eval (GLGenExpr _ (LessThan x y)) = withEv2 x y $ \x y -> 
-    return $ liftA2 ((fromBool .) . (<)) x y
+    return $ liftA2 (<) x y
 eval (GLGenExpr _ (LessThanEqual x y)) = withEv2 x y $ \x y -> 
-    return $ liftA2 ((fromBool .) . (<=)) x y
+    return $ liftA2 (<=) x y
 eval (GLGenExpr _ (GreaterThan x y)) = withEv2 x y $ \x y -> 
-    return $ liftA2 ((fromBool .) . (>)) x y
+    return $ liftA2 (>) x y
 eval (GLGenExpr _ (GreaterThanEqual x y)) = withEv2 x y $ \x y -> 
-    return $ liftA2 ((fromBool .) . (>=)) x y
+    return $ liftA2 (>=) x y
 eval (GLGenExpr _ (Equal x y)) = withEv2 x y $ \x y -> 
-    return $ liftA2 ((fromBool .) . (==)) x y
+    return $ liftA2 (==) x y
 eval (GLGenExpr _ (NotEqual x y)) = withEv2 x y $ \x y -> 
-    return $ liftA2 ((fromBool .) . (/=)) x y
+    return $ liftA2 (/=) x y
 eval (GLGenExpr _ (Any x)) = withEv1 x $ \x -> 
     return $ foldr (.|.) False x
 eval (GLGenExpr _ (All x)) = withEv1 x $ \x -> 
@@ -337,9 +337,3 @@ colToIndex Col0 = 0
 colToIndex Col1 = 1
 colToIndex Col2 = 2
 colToIndex Col3 = 3
-
-fromBool :: Bool -> Bool
-fromBool = toEnum . fromEnum
-
-toBool :: Bool -> Bool
-toBool = toEnum . fromEnum

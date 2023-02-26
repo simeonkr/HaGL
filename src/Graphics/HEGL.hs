@@ -22,7 +22,7 @@ module Graphics.HEGL (
     fromMapping,
     fromList,
     -- ** Classes
-    GLType, GLElt,
+    GLType, GLInputType, GLElt,
     GLPrim, GLSingle, GLNumeric, GLFloating, GLSingleNumeric, GLInteger,
     -- * Expressions: Main definitions
     GLExpr,
@@ -236,10 +236,10 @@ uniform x = GLAtom (genID ()) $ Uniform x
 prec :: GLType t => HostExpr t -> HostExpr t -> HostExpr t
 prec x0 x = GLAtom (genID ()) $ IOPrec x0 x
 
-vert :: GLPrim t => [ConstExpr t] -> VertExpr t
+vert :: GLInputType t => [ConstExpr t] -> VertExpr t
 vert inp = GLAtom (genID ()) $ Inp inp
 
-frag :: GLPrim t => VertExpr t -> FragExpr t
+frag :: GLInputType t => VertExpr t -> FragExpr t
 frag x = GLAtom (genID ()) $ Frag x
 
 
@@ -334,7 +334,7 @@ glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) =>
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
 glFunc3 f = \x0 y0 z0 -> GLAtom (genID ()) $ GLFunc3 f x y z x0 y0 z0
     where (x, y, z) = (makeFuncParam (), makeFuncParam (), makeFuncParam ())
--- TODO: add remaining lifts, up to glFunc6
+-- TODO: add remaining cases, up to glFunc6
 
 
 -- * Builtin operators and functions

@@ -20,6 +20,7 @@ source-repository head
 library
   exposed-modules:
     Graphics.HEGL,
+    Graphics.HEGL.Internal,
     Graphics.HEGL.Lib.Math
     Graphics.HEGL.Examples
   other-modules:
@@ -70,10 +71,12 @@ library
     -Wno-missing-signatures
     -Wno-unticked-promoted-constructors
 
-executable hegl-example
+Test-Suite hegl-test
+  type: exitcode-stdio-1.0
   build-depends:
     base,
+    HUnit,
     hegl
   hs-source-dirs: tests
-  main-is: Example.hs
+  main-is: Test.hs
   default-language:    Haskell2010

@@ -320,19 +320,19 @@ makeFuncParam () = GLAtom (genID ()) FuncParam
 glFunc1 :: (GLType t, GLType t1) => 
     (GLExpr d t1 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t 
-glFunc1 f = \x0 -> GLAtom (genID ()) $ GLFunc1 f x x0
+glFunc1 f = \x0 -> GLFunc (genID ()) $ GLFunc1 f x x0
     where x = makeFuncParam ()
 
 glFunc2 :: (GLType t, GLType t1, GLType t2) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t 
-glFunc2 f = \x0 y0 -> GLAtom (genID ()) $ GLFunc2 f x y x0 y0
+glFunc2 f = \x0 y0 -> GLFunc (genID ()) $ GLFunc2 f x y x0 y0
     where (x, y) = (makeFuncParam (), makeFuncParam ())
 
 glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
-glFunc3 f = \x0 y0 z0 -> GLAtom (genID ()) $ GLFunc3 f x y z x0 y0 z0
+glFunc3 f = \x0 y0 z0 -> GLFunc (genID ()) $ GLFunc3 f x y z x0 y0 z0
     where (x, y, z) = (makeFuncParam (), makeFuncParam (), makeFuncParam ())
 -- TODO: add remaining cases, up to glFunc6
 
@@ -465,16 +465,16 @@ instance Drawable [GLObj] where
     draw GLUTBackend objs = runGLUT objs
     draw ImageBackend objs = undefined
 
-points = GLObj OpenGL.Points
-lines = GLObj OpenGL.Lines
-lineLoop = GLObj OpenGL.LineLoop
-lineStrip = GLObj OpenGL.LineStrip
-triangles = GLObj OpenGL.Triangles
-triangleStrip = GLObj OpenGL.TriangleStrip
-triangleFan = GLObj OpenGL.Points
-quads = GLObj OpenGL.Quads
-quadStrip = GLObj OpenGL.QuadStrip
-polygon = GLObj OpenGL.Polygon
+points = GLObj { primitiveMode = OpenGL.Points }
+lines = GLObj { primitiveMode = OpenGL.Lines }
+lineLoop = GLObj { primitiveMode = OpenGL.LineLoop }
+lineStrip = GLObj { primitiveMode = OpenGL.LineStrip }
+triangles = GLObj { primitiveMode = OpenGL.Triangles }
+triangleStrip = GLObj { primitiveMode = OpenGL.TriangleStrip }
+triangleFan = GLObj { primitiveMode = OpenGL.Points }
+quads = GLObj { primitiveMode = OpenGL.Quads }
+quadStrip = GLObj { primitiveMode = OpenGL.QuadStrip }
+polygon = GLObj { primitiveMode = OpenGL.Polygon }
 
 -- * Backends
 

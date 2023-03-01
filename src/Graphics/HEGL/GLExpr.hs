@@ -1,6 +1,7 @@
 module Graphics.HEGL.GLExpr (
     GLExpr(..),
     GLAtom(..),
+    GLFunc(..),
     GLGenExpr(..),
     ShaderDomain(..),
     shaderDomains,
@@ -8,7 +9,6 @@ module Graphics.HEGL.GLExpr (
     GLCoord(..),
     GLCoordList(..),
     GLCol(..),
-    glExprID,
     ConstExpr,
     HostExpr,
     VertExpr,
@@ -19,7 +19,7 @@ import GHC.TypeNats
 
 import Graphics.HEGL.GLType
 import Graphics.HEGL.Numerical
-import Graphics.HEGL.ExprID (ExprID)
+import Graphics.HEGL.ExprID
 import Graphics.HEGL.Util.Types
 
 
@@ -27,6 +27,7 @@ import Graphics.HEGL.Util.Types
 
 data GLExpr :: ShaderDomain -> * -> * where
     GLAtom :: GLType t => ExprID -> GLAtom d t -> GLExpr d t
+    GLFunc :: GLType t => ExprID -> GLFunc d t -> GLExpr d t
     GLGenExpr :: GLType t => ExprID -> GLGenExpr d t -> GLExpr d t
 
 
@@ -42,17 +43,6 @@ data GLAtom :: ShaderDomain -> * -> * where
     Frag :: GLInputType t =>
         GLExpr VertexDomain t -> GLAtom FragmentDomain t
     FuncParam :: GLType t => GLAtom d t
-    GLFunc1 :: (GLType t, GLType t1) =>
-        (GLExpr d t1 -> GLExpr d t) ->
-        GLExpr d t1 -> GLExpr d t1 -> GLAtom d t
-    GLFunc2 :: (GLType t, GLType t1, GLType t2) =>
-        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) ->
-        GLExpr d t1 -> GLExpr d t2 -> 
-        GLExpr d t1 -> GLExpr d t2 -> GLAtom d t
-    GLFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) =>
-        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) ->
-        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 ->
-        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLAtom d t
 
     -- IO variables and placeholders exclusive to HostDomain
     IOFloat :: IOVarID -> GLAtom HostDomain Float
@@ -67,6 +57,23 @@ data GLAtom :: ShaderDomain -> * -> * where
         (t1 -> t) -> GLExpr HostDomain t1 -> GLAtom HostDomain t
     GLLift2 :: (GLType t, GLType t1, GLType t2) =>
         (t1 -> t2 -> t) -> GLExpr HostDomain t1 -> GLExpr HostDomain t2 -> GLAtom HostDomain t
+
+
+-- User-defined functions
+
+data GLFunc :: ShaderDomain -> * -> * where
+
+    GLFunc1 :: (GLType t, GLType t1) =>
+        (GLExpr d t1 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t1 -> GLFunc d t
+    GLFunc2 :: (GLType t, GLType t1, GLType t2) =>
+        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t2 -> 
+        GLExpr d t1 -> GLExpr d t2 -> GLFunc d t
+    GLFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) =>
+        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLFunc d t
 
 
 -- Compound expressions corresponding to built-in functions and operators
@@ -328,9 +335,10 @@ instance Show (GLCol m) where
 
 -- * glExprID
 
-glExprID :: GLExpr d t -> ExprID
-glExprID (GLAtom id _) = id
-glExprID (GLGenExpr id _) = id
+instance HasExprID (GLExpr d t) where
+getID (GLAtom id _) = id
+getID (GLFunc id _) = id
+getID (GLGenExpr id _) = id
 
 
 -- * Synonyms

@@ -280,15 +280,6 @@ ioEval ioState obj (GLAtom id (IOPrec x0 x)) = do
             writeIORef (precMap obj) $ DepMap.insert x0 (Identity val) pm
             return val
 
-ioEval ioState obj (GLAtom id (GLLift1 f x)) = do
-    vx <- hostEval (ioEval ioState obj) x
-    return $ f vx
-
-ioEval ioState obj (GLAtom id (GLLift2 f x y)) = do
-    vx <- hostEval (ioEval ioState obj) x
-    vy <- hostEval (ioEval ioState obj) y
-    return $ f vx vy
-
 ioEval ioState _ (GLAtom id (IOFloat "time")) = do
     let t0 = initTime ioState
     epoch <- getCurrentTime

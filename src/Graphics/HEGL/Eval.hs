@@ -16,6 +16,7 @@ import Data.Bits
 import Graphics.HEGL.Numerical
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
+import Graphics.HEGL.ExprID
 import Graphics.HEGL.Util.Types (FinList(..))
 
 import qualified Graphics.HEGL.Util.DepMap as DepMap
@@ -38,7 +39,7 @@ data EvalState d = EvalState {
 }
 
 instance DepMap.GenHashable (GLExpr d) where
-    genHash = glExprID
+    genHash = getID
 
 cachedEval :: Monad a => (GLExpr d t -> StateT (EvalState d) a t) ->
     GLExpr d t -> StateT (EvalState d) a t
@@ -60,16 +61,6 @@ hEval ioev e@(GLAtom _ (IOInt _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IOUInt _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IOBool _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IOPrec _ _)) = lift $ ioev e
-hEval ioev (GLAtom _ (GLLift0 x)) = 
-    return x
-hEval ioev (GLAtom _ (GLLift1 f x)) = do
-    x' <- cachedEval (hEval ioev) x
-    return $ f x'
-hEval ioev (GLAtom _ (GLLift2 f x y)) = do
-    x' <- cachedEval (hEval ioev) x
-    y' <- cachedEval (hEval ioev) y
-    return $ f x' y'
-
 hEval ioev (GLAtom _ (Uniform x)) = hEval ioev x 
 hEval _ e = eval e
 
@@ -81,9 +72,17 @@ eval (GLAtom _ (Uniform x)) = error "Attempted to purely evaluate an expression 
 eval (GLAtom _ (Inp _)) = error "Attempted to evaluate an expression in VertexDomain"
 eval (GLAtom _ (Frag _)) = error "Attempted to evaluate an expression in FragmentDomain"
 eval (GLAtom _ FuncParam) = error "Attempted to evaluate a function parameter"
-eval (GLAtom _ (GLFunc1 f _ x0)) = eval $ f x0
-eval (GLAtom _ (GLFunc2 f _ _ x0 y0)) = eval $ f x0 y0
-eval (GLAtom _ (GLFunc3 f _ _ _ x0 y0 z0)) = eval $ f x0 y0 z0
+eval (GLAtom _ (GLLift0 x0)) = return x0
+eval (GLAtom _ (GLLift1 f x0)) = withEv1 x0 $ \x0 ->
+    return $ f x0
+eval (GLAtom _ (GLLift2 f x0 y0)) = withEv2 x0 y0 $ \x0 y0 ->
+    return $ f x0 y0
+
+eval (GLFunc _ (GLFunc1 f _ x0)) = eval $ f x0
+eval (GLFunc _ (GLFunc2 f _ _ x0 y0)) = eval $ f x0 y0
+eval (GLFunc _ (GLFunc3 f _ _ _ x0 y0 z0)) = eval $ f x0 y0 z0
+
+--TODO: GLLift
 
 eval (GLGenExpr _ (GLVec2 x y)) = withEv2 x y $ \x y -> 
     return $ x %| m0 %- y %| m0

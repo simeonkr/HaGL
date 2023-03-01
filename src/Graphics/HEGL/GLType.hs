@@ -738,7 +738,7 @@ makeMatSetter rawSetter ul xs = do
     OpenGL.withMatrix m $ const $ rawSetter ul 1 0
 
 
-class GLType t => GLInputType t where
+class (GLType t, Storable (GLElt t)) => GLInputType t where
     toStorableList :: [t] -> [GLElt t]
 
 instance GLInputType Float where

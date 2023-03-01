@@ -1,4 +1,4 @@
-module Graphics.HEGL.GLPrint () where
+module Graphics.HEGL.Print () where
 
 import Control.Monad.State.Lazy (State, execState, gets, modify)
 import qualified Data.Set as Set
@@ -48,7 +48,10 @@ printGLAST (GLASTAtom id ty (Inp _)) =
     printNode id ty "inp"
 printGLAST (GLASTAtom id ty (Frag _)) =
     printNode id ty "frag"
+-- TODO: finish the other cases
 printGLAST (GLASTAtom id ty _) =
+    printNode id ty "?"
+printGLAST (GLASTFuncApp id ty _ _ _) =
     printNode id ty "?"
 printGLAST (GLASTExpr id ty op xs) = do
     printNode id ty op

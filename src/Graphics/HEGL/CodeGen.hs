@@ -4,10 +4,10 @@ module Graphics.HEGL.CodeGen (
     genProgram
 ) where
 
-import Control.Monad.State.Lazy (State, evalState, runState, get, gets, modify)
-import Data.Map as Map
-import Data.Set as Set
-import Foreign.Storable
+import Control.Monad.State.Lazy (State, evalState, runState, get, gets, modify, unless)
+import Foreign.Storable (Storable)
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import Graphics.HEGL.ExprID
 import Graphics.HEGL.GLType
@@ -31,9 +31,23 @@ data GLProgram = GLProgram {
 data UniformVar where
     UniformVar :: GLType t => ExprID -> GLExpr HostDomain t -> UniformVar
 
+instance HasExprID UniformVar where
+    getID (UniformVar id _) = id
+instance Eq UniformVar where
+    x1 == x2 = getID x1 == getID x2
+instance Ord UniformVar where
+    compare x1 x2 = compare (getID x1) (getID x2)
+
 data InpVar where
-    InpVar :: (GLInputType t, GLType (GLElt t), Storable (GLElt t)) => 
+    InpVar :: GLInputType t => 
         ExprID -> [GLExpr ConstDomain t] -> InpVar
+
+instance HasExprID InpVar where
+    getID (InpVar id _) = id
+instance Eq InpVar where
+    x1 == x2 = getID x1 == getID x2
+instance Ord InpVar where
+    compare x1 x2 = compare (getID x1) (getID x2)
 
 
 -- Intermediate code gen state
@@ -85,6 +99,14 @@ modifyShader VertexDomain f = modify (\s -> s {
 modifyShader FragmentDomain f = modify (\s -> s { 
     program = (program s) { fragmentShader = f $ fragmentShader $ program s } })
 
+addUniformVar :: UniformVar -> CGState ()
+addUniformVar unif = modify (\s -> s { 
+    program = (program s) { uniformVars = Set.insert unif $ uniformVars $ program s } })
+
+addInputVar :: InpVar -> CGState ()
+addInputVar unif = modify (\s -> s { 
+    program = (program s) { inputVars = Set.insert unif $ inputVars $ program s } })
+
 
 -- genProgram
 
@@ -96,50 +118,106 @@ genProgram glObj = evalState gen (initCGDat glObj) where
         let position_ = toGLAST $ position glObj
             color_ = toGLAST $ color glObj
 
-        traverseGLAST position_
-        traverseGLAST color_
+        posRef <- traverseGLAST position_
+        colorRef <- traverseGLAST color_
 
         modifyShader VertexDomain $ addStmt $
-            VarAsmt "gl_Position" (ShaderVarRef $ varName $ position_)
+            VarAsmt "gl_Position" posRef
         modifyShader FragmentDomain $ addDecl $
             OutDecl "fColor" "vec4"
         modifyShader FragmentDomain $ addStmt $
-            VarAsmt "fColor" (ShaderVarRef $ varName $ color_)
+            VarAsmt "fColor" colorRef
 
         gets program
 
 
 -- Traversal
 
-traverseGLAST :: GLAST -> CGState ()
-traverseGLAST (GLASTAtom _ _ _) = undefined
-traverseGLAST (GLASTExpr id ti exprName subexprs) = undefined
+traverseGLAST :: GLAST -> CGState ShaderExpr
+traverseGLAST (GLASTAtom _ _ (Const x)) = return $ ShaderConst x
+traverseGLAST (GLASTAtom id ti (Uniform x)) = mkGlobal id $ do
+    addUniformVar $ UniformVar id x
+    modifyShader (shaderType ti) $ addDecl $ 
+        UniformDecl (idLabel id) (exprType ti)
+traverseGLAST (GLASTAtom id ti (Inp xs)) = mkGlobal id $ do
+    addInputVar $ InpVar id xs
+    modifyShader (shaderType ti) $ addDecl $ 
+        InpDecl (idLabel id) (exprType ti)
+traverseGLAST (GLASTAtom id ti (Frag vertExpr)) = mkGlobal id $ do
+    vertName <- traverseGLAST $ toGLAST vertExpr
+    modifyShader VertexDomain $ addStmt $
+        VarAsmt (idLabel id) vertName
+    modifyShader VertexDomain $ addDecl $
+        OutDecl (idLabel id) (exprType ti)
+    modifyShader FragmentDomain $ addDecl $
+        InpDecl (idLabel id) (exprType ti)
+traverseGLAST (GLASTAtom _ _ FuncParam) = undefined
 
+traverseGLAST (GLASTFuncApp _ _ r args params) = undefined
+
+traverseGLAST (GLASTExpr id (GLTypeInfo shaderType exprType) exprName subnodes) = 
+    mkLocal shaderType id $ do
+        subexprs <- mapM traverseGLAST subnodes
+        mkStmt shaderType $ VarDeclAsmt (idLabel id) exprType $
+            ShaderExpr exprName subexprs
 
 -- Scope management
 
-innerScope :: CGState () -> CGState [ShaderStmt]
-innerScope = undefined
+innerScope :: ShaderDomain -> CGState () -> CGState ()
+innerScope dom action = do
+    scopeBefore <- getCurScope dom
+    modify $ \s -> s { localScope = Just $ Scope (localDefs scopeBefore) [] }
+    action
+    scopeAfter <- getCurScope dom
+    mapM (mkStmt dom) (localStmts scopeAfter)
+    modifyCurScope dom $ const scopeBefore
 
-newScope :: CGState () -> CGState [ShaderStmt]
-newScope = undefined
+
+newScope :: ShaderDomain -> CGState () -> CGState ()
+newScope dom action = innerScope dom $ do
+    modifyCurScope dom $ const emptyScope
+    action
+
+getCurScope :: ShaderDomain -> CGState Scope
+getCurScope dom = do
+    ls <- gets localScope
+    case ls of
+        Just ls -> return ls
+        Nothing -> do
+            scopes <- gets shaderScopes
+            return $ Map.findWithDefault emptyScope dom scopes
+
+modifyCurScope :: ShaderDomain -> (Scope -> Scope) -> CGState ()
+modifyCurScope dom f = do
+    ls <- gets localScope
+    case ls of
+        Just ls -> modify $ \s -> s { localScope = Just $ f ls }
+        Nothing -> do
+            modify $ \s -> s { shaderScopes = Map.adjust f dom $ shaderScopes s  }
 
 
 -- Shader expression construction
 
-varName :: GLAST -> VarName
-varName e = "x" ++ show (glastID e)
+mkLocal :: ShaderDomain -> ExprID -> CGState () -> CGState ShaderExpr
+mkLocal dom id initFn = do
+    locals <- localDefs <$> getCurScope dom
+    unless (id `Set.member` locals) $ do 
+        modifyCurScope dom $ \scope -> 
+            scope { localDefs = Set.insert id $ localDefs scope }
+        initFn
+    return $ ShaderVarRef $ idLabel id
 
-mkLocal :: ExprID -> CGState () -> CGState ()
-mkLocal = undefined
-
-mkGlobal :: ExprID -> CGState () -> CGState ()
-mkGlobal = undefined
+mkGlobal :: ExprID -> CGState () -> CGState ShaderExpr
+mkGlobal id initFn = do
+    globals <- gets globalDefs
+    unless (id `Set.member` globals) $ do
+        modify $ \s -> s { globalDefs = Set.insert id $ globalDefs s }
+        initFn
+    return $ ShaderVarRef $ idLabel id
 
 mkFn :: ExprID -> CGState () -> CGState ()
 mkFn = undefined
 
--- if localScope == Nothing, directly add statement to the right main scope,
--- else add to localScope
 mkStmt :: ShaderDomain -> ShaderStmt -> CGState ()
-mkStmt dom stmt = undefined
+mkStmt dom stmt = modifyCurScope dom $ \scope -> 
+    scope { localStmts = localStmts scope ++ [stmt] }

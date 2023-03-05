@@ -6,17 +6,17 @@ import qualified Data.Set as Set
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
 import Graphics.HEGL.ExprID
-import Graphics.HEGL.GLAST
+import Graphics.HEGL.GLAst
 import Graphics.HEGL.Eval
 
 
--- GLAST printers for debugging purposes
+-- GLAst printers for debugging purposes
 
 instance (IsGLDomain d, GLType t) => Show (GLExpr d t) where
-    show = show . toGLAST
+    show = show . toGLAst
 
-instance Show GLAST where
-    show = runPrinter . printGLAST
+instance Show GLAst where
+    show = runPrinter . printGLAst
 
 instance Show ShaderDomain where
     show ConstDomain = "const"
@@ -39,24 +39,26 @@ runPrinter :: Printer -> String
 runPrinter pr = buf $ execState pr 
     PrintState { depth = 0, traversedIds = Set.empty, buf = "" }
 
-printGLAST :: GLAST -> Printer
-printGLAST (GLASTAtom id ty (Const _)) =
+printGLAst :: GLAst -> Printer
+printGLAst (GLAstAtom id ty (Const _)) =
     printNode id ty "const"
-printGLAST (GLASTAtom id ty (Uniform _)) =
+printGLAst (GLAstAtom id ty (Uniform _)) =
     printNode id ty "uniform"
-printGLAST (GLASTAtom id ty (Inp _)) =
+printGLAst (GLAstAtom id ty (Inp _)) =
     printNode id ty "inp"
-printGLAST (GLASTAtom id ty (Frag _)) =
+printGLAst (GLAstAtom id ty (Frag _)) =
     printNode id ty "frag"
 -- TODO: finish the other cases
-printGLAST (GLASTAtom id ty _) =
+printGLAst (GLAstAtom id ty _) =
     printNode id ty "?"
-printGLAST (GLASTFuncApp id ty _ _ _) =
+printGLAst (GLAstFunc id ty _ _) =
     printNode id ty "?"
-printGLAST (GLASTExpr id ty op xs) = do
+printGLAst (GLAstFuncApp id ty _ _) =
+    printNode id ty "?"
+printGLAst (GLAstExpr id ty op xs) = do
     printNode id ty op
     ifNotTraversed id $ do
-        indented $ mapM_ printGLAST xs
+        indented $ mapM_ printGLAst xs
 
 printNode :: ExprID -> GLTypeInfo -> String -> Printer
 printNode id ty str = do

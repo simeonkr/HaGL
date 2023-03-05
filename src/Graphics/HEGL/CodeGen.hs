@@ -6,13 +6,14 @@ module Graphics.HEGL.CodeGen (
 
 import Control.Monad.State.Lazy (State, evalState, runState, get, gets, modify, unless)
 import Foreign.Storable (Storable)
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 import Graphics.HEGL.ExprID
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
-import Graphics.HEGL.GLAST
+import Graphics.HEGL.GLAst
 import Graphics.HEGL.GLObj
 import Graphics.HEGL.Shader
 
@@ -56,8 +57,8 @@ data CGDat = CGDat {
     globalDefs :: Set.Set ExprID, 
     shaderScopes :: Map.Map ShaderDomain Scope,
     localScope :: Maybe Scope,
-    funcs :: Set.Set ExprID,
-    funcParams :: Set.Set ExprID,
+    funcStack :: [(ExprID, [ExprID])],
+    funcParams :: [ExprID],
     program :: GLProgram
 }
 
@@ -66,8 +67,7 @@ initCGDat glObj = CGDat {
     shaderScopes = Map.fromList $ 
         [(dom, emptyScope) | dom <- shaderDomains],
     localScope = Nothing,
-    funcs = Set.empty,
-    funcParams = Set.empty,
+    funcStack = [],
     program = GLProgram {
         Graphics.HEGL.CodeGen.primitiveMode = 
             Graphics.HEGL.GLObj.primitiveMode glObj,
@@ -115,11 +115,11 @@ genProgram glObj = evalState gen (initCGDat glObj) where
     gen :: CGState GLProgram
     gen = do
 
-        let position_ = toGLAST $ position glObj
-            color_ = toGLAST $ color glObj
+        let position_ = toGLAst $ position glObj
+            color_ = toGLAst $ color glObj
 
-        posRef <- traverseGLAST position_
-        colorRef <- traverseGLAST color_
+        posRef <- traverseGLAst position_
+        colorRef <- traverseGLAst color_
 
         modifyShader VertexDomain $ addStmt $
             VarAsmt "gl_Position" posRef
@@ -133,47 +133,64 @@ genProgram glObj = evalState gen (initCGDat glObj) where
 
 -- Traversal
 
-traverseGLAST :: GLAST -> CGState ShaderExpr
-traverseGLAST (GLASTAtom _ _ (Const x)) = return $ ShaderConst x
-traverseGLAST (GLASTAtom id ti (Uniform x)) = mkGlobal id $ do
+traverseGLAst :: GLAst -> CGState ShaderExpr
+traverseGLAst (GLAstAtom _ _ (Const x)) = return $ ShaderConst x
+traverseGLAst (GLAstAtom id ti (Uniform x)) = mkGlobal id $ do
     addUniformVar $ UniformVar id x
     modifyShader (shaderType ti) $ addDecl $ 
         UniformDecl (idLabel id) (exprType ti)
-traverseGLAST (GLASTAtom id ti (Inp xs)) = mkGlobal id $ do
+traverseGLAst (GLAstAtom id ti (Inp xs)) = mkGlobal id $ do
     addInputVar $ InpVar id xs
     modifyShader (shaderType ti) $ addDecl $ 
         InpDecl (idLabel id) (exprType ti)
-traverseGLAST (GLASTAtom id ti (Frag vertExpr)) = mkGlobal id $ do
-    vertName <- traverseGLAST $ toGLAST vertExpr
+traverseGLAst (GLAstAtom id ti (Frag vertExpr)) = mkGlobal id $ do
+    vertName <- traverseGLAst $ toGLAst vertExpr
     modifyShader VertexDomain $ addStmt $
         VarAsmt (idLabel id) vertName
     modifyShader VertexDomain $ addDecl $
         OutDecl (idLabel id) (exprType ti)
     modifyShader FragmentDomain $ addDecl $
         InpDecl (idLabel id) (exprType ti)
-traverseGLAST (GLASTAtom _ _ FuncParam) = undefined
+traverseGLAst (GLAstAtom id _ FuncParam) = 
+    return $ ShaderVarRef $ idLabel id
 
-traverseGLAST (GLASTFuncApp _ _ r args params) = undefined
+traverseGLAst (GLAstFunc fnID (GLTypeInfo shaderType exprType) r params) =
+    mkFn shaderType fnID (map getID params) $ do
+        (rName, scopeStmts) <- newScope shaderType $ traverseGLAst r
+        modifyShader shaderType $ addFn $
+            ShaderFn (idLabel fnID) exprType
+                (map (\(GLAstAtom id _ FuncParam) -> 
+                    ShaderParam (idLabel id) exprType) params)
+                scopeStmts 
+                rName
+traverseGLAst (GLAstFuncApp callID (GLTypeInfo shaderType exprType) fn args) = 
+    mkLocal shaderType callID $ do
+        argNames <- mapM traverseGLAst args
+        _ <- traverseGLAst fn
+        mkStmt shaderType $ VarDeclAsmt (idLabel callID) exprType
+            (ShaderExpr (idLabel $ getID fn) argNames)
+-- TODO: add support for tail-recursive functions
 
-traverseGLAST (GLASTExpr id (GLTypeInfo shaderType exprType) exprName subnodes) = 
+
+traverseGLAst (GLAstExpr id (GLTypeInfo shaderType exprType) exprName subnodes) = 
     mkLocal shaderType id $ do
-        subexprs <- mapM traverseGLAST subnodes
+        subexprs <- mapM traverseGLAst subnodes
         mkStmt shaderType $ VarDeclAsmt (idLabel id) exprType $
             ShaderExpr exprName subexprs
 
 -- Scope management
 
-innerScope :: ShaderDomain -> CGState () -> CGState ()
+innerScope :: ShaderDomain -> CGState a -> CGState (a, [ShaderStmt])
 innerScope dom action = do
     scopeBefore <- getCurScope dom
     modify $ \s -> s { localScope = Just $ Scope (localDefs scopeBefore) [] }
-    action
+    res <- action
     scopeAfter <- getCurScope dom
-    mapM (mkStmt dom) (localStmts scopeAfter)
     modifyCurScope dom $ const scopeBefore
+    return $ (res, localStmts scopeAfter)
 
 
-newScope :: ShaderDomain -> CGState () -> CGState ()
+newScope :: ShaderDomain -> CGState a -> CGState (a, [ShaderStmt])
 newScope dom action = innerScope dom $ do
     modifyCurScope dom $ const emptyScope
     action
@@ -215,8 +232,16 @@ mkGlobal id initFn = do
         initFn
     return $ ShaderVarRef $ idLabel id
 
-mkFn :: ExprID -> CGState () -> CGState ()
-mkFn = undefined
+mkFn :: ShaderDomain -> ExprID -> [ExprID] -> CGState () -> CGState ShaderExpr
+mkFn dom id params initFn = do
+    fns <- gets funcStack
+    if id `List.elem` (map fst fns) then do
+        error "Unsupported recursive function call"
+    else do
+        modify $ \s -> s { funcStack = (id, params) : funcStack s }
+        res <- mkGlobal id initFn
+        modify $ \s -> s { funcStack = tail $ funcStack s }
+        return res
 
 mkStmt :: ShaderDomain -> ShaderStmt -> CGState ()
 mkStmt dom stmt = modifyCurScope dom $ \scope -> 

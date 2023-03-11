@@ -57,8 +57,7 @@ data CGDat = CGDat {
     globalDefs :: Set.Set ExprID, 
     shaderScopes :: Map.Map ShaderDomain Scope,
     localScope :: Maybe Scope,
-    funcStack :: [(ExprID, [ExprID])],
-    funcParams :: [ExprID],
+    funcStack :: [(ExprID, [ShaderParam])],
     program :: GLProgram
 }
 
@@ -114,12 +113,8 @@ genProgram :: GLObj -> GLProgram
 genProgram glObj = evalState gen (initCGDat glObj) where 
     gen :: CGState GLProgram
     gen = do
-
-        let position_ = toGLAst $ position glObj
-            color_ = toGLAst $ color glObj
-
-        posRef <- traverseGLAst position_
-        colorRef <- traverseGLAst color_
+        posRef <- traverseGLAst . toGLAst $ position glObj
+        colorRef <- traverseGLAst . toGLAst $ color glObj
 
         modifyShader VertexDomain $ addStmt $
             VarAsmt "gl_Position" posRef
@@ -153,29 +148,30 @@ traverseGLAst (GLAstAtom id ti (Frag interpType vertExpr)) = mkGlobal id $ do
         InpDecl (show interpType) (idLabel id) (exprType ti)
 traverseGLAst (GLAstAtom id _ FuncParam) = 
     return $ ShaderVarRef $ idLabel id
-
-traverseGLAst (GLAstFunc fnID (GLTypeInfo shaderType exprType) r params) =
-    mkFn shaderType fnID (map getID params) $ do
-        (rName, scopeStmts) <- newScope shaderType $ traverseGLAst r
-        modifyShader shaderType $ addFn $
-            ShaderFn (idLabel fnID) exprType
-                (map (\(GLAstAtom id _ FuncParam) -> 
-                    ShaderParam (idLabel id) exprType) params)
+traverseGLAst (GLAstFunc fnID ti r paramIDs) =
+    let glastToParamName (GLAstAtom id ti FuncParam) = 
+            ShaderParam (idLabel id) (exprType ti)
+        paramNames = map glastToParamName paramIDs
+    in mkFn (shaderType ti) fnID paramNames $ do
+        parentParamNames <- getParentParamNames
+        (rName, scopeStmts) <- newScope (shaderType ti) $ traverseGLAst r
+        modifyShader (shaderType ti) $ addFn $
+            ShaderFn (idLabel fnID) (exprType ti)
+                (parentParamNames ++ paramNames)
                 scopeStmts 
                 rName
-traverseGLAst (GLAstFuncApp callID (GLTypeInfo shaderType exprType) fn args) = 
-    mkLocal shaderType callID $ do
+traverseGLAst (GLAstFuncApp callID ti fn args) = 
+    mkLocal (shaderType ti) callID $ do
+        parentArgNames <- map (\(ShaderParam name _) -> ShaderVarRef name) <$> getParentParamNames
         argNames <- mapM traverseGLAst args
         _ <- traverseGLAst fn
-        mkStmt shaderType $ VarDeclAsmt (idLabel callID) exprType
-            (ShaderExpr (idLabel $ getID fn) argNames)
+        mkStmt (shaderType ti) $ VarDeclAsmt (idLabel callID) (exprType ti)
+            (ShaderExpr (idLabel $ getID fn) (parentArgNames ++ argNames))
 -- TODO: add support for tail-recursive functions
-
-
-traverseGLAst (GLAstExpr id (GLTypeInfo shaderType exprType) exprName subnodes) = 
-    mkLocal shaderType id $ do
+traverseGLAst (GLAstExpr id ti exprName subnodes) = 
+    mkLocal (shaderType ti) id $ do
         subexprs <- mapM traverseGLAst subnodes
-        mkStmt shaderType $ VarDeclAsmt (idLabel id) exprType $
+        mkStmt (shaderType ti) $ VarDeclAsmt (idLabel id) (exprType ti) $
             ShaderExpr exprName subexprs
 
 -- Scope management
@@ -212,6 +208,9 @@ modifyCurScope dom f = do
         Nothing -> do
             modify $ \s -> s { shaderScopes = Map.adjust f dom $ shaderScopes s  }
 
+getParentParamNames :: CGState [ShaderParam]
+getParentParamNames = concatMap snd <$> gets funcStack
+
 
 -- Shader expression construction
 
@@ -232,7 +231,7 @@ mkGlobal id initFn = do
         initFn
     return $ ShaderVarRef $ idLabel id
 
-mkFn :: ShaderDomain -> ExprID -> [ExprID] -> CGState () -> CGState ShaderExpr
+mkFn :: ShaderDomain -> ExprID -> [ShaderParam] -> CGState () -> CGState ShaderExpr
 mkFn dom id params initFn = do
     fns <- gets funcStack
     if id `List.elem` (map fst fns) then do

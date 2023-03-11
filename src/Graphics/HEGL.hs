@@ -239,8 +239,14 @@ prec x0 x = GLAtom (genID ()) $ IOPrec x0 x
 vert :: GLInputType t => [ConstExpr t] -> VertExpr t
 vert inp = GLAtom (genID ()) $ Inp inp
 
-frag :: GLInputType t => VertExpr t -> FragExpr t
-frag x = GLAtom (genID ()) $ Frag x
+frag :: GLSupportsSmoothInterp t => VertExpr t -> FragExpr t
+frag x = GLAtom (genID ()) $ Frag Smooth x
+
+flatFrag :: GLInputType t => VertExpr t -> FragExpr t
+flatFrag x = GLAtom (genID ()) $ Frag Flat x
+
+noperpFrag :: GLInputType t => VertExpr t -> FragExpr t
+noperpFrag x = GLAtom (genID ()) $ Frag NoPerspective x
 
 
 -- * Vector, matrix, and array constructors

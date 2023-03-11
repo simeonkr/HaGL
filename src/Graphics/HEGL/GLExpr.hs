@@ -5,6 +5,7 @@ module Graphics.HEGL.GLExpr (
     GLGenExpr(..),
     ShaderDomain(..),
     shaderDomains,
+    InterpolationType(..),
     IOVarID,
     GLCoord(..),
     GLCoordList(..),
@@ -41,7 +42,7 @@ data GLAtom :: ShaderDomain -> * -> * where
     Inp :: GLInputType t => 
         [GLExpr ConstDomain t] -> GLAtom VertexDomain t
     Frag :: GLInputType t =>
-        GLExpr VertexDomain t -> GLAtom FragmentDomain t
+        InterpolationType -> GLExpr VertexDomain t -> GLAtom FragmentDomain t
     FuncParam :: GLType t => GLAtom d t
 
     -- IO variables and placeholders exclusive to HostDomain
@@ -297,6 +298,13 @@ shaderDomains = [VertexDomain, FragmentDomain]
 
 
 -- * Internal auxillary types
+
+data InterpolationType = Smooth | Flat | NoPerspective
+
+instance Show InterpolationType where
+    show Smooth = "smooth"
+    show Flat = "flat"
+    show NoPerspective = "noperspective"
 
 type IOVarID = String
 

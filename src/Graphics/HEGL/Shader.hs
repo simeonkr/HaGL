@@ -31,7 +31,7 @@ data ShaderParam =
 data ShaderDecl = 
     LayoutInpDecl Int VarName ExprType |
     UniformDecl VarName ExprType |
-    InpDecl VarName ExprType |
+    InpDecl InpQual VarName ExprType |
     OutDecl VarName ExprType
 
 data ShaderStmt = 
@@ -44,6 +44,7 @@ data ShaderExpr where
     ShaderVarRef :: VarName -> ShaderExpr
     ShaderExpr :: String -> [ShaderExpr] -> ShaderExpr
 
+type InpQual = String
 type ExprType = String
 type FnName = String
 type VarName = String
@@ -84,8 +85,8 @@ instance Show ShaderParam where
 instance Show ShaderDecl where
     show (UniformDecl varName exprType) = 
         "uniform " ++ exprType ++ " " ++ varName ++ ";"
-    show (InpDecl varName exprType) = 
-        "in " ++ exprType ++ " " ++ varName ++ ";"
+    show (InpDecl qual varName exprType) = 
+        qual ++ " in " ++ exprType ++ " " ++ varName ++ ";"
     show (OutDecl varName exprType) = 
         "out " ++ exprType ++ " " ++ varName ++ ";"
 

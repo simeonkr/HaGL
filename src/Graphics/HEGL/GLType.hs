@@ -4,8 +4,14 @@ module Graphics.HEGL.GLType (
     UInt,
     GLType(..),
     GLInputType(..),
+    GLSupportsSmoothInterp,
     GLElt,
-    GLPrim, GLSingle, GLNumeric, GLFloating, GLSingleNumeric, GLInteger,
+    GLPrim, 
+    GLSingle, 
+    GLNumeric, 
+    GLFloating, 
+    GLSingleNumeric, 
+    GLInteger,
     genDiv
 ) where
 
@@ -510,7 +516,7 @@ instance GLType [Vec 2 Float] where
     eltSize = const 4
     numComponents = const 2
     getGlslType = const OpenGL.Float
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform2fv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 3 Float] where
     showGlslVal xs = "vec2[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -522,7 +528,7 @@ instance GLType [Vec 3 Float] where
     eltSize = const 4
     numComponents = const 3
     getGlslType = const OpenGL.Float
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform3fv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 4 Float] where
     showGlslVal xs = "vec2[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -534,7 +540,7 @@ instance GLType [Vec 4 Float] where
     eltSize = const 4
     numComponents = const 4
     getGlslType = const OpenGL.Float
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform4fv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Double] where
     showGlslVal xs = "double[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -558,7 +564,7 @@ instance GLType [Vec 2 Double] where
     eltSize = const 8
     numComponents = const 2
     getGlslType = const OpenGL.Double
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform2dv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 3 Double] where
     showGlslVal xs = "dvec3[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -570,7 +576,7 @@ instance GLType [Vec 3 Double] where
     eltSize = const 8
     numComponents = const 3
     getGlslType = const OpenGL.Double
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform3dv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 4 Double] where
     showGlslVal xs = "dvec4[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -582,7 +588,7 @@ instance GLType [Vec 4 Double] where
     eltSize = const 8
     numComponents = const 4
     getGlslType = const OpenGL.Double
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform4dv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Int] where
     showGlslVal xs = "int[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -606,7 +612,7 @@ instance GLType [Vec 2 Int] where
     eltSize = const 4
     numComponents = const 2
     getGlslType = const OpenGL.Int
-    uniformSet ul xs = let xs' = map toEnum $ toStorableList xs in
+    uniformSet ul xs = let xs' = map toEnum $ concatMap toList xs in
         withArray xs' $ RawGL.glUniform2iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 3 Int] where
     showGlslVal xs = "vec3[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -618,7 +624,7 @@ instance GLType [Vec 3 Int] where
     eltSize = const 4
     numComponents = const 3
     getGlslType = const OpenGL.Int
-    uniformSet ul xs = let xs' = map toEnum $ toStorableList xs in
+    uniformSet ul xs = let xs' = map toEnum $ concatMap toList xs in
         withArray xs' $ RawGL.glUniform2iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 4 Int] where
     showGlslVal xs = "vec4[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -630,7 +636,7 @@ instance GLType [Vec 4 Int] where
     eltSize = const 4
     numComponents = const 4
     getGlslType = const OpenGL.Int
-    uniformSet ul xs = let xs' = map toEnum $ toStorableList xs in
+    uniformSet ul xs = let xs' = map toEnum $ concatMap toList xs in
         withArray xs' $ RawGL.glUniform2iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [UInt] where
     showGlslVal xs = "uint[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -654,7 +660,7 @@ instance GLType [Vec 2 UInt] where
     eltSize = const 4
     numComponents = const 2
     getGlslType = const OpenGL.UnsignedInt
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform2uiv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 3 UInt] where
     showGlslVal xs = "uvec3[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -666,7 +672,7 @@ instance GLType [Vec 3 UInt] where
     eltSize = const 4
     numComponents = const 3
     getGlslType = const OpenGL.UnsignedInt
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform3uiv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 4 UInt] where
     showGlslVal xs = "uvec4[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -678,7 +684,7 @@ instance GLType [Vec 4 UInt] where
     eltSize = const 4
     numComponents = const 4
     getGlslType = const OpenGL.UnsignedInt
-    uniformSet ul xs = let xs' = toStorableList xs in
+    uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform4uiv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Bool] where
     showGlslVal xs = "bool[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -702,7 +708,7 @@ instance GLType [Vec 2 Bool] where
     eltSize = const 1
     numComponents = const 2
     getGlslType = const OpenGL.Byte
-    uniformSet ul xs = let xs' = map fromBool $ toStorableList xs in
+    uniformSet ul xs = let xs' = map fromBool $ concatMap toList xs in
         withArray xs' $ RawGL.glUniform2iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 3 Bool] where
     showGlslVal xs = "bvec3[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -714,7 +720,7 @@ instance GLType [Vec 3 Bool] where
     eltSize = const 1
     numComponents = const 3
     getGlslType = const OpenGL.Byte
-    uniformSet ul xs = let xs' = map fromBool $ toStorableList xs in
+    uniformSet ul xs = let xs' = map fromBool $ concatMap toList xs in
         withArray xs' $ RawGL.glUniform3iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 4 Bool] where
     showGlslVal xs = "bvec4[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
@@ -726,7 +732,7 @@ instance GLType [Vec 4 Bool] where
     eltSize = const 1
     numComponents = const 4
     getGlslType = const OpenGL.Byte
-    uniformSet ul xs = let xs' = map fromBool $ toStorableList xs in
+    uniformSet ul xs = let xs' = map fromBool $ concatMap toList xs in
         withArray xs' $ RawGL.glUniform4iv ul (fromIntegral $ Prelude.length xs')
 
 fromBool = toEnum . fromEnum
@@ -748,8 +754,6 @@ instance GLInputType Double where
 instance GLInputType Int where
     toStorableList = id
 instance GLInputType UInt where
-    toStorableList = id
-instance GLInputType Bool where
     toStorableList = id
 instance GLInputType (Vec 2 Float) where
     toStorableList = concatMap toList
@@ -775,12 +779,13 @@ instance GLInputType (Vec 3 UInt) where
     toStorableList = concatMap toList
 instance GLInputType (Vec 4 UInt) where
     toStorableList = concatMap toList
-instance GLInputType (Vec 2 Bool) where
-    toStorableList = concatMap toList
-instance GLInputType (Vec 3 Bool) where
-    toStorableList = concatMap toList
-instance GLInputType (Vec 4 Bool) where
-    toStorableList = concatMap toList
+
+class GLInputType t => GLSupportsSmoothInterp t
+
+instance GLSupportsSmoothInterp Float
+instance GLSupportsSmoothInterp (Vec 2 Float)
+instance GLSupportsSmoothInterp (Vec 3 Float)
+instance GLSupportsSmoothInterp (Vec 4 Float)
 
 
 type family GLElt t where

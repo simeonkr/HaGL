@@ -46,7 +46,7 @@ printGLAst (GLAstAtom id ty (Uniform _)) =
     printNode id ty "uniform"
 printGLAst (GLAstAtom id ty (Inp _)) =
     printNode id ty "inp"
-printGLAst (GLAstAtom id ty (Frag _)) =
+printGLAst (GLAstAtom id ty (Frag _ _)) =
     printNode id ty "frag"
 -- TODO: finish the other cases
 printGLAst (GLAstAtom id ty _) =

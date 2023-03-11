@@ -142,15 +142,15 @@ traverseGLAst (GLAstAtom id ti (Uniform x)) = mkGlobal id $ do
 traverseGLAst (GLAstAtom id ti (Inp xs)) = mkGlobal id $ do
     addInputVar $ InpVar id xs
     modifyShader (shaderType ti) $ addDecl $ 
-        InpDecl (idLabel id) (exprType ti)
-traverseGLAst (GLAstAtom id ti (Frag vertExpr)) = mkGlobal id $ do
+        InpDecl "" (idLabel id) (exprType ti)
+traverseGLAst (GLAstAtom id ti (Frag interpType vertExpr)) = mkGlobal id $ do
     vertName <- traverseGLAst $ toGLAst vertExpr
     modifyShader VertexDomain $ addStmt $
         VarAsmt (idLabel id) vertName
     modifyShader VertexDomain $ addDecl $
         OutDecl (idLabel id) (exprType ti)
     modifyShader FragmentDomain $ addDecl $
-        InpDecl (idLabel id) (exprType ti)
+        InpDecl (show interpType) (idLabel id) (exprType ti)
 traverseGLAst (GLAstAtom id _ FuncParam) = 
     return $ ShaderVarRef $ idLabel id
 

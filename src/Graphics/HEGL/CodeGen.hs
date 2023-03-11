@@ -148,11 +148,30 @@ traverseGLAst (GLAstAtom id ti (Frag interpType vertExpr)) = mkGlobal id $ do
         InpDecl (show interpType) (idLabel id) (exprType ti)
 traverseGLAst (GLAstAtom id _ FuncParam) = 
     return $ ShaderVarRef $ idLabel id
-traverseGLAst (GLAstFunc fnID ti r paramIDs) =
-    let glastToParamName (GLAstAtom id ti FuncParam) = 
-            ShaderParam (idLabel id) (exprType ti)
-        paramNames = map glastToParamName paramIDs
+traverseGLAst (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [condExpr, retExpr, 
+  (GLAstFuncApp _ _ (GLAstFunc fnId' _ _ _) recArgs)]) paramIDs) =
+    let paramNames = map glastToParamName paramIDs
     in mkFn (shaderType ti) fnID paramNames $ do
+        ((condName, updateStmts, retName, retStmts), condStmts) <- newScope (shaderType ti) $ do
+            condName <- traverseGLAst condExpr
+            (_, updateStmts) <- innerScope (shaderType ti) $ do
+                argNames <- mapM traverseGLAst recArgs
+                mapM_ (\(ShaderParam paramName _, argName) -> mkStmt (shaderType ti) $ 
+                    VarAsmt paramName argName) $ zip paramNames argNames
+            (retName, retStmts) <- innerScope (shaderType ti) $ traverseGLAst retExpr
+            return (condName, updateStmts, retName, retStmts)
+        parentParamNames <- getParentParamNames
+        modifyShader (shaderType ti) $ addFn $
+            ShaderLoopFn (idLabel fnID) (exprType ti) 
+                (parentParamNames ++ paramNames)
+                condName
+                retName
+                condStmts
+                retStmts
+                updateStmts
+traverseGLAst (GLAstFunc fnID ti r paramIDs) =
+    let paramNames = map glastToParamName paramIDs
+    in mkFn (shaderType ti) fnID (map glastToParamName paramIDs) $ do
         parentParamNames <- getParentParamNames
         (rName, scopeStmts) <- newScope (shaderType ti) $ traverseGLAst r
         modifyShader (shaderType ti) $ addFn $
@@ -167,12 +186,13 @@ traverseGLAst (GLAstFuncApp callID ti fn args) =
         _ <- traverseGLAst fn
         mkStmt (shaderType ti) $ VarDeclAsmt (idLabel callID) (exprType ti)
             (ShaderExpr (idLabel $ getID fn) (parentArgNames ++ argNames))
--- TODO: add support for tail-recursive functions
 traverseGLAst (GLAstExpr id ti exprName subnodes) = 
     mkLocal (shaderType ti) id $ do
         subexprs <- mapM traverseGLAst subnodes
         mkStmt (shaderType ti) $ VarDeclAsmt (idLabel id) (exprType ti) $
             ShaderExpr exprName subexprs
+
+glastToParamName (GLAstAtom id ti FuncParam) = ShaderParam (idLabel id) (exprType ti)
 
 -- Scope management
 

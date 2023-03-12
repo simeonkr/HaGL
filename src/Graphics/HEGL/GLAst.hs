@@ -89,9 +89,7 @@ toGLAst e@(GLGenExpr id (OpCoordMulti coordList x)) = (mkGLExpr id e) ("." ++ sh
 toGLAst e@(GLGenExpr id (OpCol col x)) = (mkGLExpr id e) (show col) [toGLAst x]
 toGLAst e@(GLGenExpr id (OpArrayElt arr i)) = (mkGLExpr id e) "[]" [toGLAst arr, toGLAst i]
 
-toGLAst e@(GLGenExpr id (ToFloat x)) = (mkGLExpr id e) "float" [toGLAst x]
-toGLAst e@(GLGenExpr id (ToInt x)) = (mkGLExpr id e) "int" [toGLAst x]
-toGLAst e@(GLGenExpr id (ToUInt x)) = (mkGLExpr id e) "uint" [toGLAst x]
+toGLAst e@(GLGenExpr id (Cast x)) = (mkGLExpr id e) (showGlslType e) [toGLAst x]
 
 toGLAst e@(GLGenExpr id (OpAdd x y)) = (mkGLExpr id e) "+" [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (OpSubt x y)) = (mkGLExpr id e) "-" [toGLAst x, toGLAst y]

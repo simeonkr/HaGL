@@ -129,12 +129,8 @@ eval (GLGenExpr _ (OpCol col m)) = withEv1 m $ \m ->
 eval (GLGenExpr _ (OpArrayElt arr i)) = withEv2 arr i $ \arr i ->
     return $ arr !! fromIntegral i
 
-eval (GLGenExpr _ (ToFloat x)) = withEv1 x $ \x ->
-    return $ (fromIntegral . fromEnum) x
-eval (GLGenExpr _ (ToInt x)) = withEv1 x $ \x ->
-    return $ (toEnum . fromEnum) x
-eval (GLGenExpr _ (ToUInt x)) = withEv1 x $ \x ->
-    return $ (toEnum . fromEnum) x
+eval (GLGenExpr _ (Cast x)) = withEv1 x $ \x ->
+    return $ cast x
 
 eval (GLGenExpr _ (OpAdd x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith (+) x y

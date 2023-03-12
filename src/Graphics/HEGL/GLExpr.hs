@@ -124,13 +124,8 @@ data GLGenExpr :: ShaderDomain -> * -> * where
     OpArrayElt :: (GLType [t], GLType t) =>
         GLExpr d [t] -> GLExpr d Int -> GLGenExpr d t
 
-    -- TODO: can these be defined on Mats?
-    ToFloat :: GLPrim t =>
-        GLExpr d t -> GLGenExpr d Float
-    ToInt :: GLPrim t =>
-        GLExpr d t -> GLGenExpr d Int
-    ToUInt :: GLPrim t =>
-        GLExpr d t -> GLGenExpr d UInt
+    Cast :: (GLPrim t1, GLPrim t2) => 
+        GLExpr d t1 -> GLGenExpr d t2
 
     OpAdd :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t

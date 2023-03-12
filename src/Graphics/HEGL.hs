@@ -66,9 +66,7 @@ module Graphics.HEGL (
     col0, col1, col2, col3,
     (%!),
     -- * Type conversion
-    toFloat,
-    toInt,
-    toUInt,
+    glCast,
     -- * Custom function support
     glFunc1,
     glFunc2,
@@ -314,9 +312,7 @@ arr %! i = GLGenExpr (genID ()) $ OpArrayElt arr i
 
 -- * Expression type conversion
 
-toFloat x = GLGenExpr (genID ()) $ ToFloat x
-toInt x = GLGenExpr (genID ()) $ ToInt x
-toUInt x = GLGenExpr (genID ()) $ ToUInt x
+glCast x = GLGenExpr (genID ()) $ Cast x
 
 
 -- * Custom function support

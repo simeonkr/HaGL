@@ -6,7 +6,7 @@ module Graphics.HEGL.GLType (
     GLInputType(..),
     GLSupportsSmoothInterp,
     GLElt,
-    GLPrim, 
+    GLPrim(..), 
     GLSingle, 
     GLNumeric, 
     GLFloating, 
@@ -800,12 +800,18 @@ type family GLElt t where
 
 -- * Primitive GLTypes
 
-class (GLType t, Storable t, Enum t, Eq t, Ord t) => GLPrim t
-instance GLPrim Float
-instance GLPrim Double
-instance GLPrim Int
-instance GLPrim UInt
-instance GLPrim Bool
+class (GLType t, Storable t, Enum t, Eq t, Ord t) => GLPrim t where
+    cast :: GLPrim t0 => t0 -> t
+instance GLPrim Float where
+    cast = fromIntegral . fromEnum
+instance GLPrim Double where
+    cast = fromIntegral . fromEnum
+instance GLPrim Int where
+    cast = toEnum . fromEnum
+instance GLPrim UInt where
+    cast = toEnum . fromEnum
+instance GLPrim Bool where
+    cast = toEnum . fromEnum
 
 class (GLPrim t, Storable t, Enum t, Eq t, Ord t) => GLSingle t
 instance GLSingle Float

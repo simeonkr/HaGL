@@ -317,25 +317,25 @@ glCast x = GLGenExpr (genID ()) $ Cast x
 
 -- * Custom function support
 
-makeFuncParam () = GLAtom (genID ()) FuncParam
+makeGenVar () = GLAtom (genID ()) GenVar
 
 glFunc1 :: (GLType t, GLType t1) => 
     (GLExpr d t1 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t 
 glFunc1 f = \x0 -> GLFunc (genID ()) $ GLFunc1 f x x0
-    where x = makeFuncParam ()
+    where x = makeGenVar ()
 
 glFunc2 :: (GLType t, GLType t1, GLType t2) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t 
 glFunc2 f = \x0 y0 -> GLFunc (genID ()) $ GLFunc2 f x y x0 y0
-    where (x, y) = (makeFuncParam (), makeFuncParam ())
+    where (x, y) = (makeGenVar (), makeGenVar ())
 
 glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
 glFunc3 f = \x0 y0 z0 -> GLFunc (genID ()) $ GLFunc3 f x y z x0 y0 z0
-    where (x, y, z) = (makeFuncParam (), makeFuncParam (), makeFuncParam ())
+    where (x, y, z) = (makeGenVar (), makeGenVar (), makeGenVar ())
 -- TODO: add remaining cases, up to glFunc6
 
 

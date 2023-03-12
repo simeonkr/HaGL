@@ -68,10 +68,10 @@ hEval _ e = eval e
 eval :: Monad a => GLExpr d t -> StateT (EvalState d) a t
 
 eval (GLAtom _ (Const x)) = return x
-eval (GLAtom _ (Uniform x)) = error "Attempted to purely evaluate an expression in HostDomain"
+eval (GLAtom _ GenVar) = error "Attempted to evaluate an unknown variable"
+eval (GLAtom _ (Uniform _)) = error "Attempted to purely evaluate an expression in HostDomain"
 eval (GLAtom _ (Inp _)) = error "Attempted to evaluate an expression in VertexDomain"
 eval (GLAtom _ (Frag _ _)) = error "Attempted to evaluate an expression in FragmentDomain"
-eval (GLAtom _ FuncParam) = error "Attempted to evaluate a function parameter"
 eval (GLAtom _ (GLLift0 x0)) = return x0
 eval (GLAtom _ (GLLift1 f x0)) = withEv1 x0 $ \x0 ->
     return $ f x0

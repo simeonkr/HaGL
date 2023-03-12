@@ -37,13 +37,14 @@ data GLAtom :: ShaderDomain -> * -> * where
 
     Const :: GLType t => 
         t -> GLAtom d t
+    -- Generic variables; e.g., function parameters
+    GenVar :: GLType t => GLAtom d t
     Uniform :: GLType t => 
         GLExpr HostDomain t -> GLAtom d t
     Inp :: GLInputType t => 
         [GLExpr ConstDomain t] -> GLAtom VertexDomain t
     Frag :: GLInputType t =>
         InterpolationType -> GLExpr VertexDomain t -> GLAtom FragmentDomain t
-    FuncParam :: GLType t => GLAtom d t
 
     -- IO variables and placeholders exclusive to HostDomain
     IOFloat :: IOVarID -> GLAtom HostDomain Float

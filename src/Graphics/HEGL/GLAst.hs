@@ -44,10 +44,10 @@ instance HasExprID GLAst where
 
 
 getGLTypeInfo e = GLTypeInfo (getShaderType e) (showGlslType e)
+-- TODO: double check if GLAstFuncApp id is generated sensibly
 mkGLFn funcID r params args = 
-    GLAstFuncApp callID (getGLTypeInfo r) func args where
+    GLAstFuncApp (genID ()) (getGLTypeInfo r) func args where
         func = GLAstFunc funcID (getGLTypeInfo r) (toGLAst r) params
-        callID = encodeUniquely (map getID args)
 mkGLExpr id e = GLAstExpr id (getGLTypeInfo e)
 
 vd = error "GLLift*: Output list length must be independent of list contents"

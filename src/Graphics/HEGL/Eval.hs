@@ -131,6 +131,8 @@ eval (GLGenExpr _ (OpArrayElt arr i)) = withEv2 arr i $ \arr i ->
 
 eval (GLGenExpr _ (Cast x)) = withEv1 x $ \x ->
     return $ cast x
+eval (GLGenExpr _ (MatCast x)) = withEv1 x $ \x ->
+    return $ fromList . map cast . toList $ x
 
 eval (GLGenExpr _ (OpAdd x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith (+) x y

@@ -127,6 +127,8 @@ data GLGenExpr :: ShaderDomain -> * -> * where
 
     Cast :: (GLPrim t1, GLPrim t2) => 
         GLExpr d t1 -> GLGenExpr d t2
+    MatCast :: (GLPrim t1, GLPrim t2, KnownNat p, KnownNat q) => 
+        GLExpr d (Mat p q t1) -> GLGenExpr d (Mat p q t2)
 
     OpAdd :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t

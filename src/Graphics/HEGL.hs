@@ -66,7 +66,8 @@ module Graphics.HEGL (
     col0, col1, col2, col3,
     (%!),
     -- * Type conversion
-    glCast,
+    Graphics.HEGL.cast,
+    matCast,
     -- * Custom function support
     glFunc1,
     glFunc2,
@@ -279,22 +280,6 @@ arr xs = GLGenExpr (genID ()) $ GLArray xs
 
 -- * Deconstruction and indexing
 
-class Deconstructible t where
-    type Decon t
-    decon :: t -> Decon t
-
-instance GLType (Vec 2 t) => Deconstructible (GLExpr d (Vec 2 t)) where
-    type Decon (GLExpr d (Vec 2 t)) = (GLExpr d t, GLExpr d t) 
-    decon = undefined
-
-instance GLType (Vec 3 t) => Deconstructible (GLExpr d (Vec 3 t)) where
-    type Decon (GLExpr d (Vec 3 t)) = (GLExpr d t, GLExpr d t, GLExpr d t) 
-    decon = undefined
-
-instance GLType (Vec 4 t) => Deconstructible (GLExpr d (Vec 4 t)) where
-    type Decon (GLExpr d (Vec 4 t)) = (GLExpr d t, GLExpr d t, GLExpr d t, GLExpr d t) 
-    decon = undefined
-
 x_ v = GLGenExpr (genID ()) $ OpCoord CoordX v
 y_ v = GLGenExpr (genID ()) $ OpCoord CoordY v
 z_ v = GLGenExpr (genID ()) $ OpCoord CoordZ v
@@ -309,10 +294,34 @@ col3 m = GLGenExpr (genID ()) $ OpCol Col3 m
 
 arr %! i = GLGenExpr (genID ()) $ OpArrayElt arr i
 
+class Deconstructible t where
+    type Decon t
+    decon :: t -> Decon t
+
+instance (GLPrim t, GLType (Vec 2 t)) => Deconstructible (GLExpr d (Vec 2 t)) where
+    type Decon (GLExpr d (Vec 2 t)) = (GLExpr d t, GLExpr d t) 
+    decon v = (x_ v, y_ v)
+instance (GLPrim t, GLType (Vec 3 t)) => Deconstructible (GLExpr d (Vec 3 t)) where
+    type Decon (GLExpr d (Vec 3 t)) = (GLExpr d t, GLExpr d t, GLExpr d t) 
+    decon v = (x_ v, y_ v, z_ v)
+instance (GLPrim t, GLType (Vec 4 t)) => Deconstructible (GLExpr d (Vec 4 t)) where
+    type Decon (GLExpr d (Vec 4 t)) = (GLExpr d t, GLExpr d t, GLExpr d t, GLExpr d t) 
+    decon v = (x_ v, y_ v, z_ v, w_ v)
+instance (GLPrim t, GLType (Mat p 2 t), GLType (Vec p t)) => Deconstructible (GLExpr d (Mat p 2 t)) where
+    type Decon (GLExpr d (Mat p 2 t)) = (GLExpr d (Vec p t), GLExpr d (Vec p t)) 
+    decon m = (col0 m, col1 m)
+instance (GLPrim t, GLType (Mat p 3 t), GLType (Vec p t)) => Deconstructible (GLExpr d (Mat p 3 t)) where
+    type Decon (GLExpr d (Mat p 3 t)) = (GLExpr d (Vec p t), GLExpr d (Vec p t), GLExpr d (Vec p t)) 
+    decon m = (col0 m, col1 m, col2 m)
+instance (GLPrim t, GLType (Mat p 4 t), GLType (Vec p t)) => Deconstructible (GLExpr d (Mat p 4 t)) where
+    type Decon (GLExpr d (Mat p 4 t)) = (GLExpr d (Vec p t), GLExpr d (Vec p t), GLExpr d (Vec p t), GLExpr d (Vec p t)) 
+    decon m = (col0 m, col1 m, col2 m, col3 m)
+
 
 -- * Expression type conversion
 
-glCast x = GLGenExpr (genID ()) $ Cast x
+cast x = GLGenExpr (genID ()) $ Cast x
+matCast m = GLGenExpr (genID ()) $ MatCast m
 
 
 -- * Custom function support

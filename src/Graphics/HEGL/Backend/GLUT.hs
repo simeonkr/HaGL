@@ -1,10 +1,11 @@
 module Graphics.HEGL.Backend.GLUT (
-    runGLUT
+    GlutOptions(..),
+    runGlut
 ) where
 
 import Prelude hiding (id)
 import Control.Exception (assert)
-import Control.Monad (unless)
+import Control.Monad (when, unless)
 import Data.Functor.Identity
 import Data.IORef
 import Data.Time.Clock
@@ -25,9 +26,18 @@ import Graphics.HEGL.CodeGen (GLProgram(GLProgram), InpVar(..), UniformVar(..), 
 import qualified Graphics.HEGL.Util.DepMap as DepMap
 
 
-runGLUT :: [GLObj] -> IO ()
-runGLUT glObjs = do
-    initWindow
+data GlutOptions = GlutOptions {
+    winPosition :: Maybe (GLint, GLint),
+    winSize :: (GLsizei, GLsizei),
+    winFullscreen :: Bool,
+    winTitle :: Maybe String,
+    glLineWidth :: GLfloat
+}
+
+
+runGlut :: GlutOptions -> [GLObj] -> IO ()
+runGlut options glObjs = do
+    initWindow options
 
     ioState <- initIOState  
 
@@ -41,16 +51,19 @@ runGLUT glObjs = do
     motionCallback $= Just (motion ioState)
     passiveMotionCallback $= Just (motion ioState)
 
-    -- TODO: make this customizable
-    lineWidth $= 3
+    lineWidth $= glLineWidth options
 
     mainLoop
 
-initWindow :: IO ()
-initWindow = do
+initWindow :: GlutOptions -> IO ()
+initWindow options = do
     (progName, args) <- getArgsAndInitialize
     _ <- createWindow progName
-    windowSize $= Size 768 768
+    maybe (return ()) (\(x, y) -> windowPosition $= Position x y) 
+        (winPosition options)
+    windowSize $= (\(x, y) -> Size x y) (winSize options)
+    when (winFullscreen options) fullScreen
+    maybe (return ()) (windowTitle $=) (winTitle options) 
     initialDisplayMode $= [RGBAMode, WithAlphaComponent]
     depthFunc $= Just Lequal
 
@@ -118,10 +131,10 @@ bindAttrDat prog (InpVar id xs) = do
     attr <- get (attribLocation prog $ idLabel id)
     let numComps = fromIntegral $ numComponents val
     let intHandling = case getGlslType val of
-            Int -> Graphics.UI.GLUT.KeepIntegral 
-            UnsignedInt -> Graphics.UI.GLUT.KeepIntegral 
-            Byte -> Graphics.UI.GLUT.KeepIntegral 
-            _ -> Graphics.UI.GLUT.ToFloat
+            Int -> KeepIntegral 
+            UnsignedInt -> KeepIntegral 
+            Byte -> KeepIntegral 
+            _ -> ToFloat
     vertexAttribPointer attr $=
         (intHandling, VertexArrayDescriptor numComps (getGlslType val) 0 (makeOff 0))
     vertexAttribArray attr $= Enabled

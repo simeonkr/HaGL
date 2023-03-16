@@ -11,7 +11,7 @@ shaderTestCase = undefined
 
 -- temporary solution: manually verify white background
 showShaderTest :: ShaderTest -> IO ()
-showShaderTest test = drawGLUT $ 
+showShaderTest test = drawGlut $ 
     triangleStrip { position = vPos, color = color } where
         quadPos = vert 
             [(vec2 (-1) (-1)), 

@@ -191,7 +191,9 @@ module Graphics.HEGL (
     polygon,
     -- * Backends
     Backend(..),
-    drawGLUT,
+    GlutOptions(..),
+    drawGlut,
+    drawGlutCustom,
     drawImage
 ) where
 
@@ -523,11 +525,11 @@ class Drawable a where
     draw :: Backend -> a -> IO ()
 
 instance Drawable GLObj where
-    draw GLUTBackend obj = runGLUT [obj]
+    draw (GlutBackend userInit) obj = runGlut userInit [obj]
     draw ImageBackend _ = error "Image backend not yet supported"
 
 instance Drawable [GLObj] where
-    draw GLUTBackend objs = runGLUT objs
+    draw (GlutBackend userInit) objs = runGlut userInit objs
     draw ImageBackend _ = error "Image backend not yet supported"
 
 defaultObj = GLObj {
@@ -535,6 +537,7 @@ defaultObj = GLObj {
     indices = Nothing,
     position = vec4 0 0 0 0,
     color = vec4 0 0 0 0,
+    -- TODO: add missing support for discarding pixels
     discardWhen = Graphics.HEGL.cast (0 :: FragExpr Int)
 }
 
@@ -552,11 +555,21 @@ polygon = defaultObj { primitiveMode = OpenGL.Polygon }
 -- * Backends
 
 data Backend =
-    GLUTBackend |
+    GlutBackend GlutOptions |
     ImageBackend
 
-drawGLUT :: Drawable a => a -> IO()
-drawGLUT = draw GLUTBackend
+drawGlut :: Drawable a => a -> IO ()
+drawGlut = draw (GlutBackend defaultOptions) where
+    defaultOptions = GlutOptions {
+        winPosition = Nothing,
+        winSize = (768, 768),
+        winFullscreen = False,
+        winTitle = Nothing,
+        glLineWidth = 3
+    }
 
-drawImage :: Drawable a => a -> IO()
+drawGlutCustom :: Drawable a => GlutOptions -> a -> IO ()
+drawGlutCustom options = draw (GlutBackend options)
+
+drawImage :: Drawable a => a -> IO ()
 drawImage = draw ImageBackend

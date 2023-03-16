@@ -38,6 +38,7 @@ library
     Graphics.HEGL.GLObj
     Graphics.HEGL.Shader
     Graphics.HEGL.CodeGen
+    Graphics.HEGL.Backend
     Graphics.HEGL.Backend.GLUT
     Graphics.HEGL.Backend.Image
   default-extensions:

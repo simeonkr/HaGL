@@ -209,6 +209,7 @@ import Graphics.HEGL.ExprID (genID)
 import Graphics.HEGL.GLObj
 import Graphics.HEGL.Eval
 import Graphics.HEGL.Backend.GLUT
+import Graphics.HEGL.Backend.Image
 
 
 -- * Expressions: Main definitions
@@ -526,11 +527,11 @@ class Drawable a where
 
 instance Drawable GLObj where
     draw (GlutBackend userInit) obj = runGlut userInit [obj]
-    draw ImageBackend _ = error "Image backend not yet supported"
+    draw ImageBackend obj = runImage [obj]
 
 instance Drawable [GLObj] where
     draw (GlutBackend userInit) objs = runGlut userInit objs
-    draw ImageBackend _ = error "Image backend not yet supported"
+    draw ImageBackend objs = runImage objs
 
 defaultObj = GLObj {
     primitiveMode = OpenGL.Points,

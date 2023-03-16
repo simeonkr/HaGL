@@ -5,6 +5,7 @@ module Graphics.HEGL.GLType (
     GLType(..),
     GLInputType(..),
     GLSupportsSmoothInterp,
+    GLSupportsBitwiseOps,
     GLElt,
     GLPrim(..), 
     GLSingle, 
@@ -500,7 +501,7 @@ instance GLType [Float] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 1
     getGlslType = const OpenGL.Float
@@ -512,7 +513,7 @@ instance GLType [Vec 2 Float] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 2
     getGlslType = const OpenGL.Float
@@ -524,7 +525,7 @@ instance GLType [Vec 3 Float] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 3
     getGlslType = const OpenGL.Float
@@ -536,7 +537,7 @@ instance GLType [Vec 4 Float] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 4
     getGlslType = const OpenGL.Float
@@ -548,7 +549,7 @@ instance GLType [Double] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 8
     numComponents = const 1
     getGlslType = const OpenGL.Double
@@ -560,7 +561,7 @@ instance GLType [Vec 2 Double] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 8
     numComponents = const 2
     getGlslType = const OpenGL.Double
@@ -572,7 +573,7 @@ instance GLType [Vec 3 Double] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 8
     numComponents = const 3
     getGlslType = const OpenGL.Double
@@ -584,7 +585,7 @@ instance GLType [Vec 4 Double] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 8
     numComponents = const 4
     getGlslType = const OpenGL.Double
@@ -596,7 +597,7 @@ instance GLType [Int] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 1
     getGlslType = const OpenGL.Int
@@ -608,7 +609,7 @@ instance GLType [Vec 2 Int] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 2
     getGlslType = const OpenGL.Int
@@ -620,7 +621,7 @@ instance GLType [Vec 3 Int] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 3
     getGlslType = const OpenGL.Int
@@ -632,7 +633,7 @@ instance GLType [Vec 4 Int] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 4
     getGlslType = const OpenGL.Int
@@ -644,7 +645,7 @@ instance GLType [UInt] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 1
     getGlslType = const OpenGL.UnsignedInt
@@ -656,7 +657,7 @@ instance GLType [Vec 2 UInt] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 2
     getGlslType = const OpenGL.UnsignedInt
@@ -668,7 +669,7 @@ instance GLType [Vec 3 UInt] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 3
     getGlslType = const OpenGL.UnsignedInt
@@ -680,7 +681,7 @@ instance GLType [Vec 4 UInt] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 4
     numComponents = const 4
     getGlslType = const OpenGL.UnsignedInt
@@ -692,7 +693,7 @@ instance GLType [Bool] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 1
     numComponents = const 1
     getGlslType = const OpenGL.Byte
@@ -704,7 +705,7 @@ instance GLType [Vec 2 Bool] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 1
     numComponents = const 2
     getGlslType = const OpenGL.Byte
@@ -716,7 +717,7 @@ instance GLType [Vec 3 Bool] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 1
     numComponents = const 3
     getGlslType = const OpenGL.Byte
@@ -728,7 +729,7 @@ instance GLType [Vec 4 Bool] where
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
-    arrayLen xs = Prelude.length xs
+    arrayLen = Prelude.length
     eltSize = const 1
     numComponents = const 4
     getGlslType = const OpenGL.Byte
@@ -786,6 +787,18 @@ instance GLSupportsSmoothInterp Float
 instance GLSupportsSmoothInterp (Vec 2 Float)
 instance GLSupportsSmoothInterp (Vec 3 Float)
 instance GLSupportsSmoothInterp (Vec 4 Float)
+
+
+class (GLType t, Integral (GLElt t), Bits (GLElt t)) => GLSupportsBitwiseOps t
+
+instance GLSupportsBitwiseOps Int
+instance GLSupportsBitwiseOps UInt
+instance GLSupportsBitwiseOps (Vec 2 Int)
+instance GLSupportsBitwiseOps (Vec 3 Int)
+instance GLSupportsBitwiseOps (Vec 4 Int)
+instance GLSupportsBitwiseOps (Vec 2 UInt)
+instance GLSupportsBitwiseOps (Vec 3 UInt)
+instance GLSupportsBitwiseOps (Vec 4 UInt)
 
 
 type family GLElt t where

@@ -5,8 +5,8 @@ module Graphics.HEGL.ExprID (
     HasExprID(..)
 ) where
 
+import Prelude hiding (id)
 import Data.IORef
-import Data.Bits
 import System.IO.Unsafe (unsafePerformIO)
 
 type ExprID = Int

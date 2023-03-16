@@ -35,12 +35,18 @@ module Graphics.HEGL (
     glLift0, 
     glLift1, 
     glLift2,
+    glLift3,
+    glLift4,
+    glLift5,
+    glLift6,
     -- * Generic constructors
     Graphics.HEGL.const,
     uniform,
     prec,
     vert,
     frag,
+    flatFrag,
+    noperpFrag,
     -- * Vector, matrix, and array constructors
     vec2, vec3, vec4,
     mat2, mat3, mat4,
@@ -59,10 +65,10 @@ module Graphics.HEGL (
     yx_, yz_, yw_,
     zx_, zy_, zw_,
     wx_, wy_, wz_,
-    xyz_, xyw_, xzy_, xzw_, xwy_, xwy_,
+    xyz_, xyw_, xzy_, xzw_, xwy_, xwz_,
     yxz_, yxw_, yzx_, yzw_, ywx_, ywz_,
     zxy_, zxw_, zyx_, zyw_, zwx_, zwy_,
-    wxy_, wxz_, wyx_, wyz_, wxz_, wxy_,
+    wxy_, wxz_, wyx_, wyz_, wzx_, wzy_,
     col0, col1, col2, col3,
     (%!),
     -- * Type conversion
@@ -72,6 +78,9 @@ module Graphics.HEGL (
     glFunc1,
     glFunc2,
     glFunc3,
+    glFunc4,
+    glFunc5,
+    glFunc6,
     -- * Builtin operators and functions
     -- ** Numeric operators
     (.%),
@@ -105,6 +114,12 @@ module Graphics.HEGL (
     Graphics.HEGL.asin,
     Graphics.HEGL.acos,
     Graphics.HEGL.atan,
+    Graphics.HEGL.sinh,
+    Graphics.HEGL.cosh,
+    Graphics.HEGL.tanh,
+    Graphics.HEGL.asinh,
+    Graphics.HEGL.acosh,
+    Graphics.HEGL.atanh,
     -- ** Exponential functions
     pow,
     Graphics.HEGL.exp,
@@ -112,6 +127,7 @@ module Graphics.HEGL (
     exp2,
     log2,
     Graphics.HEGL.sqrt,
+    inversesqrt,
     -- ** Common functions
     Graphics.HEGL.floor,
     trunc,
@@ -141,6 +157,16 @@ module Graphics.HEGL (
     transpose,
     determinant,
     inverse,
+    -- ** Vector relational functions
+    lessThan,
+    lessThanEqual,
+    greaterThan,
+    greaterThanEqual,
+    equal,
+    notEqual,
+    Graphics.HEGL.any,
+    Graphics.HEGL.all,
+    compl,
     -- * Builtin I/O variables
     time,
     mouseLeft,
@@ -185,9 +211,9 @@ import Graphics.HEGL.Backend.GLUT
 
 -- * Expressions: Main definitions
 
-instance GLPrim t => Enum (GLExpr d t) where
+instance GLPrim t => Enum (ConstExpr t) where
     toEnum x = GLAtom (genID ()) $ Const (toEnum x)
-    fromEnum x = undefined --FIXME
+    fromEnum = fromEnum . constEval
 
 instance (GLNumeric (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
     x + y = GLGenExpr (genID ()) $ OpAdd x y
@@ -210,6 +236,12 @@ instance Floating (GLExpr d Float) where
     asin x = GLGenExpr (genID ()) $ Asin x
     acos x = GLGenExpr (genID ()) $ Acos x
     atan x = GLGenExpr (genID ()) $ Atan x
+    sinh x = GLGenExpr (genID ()) $ Sinh x
+    cosh x = GLGenExpr (genID ()) $ Cosh x
+    tanh x = GLGenExpr (genID ()) $ Tanh x
+    asinh x = GLGenExpr (genID ()) $ Asinh x
+    acosh x = GLGenExpr (genID ()) $ Acosh x
+    atanh x = GLGenExpr (genID ()) $ Atanh x
     x ** y = GLGenExpr (genID ()) $ Pow x y
     exp x = GLGenExpr (genID ()) $ Exp x
     sqrt x = GLGenExpr (genID ()) $ Sqrt x
@@ -221,7 +253,10 @@ instance Floating (GLExpr d Float) where
 glLift0 x = GLAtom (genID ()) $ GLLift0 x
 glLift1 f x = GLAtom (genID ()) $ GLLift1 f x
 glLift2 f x y = GLAtom (genID ()) $ GLLift2 f x y
--- TODO: add remaining lifts, up to glLift6
+glLift3 f x y z = GLAtom (genID ()) $ GLLift3 f x y z
+glLift4 f x y z w = GLAtom (genID ()) $ GLLift4 f x y z w
+glLift5 f x y z w u = GLAtom (genID ()) $ GLLift5 f x y z w u
+glLift6 f x y z w u v = GLAtom (genID ()) $ GLLift6 f x y z w u v
 
 
 -- * Generic expression constructors
@@ -333,19 +368,31 @@ glFunc1 :: (GLType t, GLType t1) =>
      GLExpr d t1 -> GLExpr d t 
 glFunc1 f = \x0 -> GLFunc (genID ()) $ GLFunc1 f x x0
     where x = makeGenVar ()
-
 glFunc2 :: (GLType t, GLType t1, GLType t2) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t 
 glFunc2 f = \x0 y0 -> GLFunc (genID ()) $ GLFunc2 f x y x0 y0
     where (x, y) = (makeGenVar (), makeGenVar ())
-
 glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
 glFunc3 f = \x0 y0 z0 -> GLFunc (genID ()) $ GLFunc3 f x y z x0 y0 z0
     where (x, y, z) = (makeGenVar (), makeGenVar (), makeGenVar ())
--- TODO: add remaining cases, up to glFunc6
+glFunc4 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4) => 
+    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t 
+glFunc4 f = \x0 y0 z0 w0 -> GLFunc (genID ()) $ GLFunc4 f x y z w x0 y0 z0 w0
+    where (x, y, z, w) = (makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar ())
+glFunc5 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5) => 
+    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5-> GLExpr d t 
+glFunc5 f = \x0 y0 z0 w0 v0 -> GLFunc (genID ()) $ GLFunc5 f x y z w v x0 y0 z0 w0 v0
+    where (x, y, z, w, v) = (makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar ())
+glFunc6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) => 
+    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t 
+glFunc6 f = \x0 y0 z0 w0 v0 u0 -> GLFunc (genID ()) $ GLFunc6 f x y z w v u x0 y0 z0 w0 v0 u0
+    where (x, y, z, w, v, u) = (makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar ())
 
 
 -- * Builtin operators and functions
@@ -391,6 +438,12 @@ tan x = GLGenExpr (genID ()) $ Tan x
 asin x = GLGenExpr (genID ()) $ Asin x
 acos x = GLGenExpr (genID ()) $ Acos x
 atan x = GLGenExpr (genID ()) $ Atan x
+sinh x = GLGenExpr (genID ()) $ Sin x
+cosh x = GLGenExpr (genID ()) $ Cos x
+tanh x = GLGenExpr (genID ()) $ Tan x
+asinh x = GLGenExpr (genID ()) $ Asin x
+acosh x = GLGenExpr (genID ()) $ Acos x
+atanh x = GLGenExpr (genID ()) $ Atan x
 
 pow x y = GLGenExpr (genID ()) $ Pow x y
 exp x = GLGenExpr (genID ()) $ Exp x
@@ -398,6 +451,7 @@ log x = GLGenExpr (genID ()) $ Log x
 exp2 x = GLGenExpr (genID ()) $ Exp2 x
 log2 x = GLGenExpr (genID ()) $ Log2 x
 sqrt x = GLGenExpr (genID ()) $ Sqrt x
+inversesqrt x = GLGenExpr (genID ()) $ Inversesqrt x
 
 floor x = GLGenExpr (genID ()) $ Floor x
 trunc x = GLGenExpr (genID ()) $ Trunc x
@@ -470,22 +524,30 @@ class Drawable a where
 
 instance Drawable GLObj where
     draw GLUTBackend obj = runGLUT [obj]
-    draw ImageBackend obj = undefined
+    draw ImageBackend _ = error "Image backend not yet supported"
 
 instance Drawable [GLObj] where
     draw GLUTBackend objs = runGLUT objs
-    draw ImageBackend objs = undefined
+    draw ImageBackend _ = error "Image backend not yet supported"
 
-points = GLObj { primitiveMode = OpenGL.Points }
-lines = GLObj { primitiveMode = OpenGL.Lines }
-lineLoop = GLObj { primitiveMode = OpenGL.LineLoop }
-lineStrip = GLObj { primitiveMode = OpenGL.LineStrip }
-triangles = GLObj { primitiveMode = OpenGL.Triangles }
-triangleStrip = GLObj { primitiveMode = OpenGL.TriangleStrip }
-triangleFan = GLObj { primitiveMode = OpenGL.Points }
-quads = GLObj { primitiveMode = OpenGL.Quads }
-quadStrip = GLObj { primitiveMode = OpenGL.QuadStrip }
-polygon = GLObj { primitiveMode = OpenGL.Polygon }
+defaultObj = GLObj {
+    primitiveMode = OpenGL.Points,
+    indices = Nothing,
+    position = vec4 0 0 0 0,
+    color = vec4 0 0 0 0,
+    discardWhen = Graphics.HEGL.cast (0 :: FragExpr Int)
+}
+
+points = defaultObj { primitiveMode = OpenGL.Points }
+lines = defaultObj { primitiveMode = OpenGL.Lines }
+lineLoop = defaultObj { primitiveMode = OpenGL.LineLoop }
+lineStrip = defaultObj { primitiveMode = OpenGL.LineStrip }
+triangles = defaultObj { primitiveMode = OpenGL.Triangles }
+triangleStrip = defaultObj { primitiveMode = OpenGL.TriangleStrip }
+triangleFan = defaultObj { primitiveMode = OpenGL.Points }
+quads = defaultObj { primitiveMode = OpenGL.Quads }
+quadStrip = defaultObj { primitiveMode = OpenGL.QuadStrip }
+polygon = defaultObj { primitiveMode = OpenGL.Polygon }
 
 -- * Backends
 

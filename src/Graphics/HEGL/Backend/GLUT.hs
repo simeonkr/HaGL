@@ -2,14 +2,14 @@ module Graphics.HEGL.Backend.GLUT (
     runGLUT
 ) where
 
+import Prelude hiding (id)
 import Control.Exception (assert)
-import Control.Monad (unless, foldM)
+import Control.Monad (unless)
 import Data.Functor.Identity
 import Data.IORef
 import Data.Time.Clock
 import Foreign.Marshal.Array (withArray)
 import Foreign.Ptr (Ptr, wordPtrToPtr)
-import Foreign.Storable (sizeOf)
 import Graphics.Rendering.OpenGL
 import Graphics.UI.GLUT 
 
@@ -18,7 +18,7 @@ import qualified Data.Set as Set
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
 import Graphics.HEGL.ExprID
-import Graphics.HEGL.GLObj (GLObj(GLObj))
+import Graphics.HEGL.GLObj (GLObj)
 import Graphics.HEGL.Eval
 import Graphics.HEGL.CodeGen (GLProgram(GLProgram), InpVar(..), UniformVar(..), genProgram)
 
@@ -49,8 +49,8 @@ runGLUT glObjs = do
 initWindow :: IO ()
 initWindow = do
     (progName, args) <- getArgsAndInitialize
-    createWindow progName
-    windowSize $= (Size 768 768)
+    _ <- createWindow progName
+    windowSize $= Size 768 768
     initialDisplayMode $= [RGBAMode, WithAlphaComponent]
     depthFunc $= Just Lequal
 
@@ -111,7 +111,7 @@ bindAttrDat prog (InpVar id xs) = do
     arrayBuffer <- genObjectName
     bindBuffer ArrayBuffer $= Just arrayBuffer
     let val = map constEval xs
-    let size = fromIntegral $ (eltSize val) * (numComponents val) * (length val)
+    let size = fromIntegral $ eltSize val * numComponents val * length val
     withArray (toStorableList val) $ \ptr ->
         bufferData ArrayBuffer $= (size, ptr, StaticDraw) 
 
@@ -130,7 +130,7 @@ bindIndices :: Maybe [ConstExpr UInt] -> IO ()
 bindIndices (Just inds) = do
     elementArrayBuffer <- genObjectName
     bindBuffer ElementArrayBuffer $= Just elementArrayBuffer
-    let indSize = fromIntegral $ 4 * (length inds)
+    let indSize = fromIntegral $ 4 * length inds
     withArray (map constEval inds) $ \ptr ->
         bufferData ElementArrayBuffer $= (indSize, ptr, StaticDraw)
 bindIndices _ = return ()
@@ -138,7 +138,7 @@ bindIndices _ = return ()
 getNumElts :: Set.Set InpVar -> Int
 getNumElts xs = assert (all (\x -> inpLen x == n) xs) n where
     inpLen (InpVar _ dat) = length dat
-    n = inpLen $ head $ Set.toList $ xs
+    n = inpLen $ head $ Set.toList xs
 
 makeOff :: Int -> Ptr a
 makeOff = wordPtrToPtr . fromIntegral
@@ -202,7 +202,7 @@ printStats ioStateRef = do
     if dt > 1 then do
         writeIORef ioStateRef $ ioState { 
             lastStatsUpdate = t, totUpdates = 0 }
-        putStrLn $ "FPS: " ++ show (floor $ fromIntegral numUpdates / dt)
+        putStrLn $ "FPS: " ++ show (floor $ fromIntegral numUpdates / dt :: Int)
     else writeIORef ioStateRef $ ioState { totUpdates = numUpdates + 1 }
 
 setUniform :: IOState -> RunObj -> UniformVar -> IO ()
@@ -259,7 +259,7 @@ mouse ioState WheelUp _ _ =
 mouse ioState WheelDown _ _ =
     let updateWheel ioState = ioState { mouseWheel = -1 }
     in modifyIORef ioState updateWheel
-mouse ioState _ _ _ = return ()
+mouse _ _ _ _ = return ()
 
 motion :: IORef IOState -> MotionCallback
 motion ioState (Position x y) =
@@ -268,38 +268,38 @@ motion ioState (Position x y) =
 
 ioEval :: IOState -> RunObj -> GLExpr HostDomain t -> IO t
 
-ioEval ioState obj (GLAtom id (IOPrec x0 x)) = do
+ioEval ioState obj (GLAtom _ (IOPrec x0 x)) = do
     pm <- readIORef $ precMap obj
     case DepMap.lookup x pm of
         -- if this strategy causes problems, store a variable in ioState indicating whether
         -- we've initialized the ioPrecs or not and use it to determine what value to return
         Just val -> return $ runIdentity val
         Nothing -> do
-            ioEval ioState obj x
+            _ <- ioEval ioState obj x
             val <- ioEval ioState obj x0
             writeIORef (precMap obj) $ DepMap.insert x0 (Identity val) pm
             return val
 
-ioEval ioState _ (GLAtom id (IOFloat "time")) = do
+ioEval ioState _ (GLAtom _ (IOFloat "time")) = do
     let t0 = initTime ioState
     epoch <- getCurrentTime
     let t = fromRational $ toRational $ utctDayTime epoch
     return $ t - t0
 
-ioEval ioState _ (GLAtom id (IOBool "mouseLeft")) = do
+ioEval ioState _ (GLAtom _ (IOBool "mouseLeft")) =
     return $ (toEnum . fromEnum) $ mouseLeftDown ioState
 
-ioEval ioState _ (GLAtom id (IOBool "mouseRight")) = do
+ioEval ioState _ (GLAtom _ (IOBool "mouseRight")) =
     return $ (toEnum . fromEnum) $ mouseRightDown ioState
 
-ioEval ioState _ (GLAtom id (IOFloat "mouseWheel")) = do
+ioEval ioState _ (GLAtom _ (IOFloat "mouseWheel")) =
     return $ mouseWheel ioState
 
-ioEval ioState _ (GLAtom id (IOFloat "mouseX")) = do
+ioEval ioState _ (GLAtom _ (IOFloat "mouseX")) = do
     (Size width _) <- get windowSize
-    return $ (fromIntegral $ curMouseX ioState) / (fromIntegral width)
+    return $ fromIntegral (curMouseX ioState) / fromIntegral width
 
-ioEval ioState _ (GLAtom id (IOFloat "mouseY")) = do
+ioEval ioState _ (GLAtom _ (IOFloat "mouseY")) = do
     (Size _ height) <- get windowSize
-    return $ 1 - (fromIntegral $ curMouseY ioState) / (fromIntegral height)
+    return $ 1 - fromIntegral (curMouseY ioState) / fromIntegral height
 

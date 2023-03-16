@@ -23,7 +23,6 @@ module Graphics.HEGL.Numerical (
 ) where
 
 import Data.Array
-import Data.Either (fromRight)
 import Data.List (intercalate, length)
 import Data.Proxy
 import GHC.TypeLits
@@ -83,9 +82,9 @@ instance (KnownNat p, KnownNat q, Num t) => Num (Mat p q t) where
     m1 + m2 = (+) <$> m1 <*> m2
     m1 - m2 = (-) <$> m1 <*> m2
     m1 * m2 = (*) <$> m1 <*> m2
-    negate m = fmap negate m
-    abs m = fmap abs m
-    signum m = fmap signum m
+    negate = fmap negate
+    abs = fmap abs
+    signum = fmap signum
     fromInteger = pure . fromInteger
 
 instance (KnownNat p, KnownNat q, Fractional t) => Fractional (Mat p q t) where
@@ -93,8 +92,8 @@ instance (KnownNat p, KnownNat q, Fractional t) => Fractional (Mat p q t) where
     fromRational = pure . fromRational
 
 instance Show t => Show (Mat p q t) where
-    show (Mat xs) = intercalate "\n" [showRow i xs | i <- [0..p]] ++ "\n" where
-        showRow i xs = intercalate " " [showElt i j | j <- [0..q]]
+    show (Mat xs) = intercalate "\n" [showRow i | i <- [0..p]] ++ "\n" where
+        showRow i = intercalate " " [showElt i j | j <- [0..q]]
         showElt i j = show $ xs ! (i, j)
         ((0, 0), (p, q)) = bounds xs
 
@@ -131,16 +130,16 @@ matCol (Mat xs) j = Mat $ listArray ((0, 0), (p, 0)) vs where
 
 
 length :: Floating t => Vec n t -> t
-length (Mat xs) = sqrt $ foldr (+) 0 
-    [(xs ! (i, 0)) ^ 2 | (i, 0) <- range $ bounds xs]
+length (Mat xs) = sqrt $ sum
+    [(xs ! (i, 0)) ** 2 | (i, 0) <- range $ bounds xs]
 
 distance :: Floating t => Vec n t -> Vec n t -> t
-distance (Mat xs) (Mat ys) = sqrt $ foldr (+) 0 
-    [((xs ! (i, 0)) - (ys ! (i, 0))) ^ 2 | (i, 0) <- range $ bounds xs]
+distance (Mat xs) (Mat ys) = sqrt $ sum
+    [((xs ! (i, 0)) - (ys ! (i, 0))) ** 2 | (i, 0) <- range $ bounds xs]
 
 dot :: Num t => Vec n t -> Vec n t -> t
 dot (Mat xs) (Mat ys) = 
-    foldr (+) 0 [(xs ! (i, 0)) * (ys ! (i, 0)) | (i, 0) <- range $ bounds xs]
+    sum [(xs ! (i, 0)) * (ys ! (i, 0)) | (i, 0) <- range $ bounds xs]
 
 cross :: Num t => Vec 3 t -> Vec 3 t -> Vec 3 t
 cross (Mat xs) (Mat ys) = Mat $ listArray (bounds xs) zs where
@@ -161,7 +160,7 @@ transpose (Mat xs) = Mat $ array ((0, 0), (q, p)) xst where
 matMult :: Num t => Mat p q t -> Mat q r t -> Mat p r t
 matMult (Mat xs) (Mat ys) = Mat $ array ((0, 0), (p, r)) zs where
     zs = [((i, j), matElt i j) | (i, j) <- range ((0, 0), (p, r))]
-    matElt i j = foldr (+) 0 [(xs ! (i, k)) * (ys ! (k, j)) | k <- [0..q]]
+    matElt i j = sum [(xs ! (i, k)) * (ys ! (k, j)) | k <- [0..q]]
     ((0, 0), (p, q)) = bounds xs
     ((0, 0), (_, r)) = bounds ys
 

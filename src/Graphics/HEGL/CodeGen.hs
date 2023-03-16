@@ -4,8 +4,8 @@ module Graphics.HEGL.CodeGen (
     genProgram
 ) where
 
-import Control.Monad.State.Lazy (State, evalState, runState, get, gets, modify, unless)
-import Foreign.Storable (Storable)
+import Prelude hiding (id)
+import Control.Monad.State.Lazy (State, evalState, get, gets, modify, unless)
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -63,7 +63,7 @@ data CGDat = CGDat {
 
 initCGDat glObj = CGDat {
     globalDefs = Set.empty,
-    shaderScopes = Map.fromList $ 
+    shaderScopes = Map.fromList
         [(dom, emptyScope) | dom <- shaderDomains],
     localScope = Nothing,
     funcStack = [],
@@ -140,54 +140,49 @@ traverseGLAst (GLAstAtom id ti (Inp xs)) = mkGlobal id $ do
     addInputVar $ InpVar id xs
     modifyShader (shaderType ti) $ addDecl $ 
         InpDecl "" (idLabel id) (exprType ti)
-traverseGLAst (GLAstAtom id ti (Frag interpType vertExpr)) = mkGlobal id $ do
-    vertName <- traverseGLAst $ toGLAst vertExpr
+traverseGLAst (GLAstAtom id ti (Frag interpType x)) = mkGlobal id $ do
+    vertExpr <- traverseGLAst $ toGLAst x
     modifyShader VertexDomain $ addStmt $
-        VarAsmt (idLabel id) vertName
+        VarAsmt (idLabel id) vertExpr
     modifyShader VertexDomain $ addDecl $
         OutDecl (idLabel id) (exprType ti)
     modifyShader FragmentDomain $ addDecl $
         InpDecl (show interpType) (idLabel id) (exprType ti)
-traverseGLAst (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [condExpr, retExpr, 
-  (GLAstFuncApp _ _ (GLAstFunc fnId' _ _ _) recArgs)]) paramVars) =
-    let glastToParam (GLAstAtom id ti GenVar) = ShaderParam (idLabel id) (exprType ti)
-        params = map glastToParam paramVars
-    in mkFn (shaderType ti) fnID params $ do
-        ((condName, updateStmts, retName, retStmts), condStmts) <- newScope (shaderType ti) $ do
-            condName <- traverseGLAst condExpr
+traverseGLAst (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [cond, ret, 
+  GLAstFuncApp _ _ (GLAstFunc fnID' _ _ _) recArgs]) params) | fnID == fnID' =
+    mkFn fnID params $ \parentParamExprs paramExprs -> do
+        ((condExpr, updateStmts, retExpr, retStmts), condStmts) <- newScope (shaderType ti) $ do
+            condExpr <- traverseGLAst cond
             (_, updateStmts) <- innerScope (shaderType ti) $ do
-                argNames <- mapM traverseGLAst recArgs
+                argExprs <- mapM traverseGLAst recArgs
                 mapM_ (\(ShaderParam paramName _, argName) -> mkStmt (shaderType ti) $ 
-                    VarAsmt paramName argName) $ zip params argNames
-            (retName, retStmts) <- innerScope (shaderType ti) $ traverseGLAst retExpr
-            return (condName, updateStmts, retName, retStmts)
-        parentParams <- getParentParams
+                    VarAsmt paramName argName) $ zip paramExprs argExprs
+            (retExpr, retStmts) <- innerScope (shaderType ti) $ traverseGLAst ret
+            return (condExpr, updateStmts, retExpr, retStmts)
         modifyShader (shaderType ti) $ addFn $
             ShaderLoopFn (idLabel fnID) (exprType ti) 
-                (parentParams ++ params)
-                condName
-                retName
+                (parentParamExprs ++ paramExprs)
+                condExpr
+                retExpr
                 condStmts
                 retStmts
                 updateStmts
-traverseGLAst (GLAstFunc fnID ti r paramVars) =
-    let glastToParam (GLAstAtom id ti GenVar) = ShaderParam (idLabel id) (exprType ti)
-        params = map glastToParam paramVars
-    in mkFn (shaderType ti) fnID params $ do
-        parentParams <- getParentParams
-        (rName, scopeStmts) <- newScope (shaderType ti) $ traverseGLAst r
+traverseGLAst (GLAstFunc fnID ti r params) =
+    mkFn fnID params $ \parentParamExprs paramExprs -> do
+        (rExpr, scopeStmts) <- newScope (shaderType ti) $ traverseGLAst r
         modifyShader (shaderType ti) $ addFn $
             ShaderFn (idLabel fnID) (exprType ti)
-                (parentParams ++ params)
+                (parentParamExprs ++ paramExprs)
                 scopeStmts 
-                rName
+                rExpr
 traverseGLAst (GLAstFuncApp callID ti fn args) = 
     mkLocal (shaderType ti) callID $ do
-        parentArgs <- map (\(ShaderParam name _) -> ShaderVarRef name) <$> getParentParams
-        argNames <- mapM traverseGLAst args
+        parentArgExprs <- map (\(ShaderParam name _) -> ShaderVarRef name) <$> 
+            concatMap snd <$> gets funcStack
+        argExprs <- mapM traverseGLAst args
         _ <- traverseGLAst fn
         mkStmt (shaderType ti) $ VarDeclAsmt (idLabel callID) (exprType ti)
-            (ShaderExpr (idLabel $ getID fn) (parentArgs ++ argNames))
+            (ShaderExpr (idLabel $ getID fn) (parentArgExprs ++ argExprs))
 traverseGLAst (GLAstExpr id ti exprName subnodes) = 
     mkLocal (shaderType ti) id $ do
         subexprs <- mapM traverseGLAst subnodes
@@ -203,7 +198,7 @@ innerScope dom action = do
     res <- action
     scopeAfter <- getCurScope dom
     modifyCurScope dom $ const scopeBefore
-    return $ (res, localStmts scopeAfter)
+    return (res, localStmts scopeAfter)
 
 
 newScope :: ShaderDomain -> CGState a -> CGState (a, [ShaderStmt])
@@ -225,11 +220,8 @@ modifyCurScope dom f = do
     ls <- gets localScope
     case ls of
         Just ls -> modify $ \s -> s { localScope = Just $ f ls }
-        Nothing -> do
+        Nothing ->
             modify $ \s -> s { shaderScopes = Map.adjust f dom $ shaderScopes s  }
-
-getParentParams :: CGState [ShaderParam]
-getParentParams = concatMap snd <$> gets funcStack
 
 
 -- Shader expression construction
@@ -251,14 +243,18 @@ mkGlobal id initFn = do
         initFn
     return $ ShaderVarRef $ idLabel id
 
-mkFn :: ShaderDomain -> ExprID -> [ShaderParam] -> CGState () -> CGState ShaderExpr
-mkFn dom id params initFn = do
+mkFn :: ExprID -> [GLAst] -> ([ShaderParam] -> [ShaderParam] -> CGState ()) -> CGState ShaderExpr
+mkFn id params initFn = do
     fns <- gets funcStack
-    if id `List.elem` (map fst fns) then do
+    if id `List.elem` map fst fns then
         error "Unsupported recursive function call"
     else do
-        modify $ \s -> s { funcStack = (id, params) : funcStack s }
-        res <- mkGlobal id initFn
+        let parentParamExprs = concatMap snd fns
+            glastToParamExpr (GLAstAtom id ti GenVar) = 
+                ShaderParam (idLabel id) (exprType ti)
+            paramExprs = map glastToParamExpr params
+        modify $ \s -> s { funcStack = (id, paramExprs) : funcStack s }
+        res <- mkGlobal id (initFn parentParamExprs paramExprs)
         modify $ \s -> s { funcStack = tail $ funcStack s }
         return res
 

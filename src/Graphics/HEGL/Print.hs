@@ -1,5 +1,8 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Graphics.HEGL.Print () where
 
+import Prelude hiding (id)
 import Control.Monad.State.Lazy (State, execState, gets, modify)
 import qualified Data.Set as Set
 
@@ -48,16 +51,25 @@ printGLAst (GLAstAtom id ty (Inp _)) =
     printNode id ty "inp"
 printGLAst (GLAstAtom id ty (Frag _ _)) =
     printNode id ty "frag"
--- TODO: finish the other cases
+printGLAst (GLAstAtom id ty (IOFloat _)) =
+    printNode id ty "ioFloat"
+printGLAst (GLAstAtom id ty (IODouble _)) =
+    printNode id ty "ioDouble"
+printGLAst (GLAstAtom id ty (IOInt _)) =
+    printNode id ty "ioInt"
+printGLAst (GLAstAtom id ty (IOUInt _)) =
+    printNode id ty "ioUInt"
+printGLAst (GLAstAtom id ty (IOBool _)) =
+    printNode id ty "ioBool"
+printGLAst (GLAstAtom id ty (IOPrec _ _)) =
+    printNode id ty "ioPrec"
 printGLAst (GLAstAtom id ty _) =
-    printNode id ty "?"
+    printNode id ty "ioPrec"
 printGLAst (GLAstFunc id ty _ _) =
-    printNode id ty "?"
-printGLAst (GLAstFuncApp id ty _ _) =
-    printNode id ty "?"
+    printNode id ty "glFunc"
 printGLAst (GLAstExpr id ty op xs) = do
     printNode id ty op
-    ifNotTraversed id $ do
+    ifNotTraversed id $
         indented $ mapM_ printGLAst xs
 
 printNode :: ExprID -> GLTypeInfo -> String -> Printer

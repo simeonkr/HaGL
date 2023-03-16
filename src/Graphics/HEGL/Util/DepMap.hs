@@ -52,7 +52,7 @@ mapWithKey f (DepMap hm) = DepMap hm' where
 
 traverseWithKey :: Applicative a => (forall t. k t -> v1 t -> a (v2 t)) -> DepMap k v1 -> a (DepMap k v2)
 traverseWithKey f (DepMap hm) = DepMap <$> hm' where
-    hm' = HashMap.traverseWithKey (\(DMK k) (DMV v) -> DMV <$> (f k $ unsafeCoerce v)) hm 
+    hm' = HashMap.traverseWithKey (\(DMK k) (DMV v) -> DMV <$> f k (unsafeCoerce v)) hm 
 
 {-data Expr t where
     IntExpr :: Int -> Expr Int

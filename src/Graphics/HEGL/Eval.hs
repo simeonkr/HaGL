@@ -6,7 +6,7 @@ module Graphics.HEGL.Eval (
     hostEval
 ) where
 
-import Prelude hiding (length)
+import Prelude hiding (id, length)
 
 import Control.Applicative (liftA2)
 import Control.Monad.State.Lazy
@@ -16,9 +16,7 @@ import Data.Bits
 import Graphics.HEGL.Numerical
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
-import Graphics.HEGL.ExprID
 import Graphics.HEGL.Util.Types (FinList(..))
-
 import qualified Graphics.HEGL.Util.DepMap as DepMap
 
 
@@ -34,12 +32,9 @@ hostEval ioev expr =
     evalStateT (cachedEval (hEval ioev) expr) (EvalState DepMap.empty)
 
 
-data EvalState d = EvalState {
+newtype EvalState d = EvalState {
     cache :: DepMap.DepMap (GLExpr d) Identity
 }
-
-instance DepMap.GenHashable (GLExpr d) where
-    genHash = getID
 
 cachedEval :: Monad a => (GLExpr d t -> StateT (EvalState d) a t) ->
     GLExpr d t -> StateT (EvalState d) a t
@@ -77,10 +72,21 @@ eval (GLAtom _ (GLLift1 f x0)) = withEv1 x0 $ \x0 ->
     return $ f x0
 eval (GLAtom _ (GLLift2 f x0 y0)) = withEv2 x0 y0 $ \x0 y0 ->
     return $ f x0 y0
+eval (GLAtom _ (GLLift3 f x0 y0 z0)) = withEv3 x0 y0 z0 $ \x0 y0 z0 ->
+    return $ f x0 y0 z0
+eval (GLAtom _ (GLLift4 f x0 y0 z0 w0)) = withEv4 x0 y0 z0 w0 $ \x0 y0 z0 w0 ->
+    return $ f x0 y0 z0 w0
+eval (GLAtom _ (GLLift5 f x0 y0 z0 w0 u0)) = withEv5 x0 y0 z0 w0 u0 $ \x0 y0 z0 w0 u0 ->
+    return $ f x0 y0 z0 w0 u0
+eval (GLAtom _ (GLLift6 f x0 y0 z0 w0 u0 v0)) = withEv6 x0 y0 z0 w0 u0 v0 $ \x0 y0 z0 w0 u0 v0 ->
+    return $ f x0 y0 z0 w0 u0 v0
 
 eval (GLFunc _ (GLFunc1 f _ x0)) = eval $ f x0
 eval (GLFunc _ (GLFunc2 f _ _ x0 y0)) = eval $ f x0 y0
 eval (GLFunc _ (GLFunc3 f _ _ _ x0 y0 z0)) = eval $ f x0 y0 z0
+eval (GLFunc _ (GLFunc4 f _ _ _ _ x0 y0 z0 w0)) = eval $ f x0 y0 z0 w0
+eval (GLFunc _ (GLFunc5 f _ _ _ _ _ x0 y0 z0 w0 u0)) = eval $ f x0 y0 z0 w0 u0
+eval (GLFunc _ (GLFunc6 f _ _ _ _ _ _ x0 y0 z0 w0 u0 v0)) = eval $ f x0 y0 z0 w0 u0 v0
 
 eval (GLGenExpr _ (GLVec2 x y)) = withEv2 x y $ \x y -> 
     return $ x %| m0 %- y %| m0
@@ -120,7 +126,7 @@ eval (GLGenExpr _ (GLArray xs)) =
 eval (GLGenExpr _ (OpCoord coords v)) = withEv1 v $ \v ->
     return $ v `eltAt` coordToIndex coords
 eval (GLGenExpr _ (OpCoordMulti coordList v)) = withEv1 v $ \v ->
-    return $ v `eltsAt` (toFinList coordList) where
+    return $ v `eltsAt` toFinList coordList where
         toFinList :: GLCoordList l m -> FinList l (Int, Int)
         toFinList CoordNil = FLNil
         toFinList (CoordCons c cs) = FLCons (coordToIndex c) (toFinList cs)
@@ -142,7 +148,6 @@ eval (GLGenExpr _ (OpMult x y)) = withEv2 x y $ \x y ->
     return $ glZipWith (*) x y
 eval (GLGenExpr _ (OpDiv x y)) = withEv2 x y $ \x y ->
     return $ glZipWith genDiv x y
--- TODO: warn if one of the operands is negative or second operand is zero
 eval (GLGenExpr _ (OpMod x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith mod x y
 eval (GLGenExpr _ (OpNeg x)) = withEv1 x $ \x ->
@@ -182,7 +187,7 @@ eval (GLGenExpr _ (OpBitOr x y)) = withEv2 x y $ \x y ->
 eval (GLGenExpr _ (OpBitXor x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith xor x y
 eval (GLGenExpr _ (OpScalarMult x y)) = withEv2 x y $ \x y -> 
-    return $ glMap ((*) x) y
+    return $ glMap (x *) y
 eval (GLGenExpr _ (OpMatrixMult x y)) = withEv2 x y $ \x y -> 
     return $ matMult x y
 
@@ -204,6 +209,18 @@ eval (GLGenExpr _ (Acos x)) = withEv1 x $ \x ->
     return $ glMap acos x
 eval (GLGenExpr _ (Atan x)) = withEv1 x $ \x -> 
     return $ glMap atan x
+eval (GLGenExpr _ (Sinh x)) = withEv1 x $ \x -> 
+    return $ glMap sinh x
+eval (GLGenExpr _ (Cosh x)) = withEv1 x $ \x -> 
+    return $ glMap cosh x
+eval (GLGenExpr _ (Tanh x)) = withEv1 x $ \x -> 
+    return $ glMap tanh x
+eval (GLGenExpr _ (Asinh x)) = withEv1 x $ \x -> 
+    return $ glMap asinh x
+eval (GLGenExpr _ (Acosh x)) = withEv1 x $ \x -> 
+    return $ glMap acosh x
+eval (GLGenExpr _ (Atanh x)) = withEv1 x $ \x -> 
+    return $ glMap atanh x
 
 eval (GLGenExpr _ (Pow x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith (**) x y
@@ -212,31 +229,33 @@ eval (GLGenExpr _ (Exp x)) = withEv1 x $ \x ->
 eval (GLGenExpr _ (Log x)) = withEv1 x $ \x -> 
     return $ glMap log x
 eval (GLGenExpr _ (Exp2 x)) = withEv1 x $ \x -> 
-    return $ glMap ((**) 2) x
+    return $ glMap (2 **) x
 eval (GLGenExpr _ (Log2 x)) = withEv1 x $ \x -> 
     return $ glMap (logBase 2) x
 eval (GLGenExpr _ (Sqrt x)) = withEv1 x $ \x -> 
     return $ glMap sqrt x
+eval (GLGenExpr _ (Inversesqrt x)) = withEv1 x $ \x -> 
+    return $ glMap (recip . sqrt) x
 
 eval (GLGenExpr _ (Abs x)) = withEv1 x $ \x -> 
     return $ glMap abs x
 eval (GLGenExpr _ (Sign x)) = withEv1 x $ \x -> 
     return $ glMap signum x
 eval (GLGenExpr _ (Floor x)) = withEv1 x $ \x -> 
-    return $ glMap (fromIntegral . floor) x
+    return $ glMap (fromIntegral . (floor :: _ -> Int)) x
 eval (GLGenExpr _ (Trunc x)) = withEv1 x $ \x -> 
-    return $ glMap (fromIntegral . truncate) x
+    return $ glMap (fromIntegral . (truncate :: _ -> Int)) x
 eval (GLGenExpr _ (Round x)) = withEv1 x $ \x -> 
-    return $ glMap (fromIntegral . round) x
+    return $ glMap (fromIntegral . (round :: _ -> Int)) x
 eval (GLGenExpr _ (RoundEven x)) = withEv1 x $ \x -> 
-    return $ glMap (fromIntegral . round) x
+    return $ glMap (fromIntegral . (round :: _ -> Int)) x
 eval (GLGenExpr _ (Ceil x)) = withEv1 x $ \x -> 
-    return $ glMap (fromIntegral . ceiling) x
+    return $ glMap (fromIntegral . (ceiling :: _ -> Int)) x
 eval (GLGenExpr _ (Fract x)) = withEv1 x $ \x -> 
-    return $ glMap (snd . properFraction) x
+    return $ glMap (snd . (properFraction :: _ -> (Int, _))) x
 eval (GLGenExpr _ (Mod x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith mod x y where
-        mod x y = x - y * (fromIntegral . floor) (x / y)
+        mod x y = x - y * (fromIntegral . (floor :: _ -> Int)) (x / y)
 eval (GLGenExpr _ (Min x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith min x y
 eval (GLGenExpr _ (Max x y)) = withEv2 x y $ \x y -> 
@@ -252,13 +271,12 @@ eval (GLGenExpr _ (Step x y)) = withEv2 x y $ \x y ->
         step edge x = if x < edge then 0 else 1
 eval (GLGenExpr _ (Smoothstep x y z)) =  withEv3 x y z $ \x y z -> 
     return $ glZipWith3 smoothstep x y z where
-        clamp x minVal maxVal = min (max x minVal) maxVal
         smoothstep edge0 edge1 x = 
             let t = min (max ((x - edge0) / (edge1 - edge0)) 0) 1 
             in t * t * (3 - 2 * t)
 
 eval (GLGenExpr _ (Length x)) = withEv1 x $ \x -> 
-    return $ length $ x
+    return $ length x
 eval (GLGenExpr _ (Distance x y)) = withEv2 x y $ \x y -> 
     return $ x `distance` y
 eval (GLGenExpr _ (Dot x y)) = withEv2 x y $ \x y -> 
@@ -266,31 +284,31 @@ eval (GLGenExpr _ (Dot x y)) = withEv2 x y $ \x y ->
 eval (GLGenExpr _ (Cross x y)) = withEv2 x y $ \x y -> 
     return $ x `cross` y
 eval (GLGenExpr _ (Normalize x)) = withEv1 x $ \x -> 
-    return $ normalize $ x
+    return $ normalize x
 eval (GLGenExpr _ (Faceforward x y z)) = withEv3 x y z $ \x y z -> 
     return $ faceforward x y z where
         faceforward n i nr = if dot nr i < 0 then n else -n
 eval (GLGenExpr _ (Reflect x y)) = withEv2 x y $ \x y -> 
     return $ reflect x y where
     c .* v = glMap (c *) v
-    reflect i n = i - 2 * (dot n i) .* n
+    reflect i n = i - 2 * dot n i .* n
 eval (GLGenExpr _ (Refract x y z)) = withEv3 x y z $ \x y z -> 
     return $ refract x y z where
         c .* v = glMap (c *) v
         refract i n eta =
-            let k = 1 - eta * eta * (1 - (dot n i) * (dot n i))
-            in if k < 0 then 0 else eta .* i - (eta * (dot n i) + (sqrt k)) .* n
+            let k = 1 - eta * eta * (1 - dot n i * dot n i)
+            in if k < 0 then 0 else eta .* i - (eta * dot n i + sqrt k) .* n
 
 eval (GLGenExpr _ (MatrixCompMult x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith (*) x y
 eval (GLGenExpr _ (OuterProduct x y)) = withEv2 x y $ \x y -> 
     return $ x `outerProduct` y
 eval (GLGenExpr _ (Transpose x)) = withEv1 x $ \x -> 
-    return $ transpose $ x
+    return $ transpose x
 eval (GLGenExpr _ (Determinant x)) = withEv1 x $ \x -> 
-    return $ determinant $ x
+    return $ determinant x
 eval (GLGenExpr _ (Inverse x)) = withEv1 x $ \x -> 
-    return $ inverse $ x
+    return $ inverse x
 
 eval (GLGenExpr _ (LessThan x y)) = withEv2 x y $ \x y -> 
     return $ liftA2 (<) x y
@@ -318,6 +336,8 @@ withEv1 x act = do { x <- cachedEval eval x; act x }
 withEv2 x y act = do { x <- cachedEval eval x; y <- cachedEval eval y; act x y }
 withEv3 x y z act = do { x <- cachedEval eval x; y <- cachedEval eval y; z <- cachedEval eval z; act x y z }
 withEv4 x y z w act = do { x <- cachedEval eval x; y <- cachedEval eval y; z <- cachedEval eval z; w <- cachedEval eval w; act x y z w }
+withEv5 x y z w u act = do { x <- cachedEval eval x; y <- cachedEval eval y; z <- cachedEval eval z; w <- cachedEval eval w; u <- cachedEval eval u; act x y z w u }
+withEv6 x y z w u v act = do { x <- cachedEval eval x; y <- cachedEval eval y; z <- cachedEval eval z; w <- cachedEval eval w; u <- cachedEval eval u; v <- cachedEval eval v; act x y z w u v }
 
 tr = transpose
 

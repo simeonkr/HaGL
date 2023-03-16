@@ -16,12 +16,14 @@ module Graphics.HEGL.GLExpr (
     FragExpr
 ) where
 
+import Prelude hiding (id)
 import GHC.TypeNats
 
 import Graphics.HEGL.GLType
 import Graphics.HEGL.Numerical
 import Graphics.HEGL.ExprID
 import Graphics.HEGL.Util.Types
+import qualified Graphics.HEGL.Util.DepMap as DepMap
 
 
 -- * Expression definitions
@@ -59,7 +61,14 @@ data GLAtom :: ShaderDomain -> * -> * where
         (t1 -> t) -> GLExpr HostDomain t1 -> GLAtom HostDomain t
     GLLift2 :: (GLType t, GLType t1, GLType t2) =>
         (t1 -> t2 -> t) -> GLExpr HostDomain t1 -> GLExpr HostDomain t2 -> GLAtom HostDomain t
-
+    GLLift3 :: (GLType t, GLType t1, GLType t2, GLType t3) =>
+        (t1 -> t2 -> t3 -> t) -> GLExpr HostDomain t1 -> GLExpr HostDomain t2 -> GLExpr HostDomain t3 -> GLAtom HostDomain t
+    GLLift4 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4) =>
+        (t1 -> t2 -> t3 -> t4 -> t) -> GLExpr HostDomain t1 -> GLExpr HostDomain t2 -> GLExpr HostDomain t3 -> GLExpr HostDomain t4 -> GLAtom HostDomain t
+    GLLift5 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5) =>
+        (t1 -> t2 -> t3 -> t4 -> t5 -> t) -> GLExpr HostDomain t1 -> GLExpr HostDomain t2 -> GLExpr HostDomain t3 -> GLExpr HostDomain t4 -> GLExpr HostDomain t5 -> GLAtom HostDomain t
+    GLLift6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) =>
+        (t1 -> t2 -> t3 -> t4 -> t5 -> t6 -> t) -> GLExpr HostDomain t1 -> GLExpr HostDomain t2 -> GLExpr HostDomain t3 -> GLExpr HostDomain t4 -> GLExpr HostDomain t5 -> GLExpr HostDomain t6 -> GLAtom HostDomain t
 
 -- User-defined functions
 
@@ -76,6 +85,18 @@ data GLFunc :: ShaderDomain -> * -> * where
         (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) ->
         GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 ->
         GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLFunc d t
+    GLFunc4 :: (GLType t, GLType t1, GLType t2, GLType t3) =>
+        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLFunc d t
+    GLFunc5 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5) =>
+        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLFunc d t
+    GLFunc6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) =>
+        (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t) ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 ->
+        GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLFunc d t
 
 
 -- Compound expressions corresponding to built-in functions and operators
@@ -160,18 +181,17 @@ data GLGenExpr :: ShaderDomain -> * -> * where
     OpNot :: GLExpr d Bool -> GLGenExpr d Bool
     OpCond :: GLType t =>
         GLExpr d Bool -> GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    -- TODO: these should not be defined for non-vector matrices
-    OpCompl :: (GLInteger (GLElt t), GLType t) => 
+    OpCompl :: GLSupportsBitwiseOps t => 
         GLExpr d t -> GLGenExpr d t
-    OpLshift :: (GLInteger (GLElt t), GLType t) => 
+    OpLshift :: GLSupportsBitwiseOps t => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpRshift :: (GLInteger (GLElt t), GLType t) => 
+    OpRshift :: GLSupportsBitwiseOps t => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpBitAnd :: (GLInteger (GLElt t), GLType t) => 
+    OpBitAnd :: GLSupportsBitwiseOps t => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpBitOr :: (GLInteger (GLElt t), GLType t) => 
+    OpBitOr :: GLSupportsBitwiseOps t => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpBitXor :: (GLInteger (GLElt t), GLType t) => 
+    OpBitXor :: GLSupportsBitwiseOps t => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
     OpScalarMult :: (GLNumeric t, GLType (Mat p q t)) => 
         GLExpr d t -> GLExpr d (Mat p q t) -> GLGenExpr d (Mat p q t)
@@ -194,6 +214,18 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d t -> GLGenExpr d t
     Atan :: (GLElt t ~ Float, GLType t) => 
         GLExpr d t -> GLGenExpr d t
+    Sinh :: (GLElt t ~ Float, GLType t) => 
+        GLExpr d t -> GLGenExpr d t
+    Cosh :: (GLElt t ~ Float, GLType t) => 
+        GLExpr d t -> GLGenExpr d t
+    Tanh :: (GLElt t ~ Float, GLType t) => 
+        GLExpr d t -> GLGenExpr d t
+    Asinh :: (GLElt t ~ Float, GLType t) => 
+        GLExpr d t -> GLGenExpr d t
+    Acosh :: (GLElt t ~ Float, GLType t) => 
+        GLExpr d t -> GLGenExpr d t
+    Atanh :: (GLElt t ~ Float, GLType t) => 
+        GLExpr d t -> GLGenExpr d t
 
     Pow :: (GLElt t ~ Float, GLType t) =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
@@ -207,7 +239,8 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d t -> GLGenExpr d t
     Sqrt :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    -- TODO: missing Inversesqrt
+    Inversesqrt :: (GLFloating (GLElt t), GLType t) => 
+        GLExpr d t -> GLGenExpr d t
 
     Abs :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
@@ -342,10 +375,12 @@ instance Show (GLCol m) where
 -- * glExprID
 
 instance HasExprID (GLExpr d t) where
-getID (GLAtom id _) = id
-getID (GLFunc id _) = id
-getID (GLGenExpr id _) = id
+    getID (GLAtom id _) = id
+    getID (GLFunc id _) = id
+    getID (GLGenExpr id _) = id
 
+instance DepMap.GenHashable (GLExpr d) where
+    genHash = getID
 
 -- * Synonyms
 

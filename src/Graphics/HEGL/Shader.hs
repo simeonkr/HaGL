@@ -29,7 +29,6 @@ data ShaderParam =
     ShaderParam VarName ExprType 
 
 data ShaderDecl = 
-    LayoutInpDecl Int VarName ExprType |
     UniformDecl VarName ExprType |
     InpDecl InpQual VarName ExprType |
     OutDecl VarName ExprType
@@ -49,12 +48,12 @@ type ExprType = String
 type FnName = String
 type VarName = String
 
--- TODO: fix extra new line when decls empty
 instance Show Shader where
     show (Shader fns decls stmts) =
         "#version 430 core\n\n" ++
-        concatMap (\s -> show s ++ "\n") decls ++
-        "\n" ++ concatMap (\s -> show s ++ "\n\n") fns ++
+        (if null decls then "" 
+         else concatMap (\s -> show s ++ "\n") decls ++ "\n") ++
+        concatMap (\s -> show s ++ "\n\n") fns ++
         "void main() {\n" ++
         concatMap (\s -> "  " ++ show s ++ "\n") stmts ++
         "}"
@@ -99,17 +98,17 @@ instance Show ShaderStmt where
         exprType ++ " " ++ varName ++ " = " ++ show expr ++ ";"
 
 instance Show ShaderExpr where
-    show (ShaderConst c) = showGlslVal c
-    show (ShaderVarRef varName) = varName
-    show (ShaderExpr funcName xs) =
-        if isAlpha (funcName !! 0) then funcName ++ "(" ++ intercalate ", " (map show xs) ++ ")"
-        else if head funcName == '.' then showCompSel funcName xs
-        else if funcName == "[]" then showSubscript xs
-        else if funcName == "?:" then showTernCond xs
-        else showInfix funcName xs where
+    show (ShaderExpr funcName xs)
+        | isAlpha (head funcName) = 
+            funcName ++ "(" ++ intercalate ", " (map show xs) ++ ")"
+        | head funcName == '.' = showCompSel funcName xs
+        | funcName == "[]" = showSubscript xs
+        | funcName == "?:" = showTernCond xs
+        | otherwise = showInfix funcName xs
+        where 
             showCompSel comp [x] = show x ++ comp
             showSubscript [arr, i] = show arr ++ "[" ++ show i ++ "]"
-            showTernCond [x, y, z] = show x ++ " ? " ++ show y ++ " : " ++ show z 
+            showTernCond [x, y, z] = show x ++ " ? " ++ show y ++ " : " ++ show z
             showInfix op [x] = op ++ show x
             showInfix op xs = intercalate (" " ++ op ++ " ") (map show xs)
 

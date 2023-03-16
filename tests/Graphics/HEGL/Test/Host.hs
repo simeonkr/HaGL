@@ -21,6 +21,6 @@ hostTests = [
     ]
 
 
-trivial = toEnum 1
+trivial = cast (1 :: HostExpr Int)
 
 trivialExpr = let one = 1.0 :: HostExpr Float in Graphics.HEGL.not $ one ./= one

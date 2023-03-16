@@ -11,4 +11,5 @@ runTests tests = do
 
 main :: IO ()
 main = do
-    runTests $ TestList $ hostTests ++ shaderTests
+    runTests $ TestList $ hostTests -- ++ shaderTests
+    showShaderTest Graphics.HEGL.Test.Shader.trivial

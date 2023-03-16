@@ -10,7 +10,7 @@ import Data.List (delete)
 
 
 choose :: Eq a => Int -> [a] -> [[a]]
-choose 0 xs = [[]]
+choose 0 _ = [[]]
 choose n xs = do
     x <- xs
     ys <- choose (n-1) (delete x xs)

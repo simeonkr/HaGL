@@ -32,7 +32,7 @@ library
     Graphics.HEGL.GLType
     Graphics.HEGL.GLExpr
     Graphics.HEGL.ExprID
-    Graphics.HEGL.GLAST
+    Graphics.HEGL.GLAst
     Graphics.HEGL.Print
     Graphics.HEGL.Eval
     Graphics.HEGL.GLObj
@@ -70,6 +70,8 @@ library
     -fwarn-incomplete-patterns
     -Wno-missing-signatures
     -Wno-unticked-promoted-constructors
+    -Wno-partial-type-signatures
+    -Wno-name-shadowing
 
 Test-Suite hegl-test
   type: exitcode-stdio-1.0
@@ -77,6 +79,9 @@ Test-Suite hegl-test
     base,
     HUnit,
     hegl
+  other-modules:
+    Graphics.HEGL.Test.Host
+    Graphics.HEGL.Test.Shader
   hs-source-dirs: tests
   main-is: Test.hs
   default-language:    Haskell2010

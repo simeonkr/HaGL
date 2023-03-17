@@ -115,6 +115,7 @@ genProgram glObj = evalState gen (initCGDat glObj) where
     gen = do
         posRef <- traverseGLAst . toGLAst $ position glObj
         colorRef <- traverseGLAst . toGLAst $ color glObj
+        discardRef <- traverseGLAst . toGLAst $ discardWhen glObj
 
         modifyShader VertexDomain $ addStmt $
             VarAsmt "gl_Position" posRef
@@ -122,6 +123,8 @@ genProgram glObj = evalState gen (initCGDat glObj) where
             OutDecl "fColor" "vec4"
         modifyShader FragmentDomain $ addStmt $
             VarAsmt "fColor" colorRef
+        modifyShader FragmentDomain $ addStmt $
+            DiscardStmt discardRef
 
         gets program
 

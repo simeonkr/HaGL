@@ -538,7 +538,6 @@ defaultObj = GLObj {
     indices = Nothing,
     position = vec4 0 0 0 0,
     color = vec4 0 0 0 0,
-    -- TODO: add missing support for discarding pixels
     discardWhen = Graphics.HEGL.cast (0 :: FragExpr Int)
 }
 

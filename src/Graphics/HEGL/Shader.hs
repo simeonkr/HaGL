@@ -36,7 +36,8 @@ data ShaderDecl =
 data ShaderStmt = 
     VarAsmt VarName ShaderExpr |
     VarDecl VarName ExprType |
-    VarDeclAsmt VarName ExprType ShaderExpr
+    VarDeclAsmt VarName ExprType ShaderExpr |
+    DiscardStmt ShaderExpr
 
 data ShaderExpr where
     ShaderConst :: GLType t => t -> ShaderExpr
@@ -96,6 +97,8 @@ instance Show ShaderStmt where
         exprType ++ " " ++ varName ++ ";" 
     show (VarDeclAsmt varName exprType expr) = 
         exprType ++ " " ++ varName ++ " = " ++ show expr ++ ";"
+    show (DiscardStmt cond) =
+        "if (" ++ show cond ++ ")\n  discard;"
 
 instance Show ShaderExpr where
     show (ShaderExpr funcName xs)

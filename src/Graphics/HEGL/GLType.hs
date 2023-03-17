@@ -832,22 +832,20 @@ instance GLSingle Int
 instance GLSingle UInt
 instance GLSingle Bool
 
-class (GLPrim t, Storable t, Num t, Enum t, Eq t, Ord t) => GLNumeric t where
+class (GLPrim t, Num t) => GLNumeric t where
     genDiv :: t -> t -> t
 instance GLNumeric Float where genDiv = (/)
 instance GLNumeric Double where genDiv = (/)
 instance GLNumeric Int where genDiv = div
-instance GLNumeric UInt where genDiv = div
 
-class (GLNumeric t, Storable t, Num t, Enum t, Eq t, Ord t, RealFrac t, Floating t) => GLFloating t
+class (GLNumeric t, RealFrac t, Floating t) => GLFloating t
 instance GLFloating Float
 instance GLFloating Double
 
-class (GLNumeric t, Storable t, Num t, Enum t, Eq t, Ord t) => GLSingleNumeric t
+class GLNumeric t => GLSingleNumeric t
 instance GLSingleNumeric Float
 instance GLSingleNumeric Int
-instance GLSingleNumeric UInt
 
-class (GLSingleNumeric t, Storable t, Num t, Enum t, Eq t, Ord t, Integral t, Bits t) => GLInteger t
+class (GLPrim t, Integral t, Bits t) => GLInteger t
 instance GLInteger Int
 instance GLInteger UInt

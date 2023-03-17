@@ -41,6 +41,8 @@ module Graphics.HEGL (
     glLift6,
     -- * Generic constructors
     Graphics.HEGL.const,
+    true,
+    false,
     uniform,
     prec,
     vert,
@@ -266,6 +268,10 @@ glLift6 f x y z w u v = GLAtom (genID ()) $ GLLift6 f x y z w u v
 
 const :: GLType t => ConstExpr t -> GLExpr d t
 const x = GLAtom (genID ()) $ Const (constEval x)
+
+true, false :: GLExpr d Bool
+true = Graphics.HEGL.const $ toEnum . fromEnum $ 1
+false = Graphics.HEGL.const $ toEnum . fromEnum $ 0
 
 uniform :: GLType t => HostExpr t -> GLExpr d t
 uniform x = GLAtom (genID ()) $ Uniform x
@@ -538,7 +544,7 @@ defaultObj = GLObj {
     indices = Nothing,
     position = vec4 0 0 0 0,
     color = vec4 0 0 0 0,
-    discardWhen = Graphics.HEGL.cast (0 :: FragExpr Int)
+    discardWhen = false
 }
 
 points = defaultObj { primitiveMode = OpenGL.Points }

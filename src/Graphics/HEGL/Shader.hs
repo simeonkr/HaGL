@@ -52,12 +52,11 @@ type VarName = String
 instance Show Shader where
     show (Shader fns decls stmts) =
         "#version 430 core\n\n" ++
-        (if null decls then "" 
-         else concatMap (\s -> show s ++ "\n") decls ++ "\n") ++
+        endWith "\n" (concatMap (\s -> show s ++ "\n") decls) ++
         concatMap (\s -> show s ++ "\n\n") fns ++
         "void main() {\n" ++
         concatMap (\s -> "  " ++ show s ++ "\n") stmts ++
-        "}"
+        "}\n"
 
 instance Show ShaderFn where
     show (ShaderFn name retType params stmts ret) =
@@ -86,7 +85,7 @@ instance Show ShaderDecl where
     show (UniformDecl varName exprType) = 
         "uniform " ++ exprType ++ " " ++ varName ++ ";"
     show (InpDecl qual varName exprType) = 
-        qual ++ " in " ++ exprType ++ " " ++ varName ++ ";"
+        endWith " " qual ++ "in " ++ exprType ++ " " ++ varName ++ ";"
     show (OutDecl varName exprType) = 
         "out " ++ exprType ++ " " ++ varName ++ ";"
 
@@ -98,9 +97,11 @@ instance Show ShaderStmt where
     show (VarDeclAsmt varName exprType expr) = 
         exprType ++ " " ++ varName ++ " = " ++ show expr ++ ";"
     show (DiscardStmt cond) =
-        "if (" ++ show cond ++ ")\n  discard;"
+        "if (" ++ show cond ++ ") discard;"
 
 instance Show ShaderExpr where
+    show (ShaderConst c) = showGlslVal c
+    show (ShaderVarRef varName) = varName
     show (ShaderExpr funcName xs)
         | isAlpha (head funcName) = 
             funcName ++ "(" ++ intercalate ", " (map show xs) ++ ")"
@@ -114,6 +115,10 @@ instance Show ShaderExpr where
             showTernCond [x, y, z] = show x ++ " ? " ++ show y ++ " : " ++ show z
             showInfix op [x] = op ++ show x
             showInfix op xs = intercalate (" " ++ op ++ " ") (map show xs)
+
+endWith :: String -> String -> String
+endWith _ "" = ""
+endWith sep s = s ++ sep
 
 addFn :: ShaderFn -> Shader -> Shader
 addFn fn (Shader fns decls stmts) =

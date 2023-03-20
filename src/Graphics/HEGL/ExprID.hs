@@ -15,6 +15,9 @@ type ExprID = Int
 unsafeCounter :: IORef Int
 unsafeCounter = unsafePerformIO $ newIORef 0
 
+-- TODO: this approach isn't ideal (not because of the unsafePerformIO);
+-- ideally replace it with a deterministic hash-based one
+-- All modules using this function should be compiled with -fno-cse!!
 {-# NOINLINE genID #-}
 genID :: () -> ExprID
 genID () = unsafePerformIO $ do

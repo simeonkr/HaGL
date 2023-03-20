@@ -1,3 +1,6 @@
+-- required due to use of genID
+{-# OPTIONS_GHC -fno-cse #-}
+
 module Graphics.HEGL.GLAst (
     GLAst(..),
     GLTypeInfo(..),

@@ -8,7 +8,9 @@ import Control.Monad (when)
 import Data.Functor.Identity
 import Data.IORef
 import Data.Time.Clock
+import qualified Data.ByteString as BS
 import Graphics.Rendering.OpenGL
+import Graphics.Rendering.OpenGL.Capture
 import Graphics.UI.GLUT 
 
 import Graphics.HEGL.Backend
@@ -27,7 +29,8 @@ data GlutOptions = GlutOptions {
     winSize :: (GLsizei, GLsizei),
     winFullscreen :: Bool,
     winTitle :: Maybe String,
-    glLineWidth :: GLfloat
+    glLineWidth :: GLfloat,
+    captureFile :: Maybe String
 }
 
 
@@ -60,7 +63,7 @@ initWindow options = do
     maybe (return ()) (windowTitle $=) (winTitle options) 
     initialDisplayMode $= [RGBAMode, WithAlphaComponent]
     depthFunc $= Just Lequal
-
+    maybe (return ()) (\file -> capturePPM >>= BS.writeFile file) (captureFile options)
 
 -- I/O state
 

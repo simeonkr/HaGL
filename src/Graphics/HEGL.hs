@@ -10,6 +10,8 @@ Stability   : experimental
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -dth-dec-file #-}
+-- required due to use of genID
+{-# OPTIONS_GHC -fno-cse #-}
 
 module Graphics.HEGL (
     -- * Raw types
@@ -198,8 +200,6 @@ module Graphics.HEGL (
     drawGlutCustom,
     drawImage
 ) where
-
-import Prelude
 
 import qualified Graphics.Rendering.OpenGL as OpenGL
 
@@ -571,7 +571,8 @@ drawGlut = draw (GlutBackend defaultOptions) where
         winSize = (768, 768),
         winFullscreen = False,
         winTitle = Nothing,
-        glLineWidth = 3
+        glLineWidth = 3,
+        captureFile = Nothing
     }
 
 drawGlutCustom :: Drawable a => GlutOptions -> a -> IO ()

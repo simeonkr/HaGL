@@ -51,6 +51,19 @@ instance Ord InpVar where
     compare x1 x2 = compare (getID x1) (getID x2)
 
 
+instance Show GLProgram where
+    show glProg = {-}"\n" ++
+        concatMap (\s -> show s ++ "\n") 
+            (Set.toList $ inputVars glProg) ++ 
+        "========\n\n" ++
+        concatMap (\s -> show s ++ "\n") 
+            (Set.toList $ uniformVars glProg) ++ 
+        "========\n\n" ++-}
+        List.intercalate "\n\n" (map show 
+            [vertexShader glProg, 
+             fragmentShader glProg])
+
+
 -- Intermediate code gen state
 
 data CGDat = CGDat {

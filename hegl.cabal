@@ -63,7 +63,9 @@ library
     time,
     OpenGL,
     OpenGLRaw,
-    GLUT
+    GLUT,
+    bytestring,
+    gl-capture
   hs-source-dirs:      src, examples
   default-language:    Haskell2010
   ghc-options: 
@@ -76,6 +78,13 @@ library
 
 Test-Suite hegl-test
   type: exitcode-stdio-1.0
+  default-extensions:
+    GADTs,
+    DataKinds,
+    KindSignatures,
+    TypeFamilies,
+    TypeOperators,
+    ViewPatterns
   build-depends:
     base,
     HUnit,

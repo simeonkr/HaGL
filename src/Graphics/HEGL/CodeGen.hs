@@ -102,23 +102,6 @@ emptyScope = Scope Set.empty []
 
 type CGState = State CGDat
 
-getScope :: ShaderDomain -> CGState Scope
-getScope dom = Map.findWithDefault emptyScope dom <$> gets shaderScopes
-
-modifyShader :: ShaderDomain -> (Shader -> Shader) -> CGState ()
-modifyShader VertexDomain f = modify (\s -> s { 
-    program = (program s) { vertexShader = f $ vertexShader $ program s } })
-modifyShader FragmentDomain f = modify (\s -> s { 
-    program = (program s) { fragmentShader = f $ fragmentShader $ program s } })
-
-addUniformVar :: UniformVar -> CGState ()
-addUniformVar unif = modify (\s -> s { 
-    program = (program s) { uniformVars = Set.insert unif $ uniformVars $ program s } })
-
-addInputVar :: InpVar -> CGState ()
-addInputVar unif = modify (\s -> s { 
-    program = (program s) { inputVars = Set.insert unif $ inputVars $ program s } })
-
 
 -- genProgram
 
@@ -129,6 +112,13 @@ genProgram glObj = evalState gen (initCGDat glObj) where
         posRef <- traverseGLAst . toGLAst $ position glObj
         colorRef <- traverseGLAst . toGLAst $ color glObj
         discardRef <- traverseGLAst . toGLAst $ discardWhen glObj
+
+        vertexScope <- getCurScope VertexDomain
+        fragmentScope <- getCurScope FragmentDomain
+        mapM_ (modifyShader VertexDomain . addStmt) $
+            localStmts vertexScope
+        mapM_ (modifyShader FragmentDomain . addStmt) $
+            localStmts fragmentScope
 
         modifyShader VertexDomain $ addStmt $
             VarAsmt "gl_Position" posRef
@@ -237,7 +227,7 @@ modifyCurScope dom f = do
     case ls of
         Just ls -> modify $ \s -> s { localScope = Just $ f ls }
         Nothing ->
-            modify $ \s -> s { shaderScopes = Map.adjust f dom $ shaderScopes s  }
+            modify $ \s -> s { shaderScopes = Map.adjust f dom $ shaderScopes s }
 
 
 -- Shader expression construction
@@ -277,3 +267,20 @@ mkFn id params initFn = do
 mkStmt :: ShaderDomain -> ShaderStmt -> CGState ()
 mkStmt dom stmt = modifyCurScope dom $ \scope -> 
     scope { localStmts = localStmts scope ++ [stmt] }
+
+
+-- Shader modification
+
+modifyShader :: ShaderDomain -> (Shader -> Shader) -> CGState ()
+modifyShader VertexDomain f = modify (\s -> s { 
+    program = (program s) { vertexShader = f $ vertexShader $ program s } })
+modifyShader FragmentDomain f = modify (\s -> s { 
+    program = (program s) { fragmentShader = f $ fragmentShader $ program s } })
+
+addUniformVar :: UniformVar -> CGState ()
+addUniformVar unif = modify (\s -> s { 
+    program = (program s) { uniformVars = Set.insert unif $ uniformVars $ program s } })
+
+addInputVar :: InpVar -> CGState ()
+addInputVar unif = modify (\s -> s { 
+    program = (program s) { inputVars = Set.insert unif $ inputVars $ program s } })

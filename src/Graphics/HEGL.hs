@@ -196,9 +196,10 @@ module Graphics.HEGL (
     -- * Backends
     Backend(..),
     GlutOptions(..),
+    GlutRunMode(..),
     drawGlut,
     drawGlutCustom,
-    drawImage
+    defaultGlutOptions,
 ) where
 
 import qualified Graphics.Rendering.OpenGL as OpenGL
@@ -211,7 +212,6 @@ import Graphics.HEGL.ExprID (genID)
 import Graphics.HEGL.GLObj
 import Graphics.HEGL.Eval
 import Graphics.HEGL.Backend.GLUT
-import Graphics.HEGL.Backend.Image
 
 
 -- * Expressions: Main definitions
@@ -533,11 +533,9 @@ class Drawable a where
 
 instance Drawable GLObj where
     draw (GlutBackend userInit) obj = runGlut userInit [obj]
-    draw ImageBackend obj = runImage [obj]
 
 instance Drawable [GLObj] where
     draw (GlutBackend userInit) objs = runGlut userInit objs
-    draw ImageBackend objs = runImage objs
 
 defaultObj = GLObj {
     primitiveMode = OpenGL.Points,
@@ -561,22 +559,20 @@ polygon = defaultObj { primitiveMode = OpenGL.Polygon }
 -- * Backends
 
 data Backend =
-    GlutBackend GlutOptions |
-    ImageBackend
+    GlutBackend GlutOptions
 
 drawGlut :: Drawable a => a -> IO ()
-drawGlut = draw (GlutBackend defaultOptions) where
-    defaultOptions = GlutOptions {
-        winPosition = Nothing,
-        winSize = (768, 768),
-        winFullscreen = False,
-        winTitle = Nothing,
-        glLineWidth = 3,
-        captureFile = Nothing
-    }
+drawGlut = draw (GlutBackend defaultGlutOptions)
 
 drawGlutCustom :: Drawable a => GlutOptions -> a -> IO ()
 drawGlutCustom options = draw (GlutBackend options)
 
-drawImage :: Drawable a => a -> IO ()
-drawImage = draw ImageBackend
+defaultGlutOptions :: GlutOptions
+defaultGlutOptions = GlutOptions {
+    winPosition = Nothing,
+    winSize = (768, 768),
+    winFullscreen = False,
+    winTitle = Nothing,
+    glLineWidth = 3,
+    runMode = GlutNormal
+}

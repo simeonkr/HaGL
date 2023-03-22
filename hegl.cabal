@@ -40,7 +40,6 @@ library
     Graphics.HEGL.CodeGen
     Graphics.HEGL.Backend
     Graphics.HEGL.Backend.GLUT
-    Graphics.HEGL.Backend.Image
   default-extensions:
     GADTs, 
     DataKinds, 
@@ -87,8 +86,10 @@ Test-Suite hegl-test
     ViewPatterns
   build-depends:
     base,
+    hegl,
     HUnit,
-    hegl
+    bytestring,
+    directory
   other-modules:
     Graphics.HEGL.Test.Host
     Graphics.HEGL.Test.Shader

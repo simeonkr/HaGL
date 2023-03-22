@@ -74,7 +74,7 @@ printGLAst (GLAstExpr id ty op xs) = do
 
 printNode :: ExprID -> GLTypeInfo -> String -> Printer
 printNode id ty str = do
-    printLine $ str ++ " " ++ show id ++ " : " ++ 
+    printLine $ str ++ " " ++ idLabel id ++ " : " ++ 
         show (shaderType ty) ++ " " ++ exprType ty
 
 printStr :: String -> Printer

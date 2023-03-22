@@ -1,5 +1,6 @@
 module Graphics.HEGL.Backend.GLUT (
     GlutOptions(..),
+    GlutRunMode(..),
     runGlut
 ) where
 
@@ -30,8 +31,13 @@ data GlutOptions = GlutOptions {
     winFullscreen :: Bool,
     winTitle :: Maybe String,
     glLineWidth :: GLfloat,
-    captureFile :: Maybe String
+    runMode :: GlutRunMode
 }
+
+data GlutRunMode =
+    GlutNormal |
+    GlutCaptureLatest String |
+    GlutCaptureAndExit String
 
 
 runGlut :: GlutOptions -> [GLObj] -> IO ()
@@ -42,7 +48,7 @@ runGlut options glObjs = do
     
     runObjs <- mapM genRunObj glObjs
     
-    idleCallback $= Just (update ioState runObjs)
+    idleCallback $= Just (update (runMode options) ioState runObjs)
     displayCallback $= display runObjs
     mouseCallback $= Just (mouse ioState)
     motionCallback $= Just (motion ioState)
@@ -63,7 +69,7 @@ initWindow options = do
     maybe (return ()) (windowTitle $=) (winTitle options) 
     initialDisplayMode $= [RGBAMode, WithAlphaComponent]
     depthFunc $= Just Lequal
-    maybe (return ()) (\file -> capturePPM >>= BS.writeFile file) (captureFile options)
+    actionOnWindowClose $= MainLoopReturns
 
 -- I/O state
 
@@ -95,14 +101,14 @@ initIOState :: IO (IORef IOState)
 initIOState = do
     epoch <- getCurrentTime
     let initTime = fromRational $ toRational $ utctDayTime epoch
-    newIORef defIOState { initTime = initTime } 
+    newIORef defIOState { initTime = initTime, lastStatsUpdate = initTime } 
 
 
 -- Update logic
 
-update :: IORef IOState -> [RunObj] -> IdleCallback
-update ioState objs = do
-    printStats ioState
+update :: GlutRunMode -> IORef IOState -> [RunObj] -> IdleCallback
+update runMode ioState objs = do
+    outputStatsAndCapture runMode ioState
     ioStateUpdate ioState
     ioState <- readIORef ioState
     let updateObj obj = do
@@ -113,18 +119,30 @@ update ioState objs = do
     mapM_ updateObj objs
     postRedisplay Nothing
 
-printStats :: IORef IOState -> IO ()
-printStats ioStateRef = do
+outputStatsAndCapture :: GlutRunMode -> IORef IOState -> IO ()
+outputStatsAndCapture runMode ioStateRef = do
     ioState <- readIORef ioStateRef
     let numUpdates = totUpdates ioState
     epoch <- getCurrentTime
     let t = fromRational $ toRational $ utctDayTime epoch
         dt = t - lastStatsUpdate ioState
-    if dt > 1 then do
-        writeIORef ioStateRef $ ioState { 
-            lastStatsUpdate = t, totUpdates = 0 }
-        putStrLn $ "FPS: " ++ show (floor $ fromIntegral numUpdates / dt :: Int)
-    else writeIORef ioStateRef $ ioState { totUpdates = numUpdates + 1 }
+    if dt > 1 
+        then do
+            writeIORef ioStateRef $ ioState { 
+                lastStatsUpdate = t, totUpdates = 0 }
+            putStrLn $ "FPS: " ++ show (floor $ fromIntegral numUpdates / dt :: Int)
+        else 
+            writeIORef ioStateRef $ ioState { totUpdates = numUpdates + 1 }
+    -- TODO: implement own capturePPM/PNG to remove the unecessary dependancy
+    let captureToFile file = capturePPM >>= BS.writeFile file
+    case runMode of
+        GlutNormal -> return ()
+        GlutCaptureLatest file -> 
+            when (dt > 0.1) (captureToFile file)
+        GlutCaptureAndExit file ->
+            when (totUpdates ioState > 12) $ do
+                captureToFile file
+                leaveMainLoop
 
 setUniform :: IOState -> RunObj -> UniformVar -> IO ()
 setUniform ioState obj (UniformVar id x) = do

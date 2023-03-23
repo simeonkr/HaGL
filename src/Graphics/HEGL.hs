@@ -26,6 +26,7 @@ module Graphics.HEGL (
     -- ** Classes
     GLType, GLInputType, GLElt,
     GLPrim, GLSingle, GLNumeric, GLFloating, GLSingleNumeric, GLInteger,
+    GLSupportsSmoothInterp, GLSupportsBitwiseOps,
     -- * Expressions: Main definitions
     GLExpr,
     ShaderDomain(..),
@@ -408,13 +409,13 @@ glFunc6 f = \x0 y0 z0 w0 v0 u0 -> GLFunc (genID ()) $ GLFunc6 f x y z w v u x0 y
 
 infixl 7 .%
 infix 4 .<, .<=, .>, .>=, .==, ./=
-infixl 7 .&&
-infixl 4 .||
-infixl 6 .^^
-infixl 8 .<<, .>>
-infixl 7 .&
-infixl 4 .|
-infixl 6 .^
+infixl 3 .&&
+infixl 2 .||
+infixl 4 .^^
+infixl 1 .<<, .>>
+infixl 3 .&
+infixl 2 .|
+infixl 4 .^
 infixl 7 .*
 infixl 7 .@
 

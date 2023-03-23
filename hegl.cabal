@@ -89,10 +89,9 @@ Test-Suite hegl-test
     hegl,
     HUnit,
     bytestring,
-    directory
+    directory,
+    GLUT
   other-modules:
-    Graphics.HEGL.Test.Host
-    Graphics.HEGL.Test.Shader
   hs-source-dirs: tests
   main-is: Test.hs
   default-language:    Haskell2010

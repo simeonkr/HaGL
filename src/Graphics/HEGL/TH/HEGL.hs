@@ -21,7 +21,7 @@ coordCon "y" = "CoordY"
 coordCon "z" = "CoordZ"
 coordCon "w" = "CoordW"
 
--- e.g.: xy_ v = GLGenExpr (genID ()) (OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` CoordNil)) v)
+-- e.g.: xy_ v = mkExpr GLGenExpr (OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` CoordNil)) v)
 gen2DCoordDecls :: Q [Dec]
 gen2DCoordDecls = return $ fmap gen $ choose 2 ["x", "y", "z", "w"] where
     gen coords@[x, y] = 
@@ -32,8 +32,8 @@ gen2DCoordDecls = return $ fmap gen $ choose 2 ["x", "y", "z", "w"] where
                 (NormalB
                 (AppE
                     (AppE
-                        (ConE $ mkName "GLGenExpr")
-                        (AppE (VarE $ mkName "genID") (TupE [])))
+                        (VarE $ mkName "mkExpr")
+                        (ConE $ mkName "GLGenExpr"))
                     (AppE
                         (AppE
                             (ConE $ mkName "OpCoordMulti")
@@ -48,7 +48,7 @@ gen2DCoordDecls = return $ fmap gen $ choose 2 ["x", "y", "z", "w"] where
                         (VarE $ mkName "v"))))
                 []]
 
--- e.g.: xyz_ v = GLGenExpr (genID ()) (OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` (CoordZ `CoordCons` CoordNil))) v)
+-- e.g.: xyz_ v = mkExpr GLGenExpr (OpCoordMulti (CoordX `CoordCons` (CoordY `CoordCons` (CoordZ `CoordCons` CoordNil))) v)
 gen3DCoordDecls :: Q [Dec]
 gen3DCoordDecls = return $ fmap gen $ choose 3 ["x", "y", "z", "w"] where
     gen coords@[x, y, z] = 
@@ -59,8 +59,8 @@ gen3DCoordDecls = return $ fmap gen $ choose 3 ["x", "y", "z", "w"] where
                 (NormalB
                 (AppE
                     (AppE
-                        (ConE $ mkName "GLGenExpr")
-                        (AppE (VarE $ mkName "genID") (TupE [])))
+                        (VarE $ mkName "mkExpr")
+                        (ConE $ mkName "GLGenExpr"))
                     (AppE
                         (AppE
                             (ConE $ mkName "OpCoordMulti")

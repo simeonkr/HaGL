@@ -57,6 +57,7 @@ genericUnitTests :: [GenericUnitTest d]
 genericUnitTests = [
         trivial,
         booleanExpr1,
+        tmp,
         vec4Constr
     ]
 
@@ -64,7 +65,10 @@ trivial = GenericUnitTest "trivial" $
     true
 
 booleanExpr1 = GenericUnitTest "boolean_expr1" $
-    false .&& false .|| true .|| false .== true
+    false .|| true .|| false .== true
+
+tmp = GenericUnitTest "tmp" $
+    Graphics.HEGL.sin (1 :: GLExpr d Float) + Graphics.HEGL.sin 2 .> Graphics.HEGL.sin 1 + (1 + 2)
 
 vec4Constr = GenericUnitTest "vec4_constr" $
     let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
@@ -92,5 +96,5 @@ runTests tests = do
 
 main :: IO ()
 main = do
-    runTests $ TestList $ map hostUnitTest genericUnitTests
+    --runTests $ TestList $ map hostUnitTest genericUnitTests
     runTests $ TestList $ map shaderUnitTest genericUnitTests

@@ -11,7 +11,7 @@ Stability   : experimental
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -dth-dec-file #-}
 -- required due to use of genID
-{-# OPTIONS_GHC -fno-cse #-}
+{-# OPTIONS_GHC -fno-full-laziness #-}
 
 module Graphics.HEGL (
     -- * Raw types
@@ -215,129 +215,133 @@ import Graphics.HEGL.Eval
 import Graphics.HEGL.Backend.GLUT
 
 
+{-# NOINLINE mkExpr #-}
+mkExpr con e = con (genID e) e
+
+
 -- * Expressions: Main definitions
 
 instance GLPrim t => Enum (ConstExpr t) where
-    toEnum x = GLAtom (genID ()) $ Const (toEnum x)
+    toEnum x = mkExpr GLAtom $ Const (toEnum x)
     fromEnum = fromEnum . constEval
 
 instance (GLNumeric (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
-    x + y = GLGenExpr (genID ()) $ OpAdd x y
-    x - y = GLGenExpr (genID ()) $ OpSubt x y
-    x * y = GLGenExpr (genID ()) $ OpMult x y
-    negate x = GLGenExpr (genID ()) $ OpNeg x
-    abs x = GLGenExpr (genID ()) $ Abs x
-    signum x = GLGenExpr (genID ()) $ Sign x
-    fromInteger x = GLAtom (genID ()) $ Const (fromInteger x)
+    x + y = mkExpr GLGenExpr $ OpAdd x y
+    x - y = mkExpr GLGenExpr $ OpSubt x y
+    x * y = mkExpr GLGenExpr $ OpMult x y
+    negate x = mkExpr GLGenExpr $ OpNeg x
+    abs x = mkExpr GLGenExpr $ Abs x
+    signum x = mkExpr GLGenExpr $ Sign x
+    fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
 
 instance (GLFloating (GLElt t), GLType t, Fractional t) => Fractional (GLExpr d t) where
-    x / y = GLGenExpr (genID ()) $ OpDiv x y
-    fromRational x = GLAtom (genID ()) $ Const (fromRational x)
+    x / y = mkExpr GLGenExpr $ OpDiv x y
+    fromRational x = mkExpr GLAtom $ Const (fromRational x)
 
 instance Floating (GLExpr d Float) where
     pi = 3.141592653589793238
-    sin x = GLGenExpr (genID ()) $ Sin x
-    cos x = GLGenExpr (genID ()) $ Cos x
-    tan x = GLGenExpr (genID ()) $ Tan x
-    asin x = GLGenExpr (genID ()) $ Asin x
-    acos x = GLGenExpr (genID ()) $ Acos x
-    atan x = GLGenExpr (genID ()) $ Atan x
-    sinh x = GLGenExpr (genID ()) $ Sinh x
-    cosh x = GLGenExpr (genID ()) $ Cosh x
-    tanh x = GLGenExpr (genID ()) $ Tanh x
-    asinh x = GLGenExpr (genID ()) $ Asinh x
-    acosh x = GLGenExpr (genID ()) $ Acosh x
-    atanh x = GLGenExpr (genID ()) $ Atanh x
-    x ** y = GLGenExpr (genID ()) $ Pow x y
-    exp x = GLGenExpr (genID ()) $ Exp x
-    sqrt x = GLGenExpr (genID ()) $ Sqrt x
-    log x = GLGenExpr (genID ()) $ Log x
+    sin x = mkExpr GLGenExpr $ Sin x
+    cos x = mkExpr GLGenExpr $ Cos x
+    tan x = mkExpr GLGenExpr $ Tan x
+    asin x = mkExpr GLGenExpr $ Asin x
+    acos x = mkExpr GLGenExpr $ Acos x
+    atan x = mkExpr GLGenExpr $ Atan x
+    sinh x = mkExpr GLGenExpr $ Sinh x
+    cosh x = mkExpr GLGenExpr $ Cosh x
+    tanh x = mkExpr GLGenExpr $ Tanh x
+    asinh x = mkExpr GLGenExpr $ Asinh x
+    acosh x = mkExpr GLGenExpr $ Acosh x
+    atanh x = mkExpr GLGenExpr $ Atanh x
+    x ** y = mkExpr GLGenExpr $ Pow x y
+    exp x = mkExpr GLGenExpr $ Exp x
+    sqrt x = mkExpr GLGenExpr $ Sqrt x
+    log x = mkExpr GLGenExpr $ Log x
 
 
 -- * Expressions: Lifts from raw types
 
-glLift0 x = GLAtom (genID ()) $ GLLift0 x
-glLift1 f x = GLAtom (genID ()) $ GLLift1 f x
-glLift2 f x y = GLAtom (genID ()) $ GLLift2 f x y
-glLift3 f x y z = GLAtom (genID ()) $ GLLift3 f x y z
-glLift4 f x y z w = GLAtom (genID ()) $ GLLift4 f x y z w
-glLift5 f x y z w u = GLAtom (genID ()) $ GLLift5 f x y z w u
-glLift6 f x y z w u v = GLAtom (genID ()) $ GLLift6 f x y z w u v
+glLift0 x = mkExpr GLAtom $ GLLift0 x
+glLift1 f x = mkExpr GLAtom $ GLLift1 f x
+glLift2 f x y = mkExpr GLAtom $ GLLift2 f x y
+glLift3 f x y z = mkExpr GLAtom $ GLLift3 f x y z
+glLift4 f x y z w = mkExpr GLAtom $ GLLift4 f x y z w
+glLift5 f x y z w u = mkExpr GLAtom $ GLLift5 f x y z w u
+glLift6 f x y z w u v = mkExpr GLAtom $ GLLift6 f x y z w u v
 
 
 -- * Generic expression constructors
 
 const :: GLType t => ConstExpr t -> GLExpr d t
-const x = GLAtom (genID ()) $ Const (constEval x)
+const x = mkExpr GLAtom $ Const (constEval x)
 
 true, false :: GLExpr d Bool
 true = Graphics.HEGL.const $ toEnum . fromEnum $ 1
 false = Graphics.HEGL.const $ toEnum . fromEnum $ 0
 
 uniform :: GLType t => HostExpr t -> GLExpr d t
-uniform x = GLAtom (genID ()) $ Uniform x
+uniform x = mkExpr GLAtom $ Uniform x
 
 prec :: GLType t => HostExpr t -> HostExpr t -> HostExpr t
-prec x0 x = GLAtom (genID ()) $ IOPrec x0 x
+prec x0 x = mkExpr GLAtom $ IOPrec x0 x
 
 vert :: GLInputType t => [ConstExpr t] -> VertExpr t
-vert inp = GLAtom (genID ()) $ Inp inp
+vert inp = mkExpr GLAtom $ Inp inp
 
 frag :: GLSupportsSmoothInterp t => VertExpr t -> FragExpr t
-frag x = GLAtom (genID ()) $ Frag Smooth x
+frag x = mkExpr GLAtom $ Frag Smooth x
 
 flatFrag :: GLInputType t => VertExpr t -> FragExpr t
-flatFrag x = GLAtom (genID ()) $ Frag Flat x
+flatFrag x = mkExpr GLAtom $ Frag Flat x
 
 noperpFrag :: GLInputType t => VertExpr t -> FragExpr t
-noperpFrag x = GLAtom (genID ()) $ Frag NoPerspective x
+noperpFrag x = mkExpr GLAtom $ Frag NoPerspective x
 
 
 -- * Vector, matrix, and array constructors
 
-vec2 x y = GLGenExpr (genID ()) $ GLVec2 x y
-vec3 x y z = GLGenExpr (genID ()) $ GLVec3 x y z
-vec4 x y z w = GLGenExpr (genID ()) $ GLVec4 x y z w
+vec2 x y = mkExpr GLGenExpr $ GLVec2 x y
+vec3 x y z = mkExpr GLGenExpr $ GLVec3 x y z
+vec4 x y z w = mkExpr GLGenExpr $ GLVec4 x y z w
 mat2 x y = mat2x2 x y
 mat3 x y z = mat3x3 x y z
 mat4 x y z w = mat4x4 x y z w
-mat2x2 x y = GLGenExpr (genID ()) $ GLMat2x2 x y
-mat2x3 x y z = GLGenExpr (genID ()) $ GLMat2x3 x y z
-mat2x4 x y z w = GLGenExpr (genID ()) $ GLMat2x4 x y z w
-mat3x2 x y = GLGenExpr (genID ()) $ GLMat3x2 x y
-mat3x3 x y z = GLGenExpr (genID ()) $ GLMat3x3 x y z
-mat3x4 x y z w = GLGenExpr (genID ()) $ GLMat3x4 x y z w
-mat4x2 x y = GLGenExpr (genID ()) $ GLMat4x2 x y
-mat4x3 x y z = GLGenExpr (genID ()) $ GLMat4x3 x y z
-mat4x4 x y z w = GLGenExpr (genID ()) $ GLMat4x4 x y z w
+mat2x2 x y = mkExpr GLGenExpr $ GLMat2x2 x y
+mat2x3 x y z = mkExpr GLGenExpr $ GLMat2x3 x y z
+mat2x4 x y z w = mkExpr GLGenExpr $ GLMat2x4 x y z w
+mat3x2 x y = mkExpr GLGenExpr $ GLMat3x2 x y
+mat3x3 x y z = mkExpr GLGenExpr $ GLMat3x3 x y z
+mat3x4 x y z w = mkExpr GLGenExpr $ GLMat3x4 x y z w
+mat4x2 x y = mkExpr GLGenExpr $ GLMat4x2 x y
+mat4x3 x y z = mkExpr GLGenExpr $ GLMat4x3 x y z
+mat4x4 x y z w = mkExpr GLGenExpr $ GLMat4x4 x y z w
 
-pre x y = GLGenExpr (genID ()) $ Pre x y
-app x y = GLGenExpr (genID ()) $ App x y
+pre x y = mkExpr GLGenExpr $ Pre x y
+app x y = mkExpr GLGenExpr $ App x y
 
 infixr 9 $|
 infixr 8 $-
 
-x $| y = GLGenExpr (genID ()) $ HorConc x y
-x $- y = GLGenExpr (genID ()) $ Conc x y
+x $| y = mkExpr GLGenExpr $ HorConc x y
+x $- y = mkExpr GLGenExpr $ Conc x y
 
-arr xs = GLGenExpr (genID ()) $ GLArray xs
+arr xs = mkExpr GLGenExpr $ GLArray xs
 
 
 -- * Deconstruction and indexing
 
-x_ v = GLGenExpr (genID ()) $ OpCoord CoordX v
-y_ v = GLGenExpr (genID ()) $ OpCoord CoordY v
-z_ v = GLGenExpr (genID ()) $ OpCoord CoordZ v
-w_ v = GLGenExpr (genID ()) $ OpCoord CoordW v
+x_ v = mkExpr GLGenExpr $ OpCoord CoordX v
+y_ v = mkExpr GLGenExpr $ OpCoord CoordY v
+z_ v = mkExpr GLGenExpr $ OpCoord CoordZ v
+w_ v = mkExpr GLGenExpr $ OpCoord CoordW v
 $gen2DCoordDecls
 $gen3DCoordDecls
 
-col0 m = GLGenExpr (genID ()) $ OpCol Col0 m
-col1 m = GLGenExpr (genID ()) $ OpCol Col1 m
-col2 m = GLGenExpr (genID ()) $ OpCol Col2 m
-col3 m = GLGenExpr (genID ()) $ OpCol Col3 m
+col0 m = mkExpr GLGenExpr $ OpCol Col0 m
+col1 m = mkExpr GLGenExpr $ OpCol Col1 m
+col2 m = mkExpr GLGenExpr $ OpCol Col2 m
+col3 m = mkExpr GLGenExpr $ OpCol Col3 m
 
-arr %! i = GLGenExpr (genID ()) $ OpArrayElt arr i
+arr %! i = mkExpr GLGenExpr $ OpArrayElt arr i
 
 class Deconstructible t where
     type Decon t
@@ -365,44 +369,44 @@ instance (GLPrim t, GLType (Mat p 4 t), GLType (Vec p t)) => Deconstructible (GL
 
 -- * Expression type conversion
 
-cast x = GLGenExpr (genID ()) $ Cast x
-matCast m = GLGenExpr (genID ()) $ MatCast m
+cast x = mkExpr GLGenExpr $ Cast x
+matCast m = mkExpr GLGenExpr $ MatCast m
 
 
 -- * Custom function support
 
-makeGenVar () = GLAtom (genID ()) GenVar
+makeGenVar _ = mkExpr GLAtom GenVar
 
 glFunc1 :: (GLType t, GLType t1) => 
     (GLExpr d t1 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t 
-glFunc1 f = \x0 -> GLFunc (genID ()) $ GLFunc1 f x x0
-    where x = makeGenVar ()
+glFunc1 f = \x0 -> mkExpr GLFunc $ GLFunc1 f x x0
+    where x = makeGenVar "x"
 glFunc2 :: (GLType t, GLType t1, GLType t2) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t 
-glFunc2 f = \x0 y0 -> GLFunc (genID ()) $ GLFunc2 f x y x0 y0
-    where (x, y) = (makeGenVar (), makeGenVar ())
+glFunc2 f = \x0 y0 -> mkExpr GLFunc $ GLFunc2 f x y x0 y0
+    where (x, y) = (makeGenVar "x", makeGenVar "y")
 glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
-glFunc3 f = \x0 y0 z0 -> GLFunc (genID ()) $ GLFunc3 f x y z x0 y0 z0
-    where (x, y, z) = (makeGenVar (), makeGenVar (), makeGenVar ())
+glFunc3 f = \x0 y0 z0 -> mkExpr GLFunc $ GLFunc3 f x y z x0 y0 z0
+    where (x, y, z) = (makeGenVar "x", makeGenVar "y", makeGenVar "z")
 glFunc4 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t 
-glFunc4 f = \x0 y0 z0 w0 -> GLFunc (genID ()) $ GLFunc4 f x y z w x0 y0 z0 w0
-    where (x, y, z, w) = (makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar ())
+glFunc4 f = \x0 y0 z0 w0 -> mkExpr GLFunc $ GLFunc4 f x y z w x0 y0 z0 w0
+    where (x, y, z, w) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w")
 glFunc5 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5-> GLExpr d t 
-glFunc5 f = \x0 y0 z0 w0 v0 -> GLFunc (genID ()) $ GLFunc5 f x y z w v x0 y0 z0 w0 v0
-    where (x, y, z, w, v) = (makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar ())
+glFunc5 f = \x0 y0 z0 w0 v0 -> mkExpr GLFunc $ GLFunc5 f x y z w v x0 y0 z0 w0 v0
+    where (x, y, z, w, v) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u")
 glFunc6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t 
-glFunc6 f = \x0 y0 z0 w0 v0 u0 -> GLFunc (genID ()) $ GLFunc6 f x y z w v u x0 y0 z0 w0 v0 u0
-    where (x, y, z, w, v, u) = (makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar (), makeGenVar ())
+glFunc6 f = \x0 y0 z0 w0 v0 u0 -> mkExpr GLFunc $ GLFunc6 f x y z w v u x0 y0 z0 w0 v0 u0
+    where (x, y, z, w, v, u) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u", makeGenVar "v")
 
 
 -- * Builtin operators and functions
@@ -419,112 +423,112 @@ infixl 4 .^
 infixl 7 .*
 infixl 7 .@
 
-x .% y = GLGenExpr (genID ()) $ OpMod x y
-x .< y = GLGenExpr (genID ()) $ OpLessThan x y
-x .<= y = GLGenExpr (genID ()) $ OpLessThanEqual x y
-x .> y = GLGenExpr (genID ()) $ OpGreaterThan x y
-x .>= y = GLGenExpr (genID ()) $ OpGreaterThanEqual x y
-x .== y = GLGenExpr (genID ()) $ OpEqual x y
-x ./= y = GLGenExpr (genID ()) $ OpNotEqual x y
-x .&& y = GLGenExpr (genID ()) $ OpAnd x y
-x .|| y = GLGenExpr (genID ()) $ OpOr x y
-x .^^ y = GLGenExpr (genID ()) $ OpXor x y
-not x = GLGenExpr (genID ()) $ OpNot x
-cond x y z = GLGenExpr (genID ()) $ OpCond x y z
-neg x = GLGenExpr (genID ()) $ OpCompl x
-x .<< y = GLGenExpr (genID ()) $ OpLshift x y
-x .>> y = GLGenExpr (genID ()) $ OpRshift x y
-x .& y = GLGenExpr (genID ()) $ OpBitAnd x y
-x .| y = GLGenExpr (genID ()) $ OpBitOr x y
-x .^ y = GLGenExpr (genID ()) $ OpBitXor x y
-x .* y = GLGenExpr (genID ()) $ OpScalarMult x y
-x .@ y = GLGenExpr (genID ()) $ OpMatrixMult x y
+x .% y = mkExpr GLGenExpr $ OpMod x y
+x .< y = mkExpr GLGenExpr $ OpLessThan x y
+x .<= y = mkExpr GLGenExpr $ OpLessThanEqual x y
+x .> y = mkExpr GLGenExpr $ OpGreaterThan x y
+x .>= y = mkExpr GLGenExpr $ OpGreaterThanEqual x y
+x .== y = mkExpr GLGenExpr $ OpEqual x y
+x ./= y = mkExpr GLGenExpr $ OpNotEqual x y
+x .&& y = mkExpr GLGenExpr $ OpAnd x y
+x .|| y = mkExpr GLGenExpr $ OpOr x y
+x .^^ y = mkExpr GLGenExpr $ OpXor x y
+not x = mkExpr GLGenExpr $ OpNot x
+cond x y z = mkExpr GLGenExpr $ OpCond x y z
+neg x = mkExpr GLGenExpr $ OpCompl x
+x .<< y = mkExpr GLGenExpr $ OpLshift x y
+x .>> y = mkExpr GLGenExpr $ OpRshift x y
+x .& y = mkExpr GLGenExpr $ OpBitAnd x y
+x .| y = mkExpr GLGenExpr $ OpBitOr x y
+x .^ y = mkExpr GLGenExpr $ OpBitXor x y
+x .* y = mkExpr GLGenExpr $ OpScalarMult x y
+x .@ y = mkExpr GLGenExpr $ OpMatrixMult x y
 
-radians x = GLGenExpr (genID ()) $ Radians x
-degrees x = GLGenExpr (genID ()) $ Degrees x
-sin x = GLGenExpr (genID ()) $ Sin x
-cos x = GLGenExpr (genID ()) $ Cos x
-tan x = GLGenExpr (genID ()) $ Tan x
-asin x = GLGenExpr (genID ()) $ Asin x
-acos x = GLGenExpr (genID ()) $ Acos x
-atan x = GLGenExpr (genID ()) $ Atan x
-sinh x = GLGenExpr (genID ()) $ Sin x
-cosh x = GLGenExpr (genID ()) $ Cos x
-tanh x = GLGenExpr (genID ()) $ Tan x
-asinh x = GLGenExpr (genID ()) $ Asin x
-acosh x = GLGenExpr (genID ()) $ Acos x
-atanh x = GLGenExpr (genID ()) $ Atan x
+radians x = mkExpr GLGenExpr $ Radians x
+degrees x = mkExpr GLGenExpr $ Degrees x
+sin x = mkExpr GLGenExpr $ Sin x
+cos x = mkExpr GLGenExpr $ Cos x
+tan x = mkExpr GLGenExpr $ Tan x
+asin x = mkExpr GLGenExpr $ Asin x
+acos x = mkExpr GLGenExpr $ Acos x
+atan x = mkExpr GLGenExpr $ Atan x
+sinh x = mkExpr GLGenExpr $ Sin x
+cosh x = mkExpr GLGenExpr $ Cos x
+tanh x = mkExpr GLGenExpr $ Tan x
+asinh x = mkExpr GLGenExpr $ Asin x
+acosh x = mkExpr GLGenExpr $ Acos x
+atanh x = mkExpr GLGenExpr $ Atan x
 
-pow x y = GLGenExpr (genID ()) $ Pow x y
-exp x = GLGenExpr (genID ()) $ Exp x
-log x = GLGenExpr (genID ()) $ Log x
-exp2 x = GLGenExpr (genID ()) $ Exp2 x
-log2 x = GLGenExpr (genID ()) $ Log2 x
-sqrt x = GLGenExpr (genID ()) $ Sqrt x
-inversesqrt x = GLGenExpr (genID ()) $ Inversesqrt x
+pow x y = mkExpr GLGenExpr $ Pow x y
+exp x = mkExpr GLGenExpr $ Exp x
+log x = mkExpr GLGenExpr $ Log x
+exp2 x = mkExpr GLGenExpr $ Exp2 x
+log2 x = mkExpr GLGenExpr $ Log2 x
+sqrt x = mkExpr GLGenExpr $ Sqrt x
+inversesqrt x = mkExpr GLGenExpr $ Inversesqrt x
 
-floor x = GLGenExpr (genID ()) $ Floor x
-trunc x = GLGenExpr (genID ()) $ Trunc x
-round x = GLGenExpr (genID ()) $ Round x
-roundEven x = GLGenExpr (genID ()) $ RoundEven x
-ceil x = GLGenExpr (genID ()) $ Ceil x
-fract x = GLGenExpr (genID ()) $ Fract x
-mod x y = GLGenExpr (genID ()) $ Mod x y
-min x y = GLGenExpr (genID ()) $ Min x y
-max x y = GLGenExpr (genID ()) $ Max x y
-clamp x y z = GLGenExpr (genID ()) $ Clamp x y z
-mix x y z = GLGenExpr (genID ()) $ Mix x y z
-step x y = GLGenExpr (genID ()) $ Step x y
-smoothstep x y z = GLGenExpr (genID ()) $ Smoothstep x y z
+floor x = mkExpr GLGenExpr $ Floor x
+trunc x = mkExpr GLGenExpr $ Trunc x
+round x = mkExpr GLGenExpr $ Round x
+roundEven x = mkExpr GLGenExpr $ RoundEven x
+ceil x = mkExpr GLGenExpr $ Ceil x
+fract x = mkExpr GLGenExpr $ Fract x
+mod x y = mkExpr GLGenExpr $ Mod x y
+min x y = mkExpr GLGenExpr $ Min x y
+max x y = mkExpr GLGenExpr $ Max x y
+clamp x y z = mkExpr GLGenExpr $ Clamp x y z
+mix x y z = mkExpr GLGenExpr $ Mix x y z
+step x y = mkExpr GLGenExpr $ Step x y
+smoothstep x y z = mkExpr GLGenExpr $ Smoothstep x y z
 
-length x = GLGenExpr (genID ()) $ Length x
-distance x y = GLGenExpr (genID ()) $ Distance x  y
-dot x y = GLGenExpr (genID ()) $ Dot x y
-cross x y = GLGenExpr (genID ()) $ Cross x y
-normalize x = GLGenExpr (genID ()) $ Normalize x
-faceforward x y z = GLGenExpr (genID ()) $ Faceforward x y z
-reflect x y = GLGenExpr (genID ()) $ Reflect x y
-refract x y z = GLGenExpr (genID ()) $ Refract x y z
+length x = mkExpr GLGenExpr $ Length x
+distance x y = mkExpr GLGenExpr $ Distance x  y
+dot x y = mkExpr GLGenExpr $ Dot x y
+cross x y = mkExpr GLGenExpr $ Cross x y
+normalize x = mkExpr GLGenExpr $ Normalize x
+faceforward x y z = mkExpr GLGenExpr $ Faceforward x y z
+reflect x y = mkExpr GLGenExpr $ Reflect x y
+refract x y z = mkExpr GLGenExpr $ Refract x y z
 
-matrixCompMult x y = GLGenExpr (genID ()) $ MatrixCompMult x y
-outerProduct x y = GLGenExpr (genID ()) $ OuterProduct x y
-transpose x = GLGenExpr (genID ()) $ Transpose x
-determinant x = GLGenExpr (genID ()) $ Determinant x
-inverse x = GLGenExpr (genID ()) $ Inverse x
+matrixCompMult x y = mkExpr GLGenExpr $ MatrixCompMult x y
+outerProduct x y = mkExpr GLGenExpr $ OuterProduct x y
+transpose x = mkExpr GLGenExpr $ Transpose x
+determinant x = mkExpr GLGenExpr $ Determinant x
+inverse x = mkExpr GLGenExpr $ Inverse x
 
-lessThan x y = GLGenExpr (genID ()) $ LessThan x y
-lessThanEqual x y = GLGenExpr (genID ()) $ LessThanEqual x y
-greaterThan x y = GLGenExpr (genID ()) $ GreaterThan x y
-greaterThanEqual x y = GLGenExpr (genID ()) $ GreaterThanEqual x y
-equal x y = GLGenExpr (genID ()) $ Equal x y
-notEqual x y = GLGenExpr (genID ()) $ NotEqual x y
-any x = GLGenExpr (genID ()) $ Any x
-all x = GLGenExpr (genID ()) $ All x
-compl x = GLGenExpr (genID ()) $ Compl x
+lessThan x y = mkExpr GLGenExpr $ LessThan x y
+lessThanEqual x y = mkExpr GLGenExpr $ LessThanEqual x y
+greaterThan x y = mkExpr GLGenExpr $ GreaterThan x y
+greaterThanEqual x y = mkExpr GLGenExpr $ GreaterThanEqual x y
+equal x y = mkExpr GLGenExpr $ Equal x y
+notEqual x y = mkExpr GLGenExpr $ NotEqual x y
+any x = mkExpr GLGenExpr $ Any x
+all x = mkExpr GLGenExpr $ All x
+compl x = mkExpr GLGenExpr $ Compl x
 
 
 -- * Builtin I/O variables
 
 time :: HostExpr Float
-time = GLAtom (genID ()) $ IOFloat "time"
+time = mkExpr GLAtom $ IOFloat "time"
 
 mouseLeft :: HostExpr Bool
-mouseLeft = GLAtom (genID ()) $ IOBool "mouseLeft"
+mouseLeft = mkExpr GLAtom $ IOBool "mouseLeft"
 
 mouseRight :: HostExpr Bool
-mouseRight = GLAtom (genID ()) $ IOBool "mouseRight"
+mouseRight = mkExpr GLAtom $ IOBool "mouseRight"
 
 mouseWheel :: HostExpr Float
-mouseWheel = GLAtom (genID ()) $ IOFloat "mouseWheel"
+mouseWheel = mkExpr GLAtom $ IOFloat "mouseWheel"
 
 mouseX :: HostExpr Float
-mouseX = GLAtom (genID ()) $ IOFloat "mouseX"
+mouseX = mkExpr GLAtom $ IOFloat "mouseX"
 
 mouseY :: HostExpr Float
-mouseY = GLAtom (genID ()) $ IOFloat "mouseY"
+mouseY = mkExpr GLAtom $ IOFloat "mouseY"
 
 mousePos :: HostExpr (Vec 2 Float)
-mousePos = GLGenExpr (genID ()) $ GLVec2 mouseX mouseY
+mousePos = mkExpr GLGenExpr $ GLVec2 mouseX mouseY
 
 
 -- * Drawables

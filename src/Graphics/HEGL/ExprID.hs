@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-cse -fno-full-laziness #-}
+
 module Graphics.HEGL.ExprID (
     ExprID,
     genID,
@@ -15,12 +17,11 @@ type ExprID = Int
 unsafeCounter :: IORef Int
 unsafeCounter = unsafePerformIO $ newIORef 0
 
--- TODO: this approach isn't ideal (not because of the unsafePerformIO);
--- ideally replace it with a deterministic hash-based one
--- All modules using this function should be compiled with -fno-cse!!
+-- All modules using this function should be compiled with 
+-- -fno-full-laziness!!
 {-# NOINLINE genID #-}
-genID :: () -> ExprID
-genID () = unsafePerformIO $ do
+genID :: a -> ExprID
+genID _ = unsafePerformIO $ do
     id <- readIORef unsafeCounter
     writeIORef unsafeCounter (id + 1)
     return id

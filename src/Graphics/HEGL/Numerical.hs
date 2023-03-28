@@ -56,7 +56,7 @@ horConcat :: Mat p q1 t -> Mat p q2 t -> Mat p (q1 + q2) t
 horConcat m1 m2 = transpose (vertConcat (transpose m1) (transpose m2))
 
 vertConcat :: Mat p1 q t -> Mat p2 q t -> Mat (p1 + p2) q t
-vertConcat (Mat xs) (Mat ys) = Mat $ listArray ((0, 0), (p1 + p2, q)) (elems xs ++ elems ys) where
+vertConcat (Mat xs) (Mat ys) = Mat $ listArray ((0, 0), (p1 + p2 + 1, q)) (elems xs ++ elems ys) where
     ((0, 0), (p1, q)) = bounds xs
     ((0, 0), (p2, _)) = bounds ys
 

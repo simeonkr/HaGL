@@ -62,7 +62,7 @@ module Graphics.HEGL (
     app,
     ($-),
     ($|),
-    arr,
+    array,
     -- * Deconstruction and indexing
     Deconstructible(..),
     x_, y_, z_, w_,
@@ -75,7 +75,7 @@ module Graphics.HEGL (
     zxy_, zxw_, zyx_, zyw_, zwx_, zwy_,
     wxy_, wxz_, wyx_, wyz_, wzx_, wzy_,
     col0, col1, col2, col3,
-    (%!),
+    (.!),
     -- * Type conversion
     Graphics.HEGL.cast,
     matCast,
@@ -324,7 +324,7 @@ infixr 8 $-
 x $| y = mkExpr GLGenExpr $ HorConc x y
 x $- y = mkExpr GLGenExpr $ Conc x y
 
-arr xs = mkExpr GLGenExpr $ GLArray xs
+array xs = mkExpr GLGenExpr $ GLArray xs
 
 
 -- * Deconstruction and indexing
@@ -341,7 +341,7 @@ col1 m = mkExpr GLGenExpr $ OpCol Col1 m
 col2 m = mkExpr GLGenExpr $ OpCol Col2 m
 col3 m = mkExpr GLGenExpr $ OpCol Col3 m
 
-arr %! i = mkExpr GLGenExpr $ OpArrayElt arr i
+arr .! i = mkExpr GLGenExpr $ OpArrayElt arr i
 
 class Deconstructible t where
     type Decon t

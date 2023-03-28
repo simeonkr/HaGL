@@ -12,6 +12,7 @@ import Control.Applicative (liftA2)
 import Control.Monad.State.Lazy
 import Data.Functor.Identity
 import Data.Bits
+import qualified Data.List as List (length)
 
 import Graphics.HEGL.Numerical
 import Graphics.HEGL.GLType
@@ -25,20 +26,21 @@ type IOEvaluator = forall t. GLExpr HostDomain t -> IO t
 
 constEval :: GLExpr ConstDomain t -> t
 constEval expr = runIdentity $
-    evalStateT (cachedEval eval expr) (EvalState DepMap.empty)
+    evalStateT (cachedEval expr) (EvalState eval DepMap.empty)
 
 hostEval ::  IOEvaluator -> GLExpr HostDomain t -> IO t
 hostEval ioev expr = 
-    evalStateT (cachedEval (hEval ioev) expr) (EvalState DepMap.empty)
+    evalStateT (cachedEval expr) (EvalState (hEval ioev) DepMap.empty)
 
 
-newtype EvalState d = EvalState {
+data EvalState d a = EvalState {
+    evalfn :: Monad a => forall t. GLExpr d t -> StateT (EvalState d a) a t,
     cache :: DepMap.DepMap (GLExpr d) Identity
 }
 
-cachedEval :: Monad a => (GLExpr d t -> StateT (EvalState d) a t) ->
-    GLExpr d t -> StateT (EvalState d) a t
-cachedEval evfn expr = do
+cachedEval :: Monad a => GLExpr d t -> StateT (EvalState d a) a t
+cachedEval expr = do
+    evfn <- gets evalfn
     c <- gets cache
     case DepMap.lookup expr c of
         Just (Identity val) -> return val
@@ -48,7 +50,7 @@ cachedEval evfn expr = do
             return val 
 
 
-hEval :: IOEvaluator -> GLExpr HostDomain t -> StateT (EvalState HostDomain) IO t
+hEval :: IOEvaluator -> GLExpr HostDomain t -> StateT (EvalState HostDomain IO) IO t
 
 hEval ioev e@(GLAtom _ (IOFloat _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IODouble _)) = lift $ ioev e
@@ -60,7 +62,7 @@ hEval ioev (GLAtom _ (Uniform x)) = hEval ioev x
 hEval _ e = eval e
 
 
-eval :: Monad a => GLExpr d t -> StateT (EvalState d) a t
+eval :: Monad a => GLExpr d t -> StateT (EvalState d a) a t
 
 eval (GLAtom _ (Const x)) = return x
 eval (GLAtom _ GenVar) = error "Attempted to evaluate an unknown variable"
@@ -121,7 +123,7 @@ eval (GLGenExpr _ (Conc xs ys)) = withEv2 xs ys $ \xs ys ->
 eval (GLGenExpr _ (HorConc xs ys)) = withEv2 xs ys $ \xs ys ->
     return $ horConcat xs ys
 eval (GLGenExpr _ (GLArray xs)) = 
-    mapM (cachedEval eval) xs
+    mapM cachedEval xs
 
 eval (GLGenExpr _ (OpCoord coords v)) = withEv1 v $ \v ->
     return $ v `eltAt` coordToIndex coords
@@ -133,7 +135,7 @@ eval (GLGenExpr _ (OpCoordMulti coordList v)) = withEv1 v $ \v ->
 eval (GLGenExpr _ (OpCol col m)) = withEv1 m $ \m ->
     return $ m `matCol` colToIndex col
 eval (GLGenExpr _ (OpArrayElt arr i)) = withEv2 arr i $ \arr i ->
-    return $ arr !! fromIntegral i
+    return $ arr !! fromIntegral (i `mod` (List.length arr))
 
 eval (GLGenExpr _ (Cast x)) = withEv1 x $ \x ->
     return $ cast x
@@ -332,12 +334,12 @@ eval (GLGenExpr _ (Compl x)) = withEv1 x $ \x ->
 
 -- Helper functions
 
-withEv1 x act = do { x <- cachedEval eval x; act x }
-withEv2 x y act = do { x <- cachedEval eval x; y <- cachedEval eval y; act x y }
-withEv3 x y z act = do { x <- cachedEval eval x; y <- cachedEval eval y; z <- cachedEval eval z; act x y z }
-withEv4 x y z w act = do { x <- cachedEval eval x; y <- cachedEval eval y; z <- cachedEval eval z; w <- cachedEval eval w; act x y z w }
-withEv5 x y z w u act = do { x <- cachedEval eval x; y <- cachedEval eval y; z <- cachedEval eval z; w <- cachedEval eval w; u <- cachedEval eval u; act x y z w u }
-withEv6 x y z w u v act = do { x <- cachedEval eval x; y <- cachedEval eval y; z <- cachedEval eval z; w <- cachedEval eval w; u <- cachedEval eval u; v <- cachedEval eval v; act x y z w u v }
+withEv1 x act = do { x <- cachedEval x; act x }
+withEv2 x y act = do { x <- cachedEval x; y <- cachedEval y; act x y }
+withEv3 x y z act = do { x <- cachedEval x; y <- cachedEval y; z <- cachedEval z; act x y z }
+withEv4 x y z w act = do { x <- cachedEval x; y <- cachedEval y; z <- cachedEval z; w <- cachedEval w; act x y z w }
+withEv5 x y z w u act = do { x <- cachedEval x; y <- cachedEval y; z <- cachedEval z; w <- cachedEval w; u <- cachedEval u; act x y z w u }
+withEv6 x y z w u v act = do { x <- cachedEval x; y <- cachedEval y; z <- cachedEval z; w <- cachedEval w; u <- cachedEval u; v <- cachedEval v; act x y z w u v }
 
 tr = transpose
 

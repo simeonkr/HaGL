@@ -107,11 +107,13 @@ instance Show ShaderExpr where
             funcName ++ "(" ++ intercalate ", " (map show xs) ++ ")"
         | head funcName == '.' = showCompSel funcName xs
         | funcName == "[]" = showSubscript xs
+        | head funcName == '[' = showMatCol xs funcName
         | funcName == "?:" = showTernCond xs
         | otherwise = showInfix funcName xs
         where 
             showCompSel comp [x] = show x ++ comp
             showSubscript [arr, i] = show arr ++ "[" ++ show i ++ "]"
+            showMatCol [x] col = show x ++ col
             showTernCond [x, y, z] = show x ++ " ? " ++ show y ++ " : " ++ show z
             showInfix op [x] = op ++ show x
             showInfix op xs = intercalate (" " ++ op ++ " ") (map show xs)

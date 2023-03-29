@@ -83,7 +83,10 @@ Test-Suite hegl-test
     KindSignatures,
     TypeFamilies,
     TypeOperators,
-    ViewPatterns
+    ViewPatterns,
+    FlexibleContexts, 
+    FlexibleInstances,
+    PartialTypeSignatures
   build-depends:
     base,
     hegl,

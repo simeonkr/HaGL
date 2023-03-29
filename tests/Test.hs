@@ -1,4 +1,4 @@
-import Prelude hiding (const, sin, cos, sqrt, length)
+import Prelude hiding (all, const, sin, cos, sqrt, length)
 
 import Test.HUnit
 import Control.Monad (when)
@@ -54,8 +54,20 @@ mkShaderTest (HEGLTest label expr) =
         assertBool ("Failed to obtain a true value in shader: " ++ label) success
 
 
-eps = 1e-4 :: GLExpr d Float
-closeEnough x y = abs ((x - y) / y) .< eps
+almostEqual x y = abs (x - y) .<= 1e-12
+almostVecEqual x y = all $ lessThanEqual (abs (x - y)) 1e-12
+almostMatPx2Equal m1 m2 = 
+    almostVecEqual (col0 m1) (col0 m2) .&&
+    almostVecEqual (col1 m1) (col1 m2)
+almostMatPx3Equal m1 m2 =
+    almostVecEqual (col0 m1) (col0 m2) .&&
+    almostVecEqual (col1 m1) (col1 m2) .&&
+    almostVecEqual (col2 m1) (col2 m2)
+almostMatPx4Equal m1 m2 =
+    almostVecEqual (col0 m1) (col0 m2) .&&
+    almostVecEqual (col1 m1) (col1 m2) .&&
+    almostVecEqual (col2 m1) (col2 m2) .&&
+    almostVecEqual (col3 m1) (col3 m2)
 
 
 -- Tests
@@ -66,15 +78,16 @@ genericTests = [
         vec2Test,
         vec3Test,
         vec4Test,
+        mat2Test,
         arrayTest,
-        --rawMatConstrTest,
+        rawMatConstrTest,
         glLiftTest,
         booleanExprTest,
         lengthTest,
         distanceTest,
-        --dotTest,
+        dotTest,
         crossTest,
-        --normalizeTest,
+        normalizeTest,
         faceforwardTest,
         reflectTest,
         refractTest,
@@ -141,6 +154,10 @@ vec4Test = HEGLTest "vec4" $
        v .== pre x ((zyx_ . wzy_) v) .&&
        v .== app ((xyz_ . xyz_) v) w
 
+mat2Test = HEGLTest "mat2" $
+    let m = mat2 (vec2 1 3) (vec2 2 4) :: GLExpr d (Mat 2 2 Float)
+    in almostMatPx2Equal m (mat2 (col0 m) (col1 m))
+
 
 -- Arrays
 
@@ -156,7 +173,7 @@ rawMatConstrTest = HEGLTest "raw matrix constructors" $
     let m0 = mat3 (vec3 1 4 7) (vec3 2 5 8) (vec3 3 6 9)
         m1 = uniform $ glLift0 $ fromList [1, 2, 3, 4, 5, 6, 7, 8, 9] :: GLExpr d (Mat 3 3 Float)
         m2 = uniform $ glLift0 $ fromMapping (\(i, j) -> fromIntegral $ 3 * i + j + 1) :: GLExpr d (Mat 3 3 Float)
-    in m0 .== m1 .&& m0 .== m2 .&& m1 .== m2
+    in almostMatPx3Equal m0 m1 .&& almostMatPx3Equal m0 m2 .&& almostMatPx3Equal m1 m2
 
 glLiftTest = HEGLTest "glLift" $
     let x = glLift0 [1,2,3,4] :: GLExpr HostDomain [Int]
@@ -185,29 +202,29 @@ booleanExprTest = HEGLTest "boolean expression" $
 -- Geometric functions
 
 lengthTest = HEGLTest "length" $
-    length (vec3 2 (-3) 6 :: GLExpr d (Vec 3 Float)) .== 7 .&&
+    almostEqual (length (vec3 2 (-3) 6 :: GLExpr d (Vec 3 Float))) 7 .&&
     let v@(decon -> (x, y, z, w)) = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
-    in length v .== sqrt (x * x + y * y + z * z + w * w)
+    in almostEqual (length v) (sqrt (x * x + y * y + z * z + w * w))
 
 distanceTest = HEGLTest "distance" $
     let x = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
         y = vec4 5 6 7 8 :: GLExpr d (Vec 4 Float)
-    in distance x y .== length (x - y)
+    in almostEqual (distance x y) (length (x - y))
 
 dotTest = HEGLTest "dot" $
     let theta = 0.1234 :: GLExpr d Float
         x = vec2 (cos theta) (sin theta) :: GLExpr d (Vec 2 Float)
         y = vec2 (cos $ theta + (pi / 2)) (sin $ theta + (pi / 2))
         z = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
-    in closeEnough (dot x y) 0 .&&
-       closeEnough (dot z z) (length z * length z)
+    in almostEqual (dot x y) 0 .&&
+       almostEqual (dot z z) (length z * length z)
 
 crossTest = HEGLTest "cross" $
     true
 
 normalizeTest = HEGLTest "normalize" $
     let x = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
-    in normalize x .== (1 / length x) .* x
+    in almostVecEqual (normalize x) ((1 / length x) .* x)
 
 faceforwardTest = HEGLTest "faceforward" $
     true
@@ -247,7 +264,7 @@ vecArithmeticTest = HEGLTest "vector arithmetic" $
 
 trigIdentTest = HEGLTest "trigonometric identities" $
     let x0 = 0.1234 :: GLExpr d Float
-    in closeEnough (pow (sin x0) 2 + pow (cos x0) 2) 1
+    in almostEqual (pow (sin x0) 2 + pow (cos x0) 2) 1
 
 
 runTests :: Test -> IO ()

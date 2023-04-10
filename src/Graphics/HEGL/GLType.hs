@@ -604,8 +604,8 @@ instance GLType [Int] where
     uniformSet ul xs = let xs' = map toEnum xs in
             withArray xs' $ RawGL.glUniform1iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 2 Int] where
-    showGlslVal xs = "vec2[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
-    showGlslType = const "vec2[]"
+    showGlslVal xs = "ivec2[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
+    showGlslType = const "ivec2[]"
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
@@ -616,8 +616,8 @@ instance GLType [Vec 2 Int] where
     uniformSet ul xs = let xs' = map toEnum $ concatMap toList xs in
         withArray xs' $ RawGL.glUniform2iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 3 Int] where
-    showGlslVal xs = "vec3[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
-    showGlslType = const "vec3[]"
+    showGlslVal xs = "ivec3[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
+    showGlslType = const "ivec3[]"
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
@@ -628,8 +628,8 @@ instance GLType [Vec 3 Int] where
     uniformSet ul xs = let xs' = map toEnum $ concatMap toList xs in
         withArray xs' $ RawGL.glUniform2iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 4 Int] where
-    showGlslVal xs = "vec4[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
-    showGlslType = const "vec4[]"
+    showGlslVal xs = "ivec4[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
+    showGlslType = const "ivec4[]"
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3

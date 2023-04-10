@@ -53,23 +53,33 @@ mkGLFn funcID r params args =
         func = GLAstFunc funcID (getGLTypeInfo r) (toGLAst r) params
 mkGLExpr id e = GLAstExpr id (getGLTypeInfo e)
 
-vd = error "GLLift*: Output list length must be independent of list contents"
-showRetArraySize r = if arrayLen r == 1 then "" else "[" ++ show (arrayLen r) ++ "]"
+showSizedArrayType e n = takeWhile (/= ']') (showGlslType e) ++ show n ++ "]"
+showPotentialArrayType e arr = 
+    if arrayLen arr == 1 then showGlslType e else showSizedArrayType e (arrayLen arr)
+vd = error "GLLift*: Function may only return a fixed-size list"
 
 
 toGLAst :: IsGLDomain d => GLExpr d t -> GLAst
-toGLAst e@(GLAtom id x@(GLLift1 f _)) = GLAstAtom id (GLTypeInfo (getShaderType e) tystr) x where
-    tystr = showGlslType e ++ showRetArraySize (f vd)
-toGLAst e@(GLAtom id x@(GLLift2 f _ _)) = GLAstAtom id (GLTypeInfo (getShaderType e) tystr) x where
-    tystr = showGlslType e ++ showRetArraySize (f vd vd)
-toGLAst e@(GLAtom id x@(GLLift3 f _ _ _)) = GLAstAtom id (GLTypeInfo (getShaderType e) tystr) x where
-    tystr = showGlslType e ++ showRetArraySize (f vd vd vd)
-toGLAst e@(GLAtom id x@(GLLift4 f _ _ _ _)) = GLAstAtom id (GLTypeInfo (getShaderType e) tystr) x where
-    tystr = showGlslType e ++ showRetArraySize (f vd vd vd vd)
-toGLAst e@(GLAtom id x@(GLLift5 f _ _ _ _ _)) = GLAstAtom id (GLTypeInfo (getShaderType e) tystr) x where
-    tystr = showGlslType e ++ showRetArraySize (f vd vd vd vd vd)
-toGLAst e@(GLAtom id x@(GLLift6 f _ _ _ _ _ _)) = GLAstAtom id (GLTypeInfo (getShaderType e) tystr) x where
-    tystr = showGlslType e ++ showRetArraySize (f vd vd vd vd vd vd)
+
+-- Special case where we need to extract a known array size
+-- (the current assumption is that only uniform arrays are used in the shader)
+toGLAst e@(GLAtom id x@(Uniform (GLGenExpr _ (GLArray arr)))) = GLAstAtom id ti x where
+    ti = GLTypeInfo (getShaderType e) (showSizedArrayType e (length arr))
+toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift0 x0)))) = GLAstAtom id ti x where
+    ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e x0)
+toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift1 f _)))) = GLAstAtom id ti x where
+    ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e (f vd))
+toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift2 f _ _)))) = GLAstAtom id ti x where
+    ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e (f vd vd))
+toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift3 f _ _ _)))) = GLAstAtom id ti x where
+    ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e (f vd vd vd))
+toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift4 f _ _ _ _)))) = GLAstAtom id ti x where
+    ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e (f vd vd vd vd))
+toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift5 f _ _ _ _ _)))) = GLAstAtom id ti x where
+    ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e (f vd vd vd vd vd))
+toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift6 f _ _ _ _ _ _)))) = GLAstAtom id ti x where
+    ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e (f vd vd vd vd vd vd))
+
 toGLAst e@(GLAtom id x) = GLAstAtom id (getGLTypeInfo e) x
 
 toGLAst (GLFunc id (GLFunc1 f x x0)) = mkGLFn id (f x) [toGLAst x] [toGLAst x0]
@@ -95,8 +105,7 @@ toGLAst e@(GLGenExpr id (Pre x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, 
 toGLAst e@(GLGenExpr id (App x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (Conc x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (HorConc x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
-toGLAst e@(GLGenExpr id (GLArray xs)) = GLAstExpr id (GLTypeInfo (getShaderType e) tystr) "array" (map toGLAst xs) where
-    tystr = showGlslType e ++ "[" ++ show (length xs) ++ "]"
+toGLAst e@(GLGenExpr id (GLArray xs)) = error "Non-uniform array"
 
 toGLAst e@(GLGenExpr id (OpCoord coord x)) = mkGLExpr id e ("." ++ show coord) [toGLAst x]
 toGLAst e@(GLGenExpr id (OpCoordMulti coordList x)) = mkGLExpr id e ("." ++ show coordList) [toGLAst x]

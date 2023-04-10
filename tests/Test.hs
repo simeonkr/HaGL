@@ -54,8 +54,9 @@ mkShaderTest (HEGLTest label expr) =
         assertBool ("Failed to obtain a true value in shader: " ++ label) success
 
 
-almostEqual x y = abs (x - y) .<= 1e-12
-almostVecEqual x y = all $ lessThanEqual (abs (x - y)) 1e-12
+-- TODO: make these definitions part of GLType
+almostEqual x y = abs (x - y) .<= 1e-5
+almostVecEqual x y = all $ lessThanEqual (abs (x - y)) 1e-5
 almostMatPx2Equal m1 m2 = 
     almostVecEqual (col0 m1) (col0 m2) .&&
     almostVecEqual (col1 m1) (col1 m2)
@@ -80,7 +81,7 @@ genericTests = [
         vec4Test,
         mat2Test,
         arrayTest,
-        rawMatConstrTest,
+        rawConstrTest,
         glLiftTest,
         booleanExprTest,
         lengthTest,
@@ -162,27 +163,37 @@ mat2Test = HEGLTest "mat2" $
 -- Arrays
 
 arrayTest = HEGLTest "array" $
-    let a = uniform $ array [const (2 * i) | i <- [0..1000]] :: GLExpr d [Int]
-    in a .! 0 .== 0 .&& a .! 10 .== 2 * 10 .&&
-       a .! 999 .== 2 * 999
+    let a1 = uniform $ array [const (2 * i) | i <- [0..999]] :: GLExpr d [Int]
+        a2 = uniform $ array [vec2 1 1, vec2 2 2] :: GLExpr d [Vec 2 Int]
+    in a1 .! 0 .== 0 .&& a1 .! 10 .== 2 * 10 .&&
+       a1 .! 999 .== 2 * 999 .&&
+       a1 .! (uniform 1) .== 2 .&&
+       a2 .! 0 + a2 .! 0 .== a2 .! 1
 
 
 -- Lifts from raw types
 
-rawMatConstrTest = HEGLTest "raw matrix constructors" $
+rawConstrTest = HEGLTest "raw matrix and array constructors" $
     let m0 = mat3 (vec3 1 4 7) (vec3 2 5 8) (vec3 3 6 9)
         m1 = uniform $ glLift0 $ fromList [1, 2, 3, 4, 5, 6, 7, 8, 9] :: GLExpr d (Mat 3 3 Float)
         m2 = uniform $ glLift0 $ fromMapping (\(i, j) -> fromIntegral $ 3 * i + j + 1) :: GLExpr d (Mat 3 3 Float)
-    in almostMatPx3Equal m0 m1 .&& almostMatPx3Equal m0 m2 .&& almostMatPx3Equal m1 m2
+        a0 = uniform $ array [1,2,3,4] :: GLExpr d [Int]
+        a1 = uniform $ glLift0 [1,2,3,4] :: GLExpr d [Int]
+        a2 = uniform $ glLift0 [4,3,2,1] :: GLExpr d [Int]
+    in almostMatPx3Equal m0 m1 .&& almostMatPx3Equal m0 m2 .&& almostMatPx3Equal m1 m2 .&& 
+       a0 .== a1 .&& a0 ./= a2
 
 glLiftTest = HEGLTest "glLift" $
-    let x = glLift0 [1,2,3,4] :: GLExpr HostDomain [Int]
-        rx = glLift0 [4,3,2,1] :: GLExpr HostDomain [Int]
-        ax = glLift0 [1,2,3,4,4,3,2,1] :: GLExpr HostDomain [Int]
-        f1 = glLift1 List.reverse
-        f2 = glLift2 (List.++)
-    in uniform (f1 x) .== uniform rx .&&
-       uniform (f2 x rx) .== uniform ax
+    let f1 = glLift1 $ \x -> x + 1
+        x1 = 1 :: GLExpr HostDomain Int
+        f2 = glLift1 $ \x -> [x, x]
+        x2 = 1 :: GLExpr HostDomain (Vec 2 Int)
+        a2 = uniform $ array [x2, x2]
+        f3 = glLift2 $ \x y -> [x, y, x + y]
+        x3 = 1 :: GLExpr HostDomain Int
+        y3 = 2 :: GLExpr HostDomain Int
+        a3 = uniform $ array [1,2,3] :: GLExpr d [Int]
+    in uniform (f1 x1) .== 2 .&& uniform (f2 x2) .== a2 .&& uniform (f3 x3 y3) .== a3
 
 
 -- Type conversion

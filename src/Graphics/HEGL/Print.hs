@@ -45,6 +45,8 @@ runPrinter pr = buf $ execState pr
 printGLAst :: GLAst -> Printer
 printGLAst (GLAstAtom id ty (Const _)) =
     printNode id ty "const"
+printGLAst (GLAstAtom id ty GenVar) =
+    printNode id ty "genVar"
 printGLAst (GLAstAtom id ty (Uniform _)) =
     printNode id ty "uniform"
 printGLAst (GLAstAtom id ty (Inp _)) =
@@ -64,9 +66,17 @@ printGLAst (GLAstAtom id ty (IOBool _)) =
 printGLAst (GLAstAtom id ty (IOPrec _ _)) =
     printNode id ty "ioPrec"
 printGLAst (GLAstAtom id ty _) =
-    printNode id ty "ioPrec"
-printGLAst (GLAstFunc id ty _ _) =
+    printNode id ty "glLift"
+printGLAst (GLAstFunc id ty r params) = do
     printNode id ty "glFunc"
+    ifNotTraversed id $ do
+        indented $ printGLAst r
+        indented $ mapM_ printGLAst params
+printGLAst (GLAstFuncApp id ty fn args) = do
+    printNode id ty "glFunc app"
+    ifNotTraversed id $ do
+        indented $ printGLAst fn
+        indented $ mapM_ printGLAst args
 printGLAst (GLAstExpr id ty op xs) = do
     printNode id ty op
     ifNotTraversed id $

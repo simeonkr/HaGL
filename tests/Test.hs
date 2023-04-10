@@ -92,6 +92,7 @@ genericTests = [
         faceforwardTest,
         reflectTest,
         refractTest,
+        glFuncTrivial,
         vecArithmeticTest,
         trigIdentTest
     ]
@@ -173,7 +174,7 @@ arrayTest = HEGLTest "array" $
 
 -- Lifts from raw types
 
-rawConstrTest = HEGLTest "raw matrix and array constructors" $
+rawConstrTest = HEGLTest "raw_constr" $
     let m0 = mat3 (vec3 1 4 7) (vec3 2 5 8) (vec3 3 6 9)
         m1 = uniform $ glLift0 $ fromList [1, 2, 3, 4, 5, 6, 7, 8, 9] :: GLExpr d (Mat 3 3 Float)
         m2 = uniform $ glLift0 $ fromMapping (\(i, j) -> fromIntegral $ 3 * i + j + 1) :: GLExpr d (Mat 3 3 Float)
@@ -202,7 +203,7 @@ glLiftTest = HEGLTest "glLift" $
 
 -- Boolean and bitwise expressions
 
-booleanExprTest = HEGLTest "boolean expression" $
+booleanExprTest = HEGLTest "boolean_expression1" $
     true .|| false .|| true .&& false .|| false .== true
 
 
@@ -257,6 +258,12 @@ refractTest = HEGLTest "refact" $
 
 -- Custom function support via glFunc
 
+glFuncTrivial = HEGLTest "glFunc_non-rec" $
+    let f = glFunc2 $ \x y -> x + y
+        x0 = 1 :: GLExpr d Int
+        x1 = 2 :: GLExpr d Int
+    in f x0 x1 .== 3
+
 
 
 -- uniform, prec, & builtin I/O variables
@@ -269,11 +276,11 @@ refractTest = HEGLTest "refact" $
 
 -- Other miscellaneous tests
 
-vecArithmeticTest = HEGLTest "vector arithmetic" $
+vecArithmeticTest = HEGLTest "vector_arithmetic" $
     2 .* vec4 1 2 3 4 - 3 * vec4 1 2 3 4 .== - (vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)) .&&
     1 .* abs (vec4 1 1 1 1) - abs (-1) .== (vec4 0 0 0 0 :: GLExpr d (Vec 4 Int))
 
-trigIdentTest = HEGLTest "trigonometric identities" $
+trigIdentTest = HEGLTest "trigonometric_identities" $
     let x0 = 0.1234 :: GLExpr d Float
     in almostEqual (pow (sin x0) 2 + pow (cos x0) 2) 1
 

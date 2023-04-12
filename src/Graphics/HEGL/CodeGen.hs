@@ -68,17 +68,16 @@ instance Show GLProgram where
 
 data CGDat = CGDat {
     globalDefs :: Set.Set ExprID, 
-    shaderScopes :: Map.Map ShaderDomain Scope,
-    localScope :: Maybe Scope,
+    scopes :: Map.Map ScopeID Scope,
     funcStack :: [(ExprID, [ShaderParam])],
     program :: GLProgram
 }
 
 initCGDat glObj = CGDat {
     globalDefs = Set.empty,
-    shaderScopes = Map.fromList
-        [(dom, emptyScope) | dom <- shaderDomains],
-    localScope = Nothing,
+    scopes = Map.fromList $
+        [(MainScope dom, emptyScope) | dom <- shaderDomains] ++
+        [(GlobalScope, emptyScope), (LocalScope, emptyScope)],
     funcStack = [],
     program = GLProgram {
         Graphics.HEGL.CodeGen.primitiveMode = 
@@ -92,9 +91,15 @@ initCGDat glObj = CGDat {
     }
 }
 
+data ScopeID =
+    MainScope ShaderDomain |
+    GlobalScope |
+    LocalScope
+    deriving (Eq, Ord)
+
 data Scope = Scope {
-    localDefs :: Set.Set ExprID,
-    localStmts :: [ShaderStmt]
+    scopeExprs :: Set.Set ExprID,
+    scopeStmts :: [ShaderStmt]
 }
 
 emptyScope :: Scope
@@ -109,19 +114,16 @@ genProgram :: GLObj -> GLProgram
 genProgram glObj = evalState gen (initCGDat glObj) where 
     gen :: CGState GLProgram
     gen = do
-        posRef <- traverseGLAst . toGLAst $ position glObj
-        colorRef <- traverseGLAst . toGLAst $ color glObj
-        discardRef <- traverseGLAst . toGLAst $ discardWhen glObj
-
-        vertexScope <- getCurScope VertexDomain
-        fragmentScope <- getCurScope FragmentDomain
-        mapM_ (modifyShader VertexDomain . addStmt) $
-            localStmts vertexScope
-        mapM_ (modifyShader FragmentDomain . addStmt) $
-            localStmts fragmentScope
-
+        posRef <- traverseGLExpr $ position glObj
+        vertStmts <- scopeStmts <$> getScope (MainScope VertexDomain)
+        mapM_ (modifyShader VertexDomain . addStmt) vertStmts
         modifyShader VertexDomain $ addStmt $
             VarAsmt "gl_Position" posRef
+
+        colorRef <- traverseGLExpr $ color glObj
+        discardRef <- traverseGLExpr $ discardWhen glObj
+        fragStmts <- scopeStmts <$> getScope (MainScope FragmentDomain)
+        mapM_ (modifyShader FragmentDomain . addStmt) fragStmts            
         modifyShader FragmentDomain $ addDecl $
             OutDecl "fColor" "vec4"
         modifyShader FragmentDomain $ addStmt $
@@ -134,36 +136,44 @@ genProgram glObj = evalState gen (initCGDat glObj) where
 
 -- Traversal
 
-traverseGLAst :: GLAst -> CGState ShaderExpr
-traverseGLAst (GLAstAtom _ _ (Const x)) = return $ ShaderConst x
-traverseGLAst (GLAstAtom id _ GenVar) = 
+traverseGLExpr :: IsGLDomain d => GLExpr d t -> CGState ShaderExpr
+traverseGLExpr glExpr = let glAst = toGLAst glExpr in
+    traverseGLAst (MainScope $ getShaderType glExpr) glAst
+
+traverseGLAst :: ScopeID -> GLAst -> CGState ShaderExpr
+traverseGLAst _ (GLAstAtom _ _ (Const x)) = 
+    return $ ShaderConst x
+traverseGLAst _ (GLAstAtom id _ GenVar) = 
     return $ ShaderVarRef $ idLabel id
-traverseGLAst (GLAstAtom id ti (Uniform x)) = mkGlobal id $ do
-    addUniformVar $ UniformVar id x
-    modifyShader (shaderType ti) $ addDecl $ 
-        UniformDecl (idLabel id) (exprType ti)
-traverseGLAst (GLAstAtom id ti (Inp xs)) = mkGlobal id $ do
-    addInputVar $ InpVar id xs
-    modifyShader (shaderType ti) $ addDecl $ 
-        InpDecl "" (idLabel id) (exprType ti)
-traverseGLAst (GLAstAtom id ti (Frag interpType x)) = mkGlobal id $ do
-    vertExpr <- traverseGLAst $ toGLAst x
-    modifyShader VertexDomain $ addStmt $
-        VarAsmt (idLabel id) vertExpr
-    modifyShader VertexDomain $ addDecl $
-        OutDecl (idLabel id) (exprType ti)
-    modifyShader FragmentDomain $ addDecl $
-        InpDecl (show interpType) (idLabel id) (exprType ti)
-traverseGLAst (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [cond, ret, 
+traverseGLAst _ (GLAstAtom id ti (Uniform x)) = 
+    ifUndef GlobalScope id $ do
+        addUniformVar $ UniformVar id x
+        modifyShader (shaderType ti) $ addDecl $ 
+            UniformDecl (idLabel id) (exprType ti)
+traverseGLAst _ (GLAstAtom id ti (Inp xs)) = 
+    ifUndef GlobalScope id $ do
+        addInputVar $ InpVar id xs
+        modifyShader (shaderType ti) $ addDecl $ 
+            InpDecl "" (idLabel id) (exprType ti)
+traverseGLAst _ (GLAstAtom id ti (Frag interpType x)) = 
+    ifUndef GlobalScope id $ do
+        vertExpr <- traverseGLAst (MainScope VertexDomain) $ toGLAst x
+        modifyShader VertexDomain $ addStmt $
+            VarAsmt (idLabel id) vertExpr
+        modifyShader VertexDomain $ addDecl $
+            OutDecl (idLabel id) (exprType ti)
+        modifyShader FragmentDomain $ addDecl $
+            InpDecl (show interpType) (idLabel id) (exprType ti)
+traverseGLAst _ (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [cond, ret, 
   GLAstFuncApp _ _ (GLAstFunc fnID' _ _ _) recArgs]) params) | fnID == fnID' =
-    mkFn fnID params $ \parentParamExprs paramExprs -> do
-        ((condExpr, updateStmts, retExpr, retStmts), condStmts) <- newScope (shaderType ti) $ do
-            condExpr <- traverseGLAst cond
-            (_, updateStmts) <- innerScope (shaderType ti) $ do
-                argExprs <- mapM traverseGLAst recArgs
-                mapM_ (\(ShaderParam paramName _, argName) -> mkStmt (shaderType ti) $ 
+    defFn fnID params $ \parentParamExprs paramExprs -> do
+        ((condExpr, updateStmts, retExpr, retStmts), condStmts) <- localScope $ do
+            condExpr <- traverseGLAst LocalScope cond
+            (_, updateStmts) <- innerScope $ do
+                argExprs <- mapM (traverseGLAst LocalScope) recArgs
+                mapM_ (\(ShaderParam paramName _, argName) -> scopedStmt LocalScope $ 
                     VarAsmt paramName argName) $ zip paramExprs argExprs
-            (retExpr, retStmts) <- innerScope (shaderType ti) $ traverseGLAst ret
+            (retExpr, retStmts) <- innerScope $ traverseGLAst LocalScope ret
             return (condExpr, updateStmts, retExpr, retStmts)
         modifyShader (shaderType ti) $ addFn $
             ShaderLoopFn (idLabel fnID) (exprType ti) 
@@ -173,84 +183,66 @@ traverseGLAst (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [cond, ret,
                 condStmts
                 retStmts
                 updateStmts
-traverseGLAst (GLAstFunc fnID ti r params) =
-    mkFn fnID params $ \parentParamExprs paramExprs -> do
-        (rExpr, scopeStmts) <- newScope (shaderType ti) $ traverseGLAst r
+traverseGLAst _ (GLAstFunc fnID ti r params) =
+    defFn fnID params $ \parentParamExprs paramExprs -> do
+        (rExpr, scopeStmts) <- localScope $ traverseGLAst LocalScope r
         modifyShader (shaderType ti) $ addFn $
             ShaderFn (idLabel fnID) (exprType ti)
                 (parentParamExprs ++ paramExprs)
                 scopeStmts 
                 rExpr
-traverseGLAst (GLAstFuncApp callID ti fn args) = 
-    mkLocal (shaderType ti) callID $ do
+traverseGLAst scopeID (GLAstFuncApp callID ti fn args) = 
+    ifUndef scopeID callID $ do
         parentArgExprs <- map (\(ShaderParam name _) -> ShaderVarRef name) <$> 
             concatMap snd <$> gets funcStack
-        argExprs <- mapM traverseGLAst args
-        _ <- traverseGLAst fn
-        mkStmt (shaderType ti) $ VarDeclAsmt (idLabel callID) (exprType ti)
+        argExprs <- mapM (traverseGLAst LocalScope) args
+        _ <- traverseGLAst LocalScope fn
+        scopedStmt scopeID $ VarDeclAsmt (idLabel callID) (exprType ti)
             (ShaderExpr (idLabel $ getID fn) (parentArgExprs ++ argExprs))
-traverseGLAst (GLAstExpr id ti exprName subnodes) = 
-    mkLocal (shaderType ti) id $ do
-        subexprs <- mapM traverseGLAst subnodes
-        mkStmt (shaderType ti) $ VarDeclAsmt (idLabel id) (exprType ti) $
+traverseGLAst scopeID (GLAstExpr id ti exprName subnodes) =
+    ifUndef scopeID id $ do
+        subexprs <- mapM (traverseGLAst scopeID) subnodes
+        scopedStmt scopeID $ VarDeclAsmt (idLabel id) (exprType ti) $
             ShaderExpr exprName subexprs
 
 -- Scope management
 
-innerScope :: ShaderDomain -> CGState a -> CGState (a, [ShaderStmt])
-innerScope dom action = do
-    scopeBefore <- getCurScope dom
-    modify $ \s -> s { localScope = Just $ Scope (localDefs scopeBefore) [] }
-    res <- action
-    scopeAfter <- getCurScope dom
-    modifyCurScope dom $ const scopeBefore
-    return (res, localStmts scopeAfter)
-
-
-newScope :: ShaderDomain -> CGState a -> CGState (a, [ShaderStmt])
-newScope dom action = innerScope dom $ do
-    modifyCurScope dom $ const emptyScope
+localScope :: CGState a -> CGState (a, [ShaderStmt])
+localScope action = innerScope $ do
+    modifyScope LocalScope $ const emptyScope
     action
 
-getCurScope :: ShaderDomain -> CGState Scope
-getCurScope dom = do
-    ls <- gets localScope
-    case ls of
-        Just ls -> return ls
-        Nothing -> do
-            scopes <- gets shaderScopes
-            return $ Map.findWithDefault emptyScope dom scopes
+innerScope :: CGState a -> CGState (a, [ShaderStmt])
+innerScope action = do
+    scopeBefore <- getScope LocalScope
+    res <- action
+    scopeAfter <- getScope LocalScope
+    modifyScope LocalScope $ const scopeBefore
+    return (res, scopeStmts scopeAfter)
 
-modifyCurScope :: ShaderDomain -> (Scope -> Scope) -> CGState ()
-modifyCurScope dom f = do
-    ls <- gets localScope
-    case ls of
-        Just ls -> modify $ \s -> s { localScope = Just $ f ls }
-        Nothing ->
-            modify $ \s -> s { shaderScopes = Map.adjust f dom $ shaderScopes s }
+getScope :: ScopeID -> CGState Scope
+getScope scopeID = do
+    scopes <- gets scopes
+    return $ Map.findWithDefault emptyScope scopeID scopes
+
+modifyScope :: ScopeID -> (Scope -> Scope) -> CGState ()
+modifyScope scopeID f = do
+    modify $ \s -> s { scopes = Map.adjust f scopeID $ scopes s }
 
 
 -- Shader expression construction
 
-mkLocal :: ShaderDomain -> ExprID -> CGState () -> CGState ShaderExpr
-mkLocal dom id initFn = do
-    locals <- localDefs <$> getCurScope dom
+ifUndef :: ScopeID -> ExprID -> CGState () -> CGState ShaderExpr
+ifUndef scopeID id initFn = do
+    locals <- scopeExprs <$> getScope scopeID
     unless (id `Set.member` locals) $ do 
-        modifyCurScope dom $ \scope -> 
-            scope { localDefs = Set.insert id $ localDefs scope }
+        modifyScope scopeID $ \scope -> 
+            scope { scopeExprs = Set.insert id $ scopeExprs scope }
         initFn
     return $ ShaderVarRef $ idLabel id
 
-mkGlobal :: ExprID -> CGState () -> CGState ShaderExpr
-mkGlobal id initFn = do
-    globals <- gets globalDefs
-    unless (id `Set.member` globals) $ do
-        modify $ \s -> s { globalDefs = Set.insert id $ globalDefs s }
-        initFn
-    return $ ShaderVarRef $ idLabel id
-
-mkFn :: ExprID -> [GLAst] -> ([ShaderParam] -> [ShaderParam] -> CGState ()) -> CGState ShaderExpr
-mkFn id params initFn = do
+defFn :: ExprID -> [GLAst] -> ([ShaderParam] -> [ShaderParam] -> CGState ()) -> CGState ShaderExpr
+defFn id params initFn = do
     fns <- gets funcStack
     if id `List.elem` map fst fns then
         error "Unsupported recursive function call"
@@ -260,13 +252,13 @@ mkFn id params initFn = do
                 ShaderParam (idLabel id) (exprType ti)
             paramExprs = map glastToParamExpr params
         modify $ \s -> s { funcStack = (id, paramExprs) : funcStack s }
-        res <- mkGlobal id (initFn parentParamExprs paramExprs)
+        res <- ifUndef GlobalScope id (initFn parentParamExprs paramExprs)
         modify $ \s -> s { funcStack = tail $ funcStack s }
         return res
 
-mkStmt :: ShaderDomain -> ShaderStmt -> CGState ()
-mkStmt dom stmt = modifyCurScope dom $ \scope -> 
-    scope { localStmts = localStmts scope ++ [stmt] }
+scopedStmt :: ScopeID -> ShaderStmt -> CGState ()
+scopedStmt scopeID stmt = modifyScope scopeID $ \scope -> 
+    scope { scopeStmts = scopeStmts scope ++ [stmt] }
 
 
 -- Shader modification

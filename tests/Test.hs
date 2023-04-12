@@ -258,12 +258,17 @@ refractTest = HEGLTest "refact" $
 
 -- Custom function support via glFunc
 
-glFuncTrivial = HEGLTest "glFunc_non-rec" $
+glFuncTrivial = HEGLTest "glFunc_trivial" $
     let f = glFunc2 $ \x y -> x + y
         x0 = 1 :: GLExpr d Int
         x1 = 2 :: GLExpr d Int
     in f x0 x1 .== 3
 
+glFuncNested = HEGLTest "glFunc_nested" $
+    undefined
+
+glFuncRec = HEGLTest "glFunc_rec" $
+    undefined
 
 
 -- uniform, prec, & builtin I/O variables

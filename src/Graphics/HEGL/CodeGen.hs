@@ -115,17 +115,18 @@ genProgram glObj = evalState gen (initCGDat glObj) where
     gen :: CGState GLProgram
     gen = do
         posRef <- traverseGLExpr $ position glObj
+        colorRef <- traverseGLExpr $ color glObj
+        discardRef <- traverseGLExpr $ discardWhen glObj
+
         vertStmts <- scopeStmts <$> getScope (MainScope VertexDomain)
         mapM_ (modifyShader VertexDomain . addStmt) vertStmts
         modifyShader VertexDomain $ addStmt $
             VarAsmt "gl_Position" posRef
 
-        colorRef <- traverseGLExpr $ color glObj
-        discardRef <- traverseGLExpr $ discardWhen glObj
         fragStmts <- scopeStmts <$> getScope (MainScope FragmentDomain)
         mapM_ (modifyShader FragmentDomain . addStmt) fragStmts            
         modifyShader FragmentDomain $ addDecl $
-            OutDecl "fColor" "vec4"
+            OutDecl "" "fColor" "vec4"
         modifyShader FragmentDomain $ addStmt $
             VarAsmt "fColor" colorRef
         modifyShader FragmentDomain $ addStmt $
@@ -158,10 +159,10 @@ traverseGLAst _ (GLAstAtom id ti (Inp xs)) =
 traverseGLAst _ (GLAstAtom id ti (Frag interpType x)) = 
     ifUndef GlobalScope id $ do
         vertExpr <- traverseGLAst (MainScope VertexDomain) $ toGLAst x
-        modifyShader VertexDomain $ addStmt $
+        scopedStmt (MainScope VertexDomain) $
             VarAsmt (idLabel id) vertExpr
         modifyShader VertexDomain $ addDecl $
-            OutDecl (idLabel id) (exprType ti)
+            OutDecl (show interpType) (idLabel id) (exprType ti)
         modifyShader FragmentDomain $ addDecl $
             InpDecl (show interpType) (idLabel id) (exprType ti)
 traverseGLAst _ (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [cond, ret, 

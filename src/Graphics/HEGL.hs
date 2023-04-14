@@ -50,8 +50,8 @@ module Graphics.HEGL (
     prec,
     vert,
     frag,
+    noperspFrag,
     flatFrag,
-    noperpFrag,
     -- * Vector, matrix, and array constructors
     vec2, vec3, vec4,
     mat2, mat3, mat4,
@@ -290,11 +290,11 @@ vert inp = mkExpr GLAtom $ Inp inp
 frag :: GLSupportsSmoothInterp t => VertExpr t -> FragExpr t
 frag x = mkExpr GLAtom $ Frag Smooth x
 
+noperspFrag :: GLSupportsSmoothInterp t => GLInputType t => VertExpr t -> FragExpr t
+noperspFrag x = mkExpr GLAtom $ Frag NoPerspective x
+
 flatFrag :: GLInputType t => VertExpr t -> FragExpr t
 flatFrag x = mkExpr GLAtom $ Frag Flat x
-
-noperpFrag :: GLInputType t => VertExpr t -> FragExpr t
-noperpFrag x = mkExpr GLAtom $ Frag NoPerspective x
 
 
 -- * Vector, matrix, and array constructors

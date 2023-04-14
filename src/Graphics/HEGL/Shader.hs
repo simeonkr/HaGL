@@ -30,8 +30,8 @@ data ShaderParam =
 
 data ShaderDecl = 
     UniformDecl VarName ExprType |
-    InpDecl InpQual VarName ExprType |
-    OutDecl VarName ExprType
+    InpDecl TypeQual VarName ExprType |
+    OutDecl TypeQual VarName ExprType
 
 data ShaderStmt = 
     VarAsmt VarName ShaderExpr |
@@ -44,7 +44,7 @@ data ShaderExpr where
     ShaderVarRef :: VarName -> ShaderExpr
     ShaderExpr :: String -> [ShaderExpr] -> ShaderExpr
 
-type InpQual = String
+type TypeQual = String
 type ExprType = String
 type FnName = String
 type VarName = String
@@ -86,8 +86,8 @@ instance Show ShaderDecl where
         "uniform " ++ exprType ++ " " ++ varName ++ ";"
     show (InpDecl qual varName exprType) = 
         endWith " " qual ++ "in " ++ exprType ++ " " ++ varName ++ ";"
-    show (OutDecl varName exprType) = 
-        "out " ++ exprType ++ " " ++ varName ++ ";"
+    show (OutDecl qual varName exprType) = 
+        endWith " " qual ++ "out " ++ exprType ++ " " ++ varName ++ ";"
 
 instance Show ShaderStmt where
     show (VarAsmt varName expr) = 

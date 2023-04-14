@@ -140,7 +140,7 @@ outputStatsAndCapture runMode ioStateRef = do
         GlutCaptureLatest file -> 
             when (dt > 0.1) (captureToFile file)
         GlutCaptureAndExit file ->
-            when (totUpdates ioState > 12) $ do
+            when (totUpdates ioState > 30) $ do
                 captureToFile file
                 leaveMainLoop
 

@@ -1,4 +1,4 @@
-import Prelude hiding (all, const, sin, cos, sqrt, length)
+import Prelude hiding (all, min, max, sin, cos, sqrt, length)
 
 import Test.HUnit
 import Control.Monad (when)
@@ -14,30 +14,30 @@ import Graphics.HEGL.Internal (dumpGlsl, hostEval)
 
 -- Test setup
 
-data HEGLTest d where
-    HEGLTest :: String -> GLExpr d Bool -> HEGLTest d
+data ExprTest d where
+    ExprTest :: String -> GLExpr d Bool -> ExprTest d
+
+data ObjTest =
+    ObjTest String GLObj
 
 -- verify that 'expr' evaluates to True
-mkHostTest :: HEGLTest HostDomain -> Test
-mkHostTest (HEGLTest label expr) = 
+mkHostTest :: ExprTest HostDomain -> Test
+mkHostTest (ExprTest label expr) = 
     TestLabel (label ++ "_host") $ TestCase $ do
         let ioev = error "Tests do not support evaluation of I/O GLExprs"
         res <- hostEval ioev expr
         assertBool ("Failed to evaluate to true on host: " ++ label) res
 
 -- verify that setting color to 'expr' produces a white image
-mkShaderTest :: HEGLTest FragmentDomain -> Test
-mkShaderTest (HEGLTest label expr) = 
+mkShaderTest :: ExprTest FragmentDomain -> Test
+mkShaderTest (ExprTest label expr) = 
+    mkObjTest $ ObjTest label $ objFromImage $ Prelude.const $ cast expr .* 1
+
+-- verify that the given object produces a white image
+mkObjTest :: ObjTest -> Test
+mkObjTest (ObjTest label obj) = 
     TestLabel (label ++ "_shader") $ TestCase $ do
-        let quadPos = vert 
-                [(vec2 (-1) (-1)), 
-                (vec2 (-1) 1), 
-                (vec2 1 (-1)), 
-                (vec2 1 1)]
-            vPos = quadPos $- vec2 0 1
-            color = cast expr .* 1
-            obj = triangleStrip { position = vPos, color = color } 
-            astDump = show expr
+        let astDump = show (position obj) ++ "\n" ++ show (color obj)
             glsl = dumpGlsl obj
         writeFile ("dist/test/test_" ++ label ++ ".dump") astDump
         writeFile ("dist/test/test_" ++ label ++ ".glsl") glsl
@@ -49,10 +49,21 @@ mkShaderTest (HEGLTest label expr) =
         drawGlutCustom (defaultGlutOptions { 
             runMode = GlutCaptureAndExit captureFile }) obj
         dat <- BS.readFile captureFile
-        let success = BS.all (== 0xff) . BS.drop (BS.length dat - 16) $ dat
+        let success = BS.all (== 0xff) . BS.drop 16 $ dat
         when success $ removeFile captureFile
         assertBool ("Failed to obtain a true value in shader: " ++ label) success
 
+objFromImage :: (FragExpr (Vec 2 Float) -> FragExpr (Vec 3 Float)) -> GLObj
+objFromImage image = obj where
+    quadPos = vert 
+        [vec2 (-1) (-1), 
+         vec2 (-1) 1, 
+         vec2 1 (-1), 
+         vec2 1 1]
+    pos = quadPos $- vec2 0 1
+    fPos = frag quadPos
+    color = app (image fPos) 1
+    obj = triangleStrip { position = pos, color = color }
 
 -- TODO: make these definitions part of GLType
 almostEqual x y = abs (x - y) .<= 1e-5
@@ -73,7 +84,7 @@ almostMatPx4Equal m1 m2 =
 
 -- Tests
 
-genericTests :: [HEGLTest d]
+genericTests :: [ExprTest d]
 genericTests = [
         trivialTest,
         vec2Test,
@@ -97,23 +108,29 @@ genericTests = [
         trigIdentTest
     ]
 
-hostTests :: [HEGLTest HostDomain]
+hostTests :: [ExprTest HostDomain]
 hostTests = [
 
     ]
 
-shaderTests :: [HEGLTest d]
+shaderTests :: [ExprTest FragmentDomain]
 shaderTests = [
+        interpTest
+    ]
 
+objTests :: [ObjTest]
+objTests = [
+        trivialImageTest,
+        passAroundTest
     ]
 
 
-trivialTest = HEGLTest "trivial" true
+trivialTest = ExprTest "trivial" true
 
 
 -- Vector and matrix (de-)construction and indexing
 
-vec2Test = HEGLTest "vec2" $
+vec2Test = ExprTest "vec2" $
     let v = vec2 1 2 :: GLExpr d (Vec 2 Int)
         (decon -> (x, y)) = v
     in v .== 1 + vec2 0 1 .&&
@@ -124,7 +141,7 @@ vec2Test = HEGLTest "vec2" $
        v .== (yx_ . yx_) v .&&
        v ./= (yx_ . xy_) v
 
-vec3Test = HEGLTest "vec3" $
+vec3Test = ExprTest "vec3" $
     let v = vec3 1 2 3 :: GLExpr d (Vec 3 Int)
         (decon -> (x, y, z)) = v
     in v .== pre 1 (vec2 2 3) .&&
@@ -139,7 +156,7 @@ vec3Test = HEGLTest "vec3" $
        v .== (zyx_ . zyx_) v .&&
        v ./= (zyx_ . xyz_) v
 
-vec4Test = HEGLTest "vec4" $
+vec4Test = ExprTest "vec4" $
     let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
         (decon -> (x, y, z, w)) = v
     in v .== vec2 1 2 $- vec2 3 4 .&&
@@ -156,15 +173,15 @@ vec4Test = HEGLTest "vec4" $
        v .== pre x ((zyx_ . wzy_) v) .&&
        v .== app ((xyz_ . xyz_) v) w
 
-mat2Test = HEGLTest "mat2" $
+mat2Test = ExprTest "mat2" $
     let m = mat2 (vec2 1 3) (vec2 2 4) :: GLExpr d (Mat 2 2 Float)
     in almostMatPx2Equal m (mat2 (col0 m) (col1 m))
 
 
 -- Arrays
 
-arrayTest = HEGLTest "array" $
-    let a1 = uniform $ array [const (2 * i) | i <- [0..999]] :: GLExpr d [Int]
+arrayTest = ExprTest "array" $
+    let a1 = uniform $ array [Graphics.HEGL.const (2 * i) | i <- [0..999]] :: GLExpr d [Int]
         a2 = uniform $ array [vec2 1 1, vec2 2 2] :: GLExpr d [Vec 2 Int]
     in a1 .! 0 .== 0 .&& a1 .! 10 .== 2 * 10 .&&
        a1 .! 999 .== 2 * 999 .&&
@@ -174,7 +191,7 @@ arrayTest = HEGLTest "array" $
 
 -- Lifts from raw types
 
-rawConstrTest = HEGLTest "raw_constr" $
+rawConstrTest = ExprTest "raw_constr" $
     let m0 = mat3 (vec3 1 4 7) (vec3 2 5 8) (vec3 3 6 9)
         m1 = uniform $ glLift0 $ fromList [1, 2, 3, 4, 5, 6, 7, 8, 9] :: GLExpr d (Mat 3 3 Float)
         m2 = uniform $ glLift0 $ fromMapping (\(i, j) -> fromIntegral $ 3 * i + j + 1) :: GLExpr d (Mat 3 3 Float)
@@ -184,7 +201,7 @@ rawConstrTest = HEGLTest "raw_constr" $
     in almostMatPx3Equal m0 m1 .&& almostMatPx3Equal m0 m2 .&& almostMatPx3Equal m1 m2 .&& 
        a0 .== a1 .&& a0 ./= a2
 
-glLiftTest = HEGLTest "glLift" $
+glLiftTest = ExprTest "glLift" $
     let f1 = glLift1 $ \x -> x + 1
         x1 = 1 :: GLExpr HostDomain Int
         f2 = glLift1 $ \x -> [x, x]
@@ -203,7 +220,7 @@ glLiftTest = HEGLTest "glLift" $
 
 -- Boolean and bitwise expressions
 
-booleanExprTest = HEGLTest "boolean_expression1" $
+booleanExprTest = ExprTest "boolean_expression1" $
     true .|| false .|| true .&& false .|| false .== true
 
 
@@ -213,17 +230,17 @@ booleanExprTest = HEGLTest "boolean_expression1" $
 
 -- Geometric functions
 
-lengthTest = HEGLTest "length" $
+lengthTest = ExprTest "length" $
     almostEqual (length (vec3 2 (-3) 6 :: GLExpr d (Vec 3 Float))) 7 .&&
     let v@(decon -> (x, y, z, w)) = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
     in almostEqual (length v) (sqrt (x * x + y * y + z * z + w * w))
 
-distanceTest = HEGLTest "distance" $
+distanceTest = ExprTest "distance" $
     let x = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
         y = vec4 5 6 7 8 :: GLExpr d (Vec 4 Float)
     in almostEqual (distance x y) (length (x - y))
 
-dotTest = HEGLTest "dot" $
+dotTest = ExprTest "dot" $
     let theta = 0.1234 :: GLExpr d Float
         x = vec2 (cos theta) (sin theta) :: GLExpr d (Vec 2 Float)
         y = vec2 (cos $ theta + (pi / 2)) (sin $ theta + (pi / 2))
@@ -231,20 +248,20 @@ dotTest = HEGLTest "dot" $
     in almostEqual (dot x y) 0 .&&
        almostEqual (dot z z) (length z * length z)
 
-crossTest = HEGLTest "cross" $
+crossTest = ExprTest "cross" $
     true
 
-normalizeTest = HEGLTest "normalize" $
+normalizeTest = ExprTest "normalize" $
     let x = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
     in almostVecEqual (normalize x) ((1 / length x) .* x)
 
-faceforwardTest = HEGLTest "faceforward" $
+faceforwardTest = ExprTest "faceforward" $
     true
 
-reflectTest = HEGLTest "reflect" $
+reflectTest = ExprTest "reflect" $
     true
 
-refractTest = HEGLTest "refact" $
+refractTest = ExprTest "refract" $
     true
 
 
@@ -258,16 +275,16 @@ refractTest = HEGLTest "refact" $
 
 -- Custom function support via glFunc
 
-glFuncTrivial = HEGLTest "glFunc_trivial" $
+glFuncTrivial = ExprTest "glFunc_trivial" $
     let f = glFunc2 $ \x y -> x + y
         x0 = 1 :: GLExpr d Int
         x1 = 2 :: GLExpr d Int
     in f x0 x1 .== 3
 
-glFuncNested = HEGLTest "glFunc_nested" $
+glFuncNested = ExprTest "glFunc_nested" $
     undefined
 
-glFuncRec = HEGLTest "glFunc_rec" $
+glFuncRec = ExprTest "glFunc_rec" $
     undefined
 
 
@@ -275,17 +292,59 @@ glFuncRec = HEGLTest "glFunc_rec" $
 
 
 
--- Shader-specific tests: vert, frag
+-- Shader-specific tests
 
+trivialImageTest = ObjTest "trivial_image" $ objFromImage $ \pos ->
+    max (app pos 1) 1
 
+passAroundTest = ObjTest "pass_around" obj where
+    ppos = vert 
+        [vec2 (-1) (-1), 
+         vec2 (-1) 1, 
+         vec2 1 (-1), 
+         vec2 1 1]
+    npos = vert
+        [vec2 1 1, 
+         vec2 1 (-1), 
+         vec2 (-1) 1, 
+         vec2 (-1) (-1)]
+    vpos = ppos $- vec2 0 1
+    fppos = frag ppos
+    fppos' = frag (-npos)
+    fppos'' = -(frag npos)
+    fnpos = frag npos
+    fnpos' = frag (-ppos)
+    fnpos'' = -(frag ppos)
+    color = (cast $ 
+        fppos   + fnpos   .== 0 .&& 
+        fppos   + fnpos'  .== 0 .&&
+        fppos   + fnpos'' .== 0 .&&
+        fppos'  + fnpos   .== 0 .&& 
+        fppos'  + fnpos'  .== 0 .&&
+        fppos'  + fnpos'' .== 0 .&&
+        fppos'' + fnpos   .== 0 .&& 
+        fppos'' + fnpos'  .== 0 .&&
+        fppos'' + fnpos'' .== 0) .* 1
+    obj = triangleStrip { position = vpos, color = color }
+
+interpTest = ExprTest "basic_interpolation_properties" $
+    let x = vert [1, 2, 3, 4] :: VertExpr Float
+        x' = vert $ map (\x -> 2 * x + 1) [1, 2, 3, 4]
+        y = frag x
+        z = 2 * noperspFrag x + 1
+        z' = noperspFrag x'
+        w = flatFrag x
+    in y .>=1 .&& y .<= 4 .&& 
+       almostEqual z z' .&& 
+       (w .== 1 .|| w .== 2 .|| w .== 3 .|| w .== 4)
 
 -- Other miscellaneous tests
 
-vecArithmeticTest = HEGLTest "vector_arithmetic" $
+vecArithmeticTest = ExprTest "vector_arithmetic" $
     2 .* vec4 1 2 3 4 - 3 * vec4 1 2 3 4 .== - (vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)) .&&
     1 .* abs (vec4 1 1 1 1) - abs (-1) .== (vec4 0 0 0 0 :: GLExpr d (Vec 4 Int))
 
-trigIdentTest = HEGLTest "trigonometric_identities" $
+trigIdentTest = ExprTest "trigonometric_identities" $
     let x0 = 0.1234 :: GLExpr d Float
     in almostEqual (pow (sin x0) 2 + pow (cos x0) 2) 1
 
@@ -301,3 +360,4 @@ main = do
     runTests $ TestList $ map mkHostTest hostTests
     runTests $ TestList $ map mkShaderTest genericTests
     runTests $ TestList $ map mkShaderTest shaderTests
+    runTests $ TestList $ map mkObjTest objTests

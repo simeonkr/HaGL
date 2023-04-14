@@ -28,7 +28,7 @@ instance Show ShaderDomain where
     show FragmentDomain = "frag"
 
 -- set to 0 for no limit
-maxDepth = 8
+maxDepth = 16
 
 data PrintState = PrintState {
     depth :: Int,
@@ -47,12 +47,16 @@ printGLAst (GLAstAtom id ty (Const _)) =
     printNode id ty "const"
 printGLAst (GLAstAtom id ty GenVar) =
     printNode id ty "genVar"
-printGLAst (GLAstAtom id ty (Uniform _)) =
+printGLAst (GLAstAtom id ty (Uniform x)) = do
     printNode id ty "uniform"
+    {-ifNotTraversed id $ do
+        indented $ printGLAst $ toGLAst x-}
 printGLAst (GLAstAtom id ty (Inp _)) =
     printNode id ty "inp"
-printGLAst (GLAstAtom id ty (Frag _ _)) =
+printGLAst (GLAstAtom id ty (Frag _ x)) = do
     printNode id ty "frag"
+    ifNotTraversed id $ do
+        indented $ printGLAst $ toGLAst x
 printGLAst (GLAstAtom id ty (IOFloat _)) =
     printNode id ty "ioFloat"
 printGLAst (GLAstAtom id ty (IODouble _)) =
@@ -63,8 +67,11 @@ printGLAst (GLAstAtom id ty (IOUInt _)) =
     printNode id ty "ioUInt"
 printGLAst (GLAstAtom id ty (IOBool _)) =
     printNode id ty "ioBool"
-printGLAst (GLAstAtom id ty (IOPrec _ _)) =
+printGLAst (GLAstAtom id ty (IOPrec x0 x)) = do
     printNode id ty "ioPrec"
+    {-ifNotTraversed id $ do
+        indented $ printGLAst $ toGLAst x0
+        indented $ printGLAst $ toGLAst x-}
 printGLAst (GLAstAtom id ty _) =
     printNode id ty "glLift"
 printGLAst (GLAstFunc id ty r params) = do
@@ -98,7 +105,7 @@ printLine = printStr . (++ "\n")
 indented :: Printer -> Printer
 indented printer = do
     d <- gets depth
-    if maxDepth > 0 && d > maxDepth then return () else do
+    if maxDepth > 0 && d > maxDepth then printLine "  ..." else do
         modify (\ps -> ps { depth = depth ps + 1 })
         printer
         modify (\ps -> ps { depth = depth ps - 1 })
@@ -107,7 +114,7 @@ ifNotTraversed :: ExprID -> Printer -> Printer
 ifNotTraversed id printAction = do
     ids <- gets traversedIds
     if id `elem` ids then
-        printLine "..."
+        printLine "  ..."
     else do
         modify (\ps -> ps { traversedIds = Set.insert id (traversedIds ps) })
         printAction

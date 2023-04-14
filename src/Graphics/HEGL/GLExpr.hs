@@ -330,12 +330,12 @@ shaderDomains = [VertexDomain, FragmentDomain]
 
 -- * Internal auxillary types
 
-data InterpolationType = Smooth | Flat | NoPerspective
+data InterpolationType = Smooth | NoPerspective | Flat
 
 instance Show InterpolationType where
     show Smooth = "smooth"
-    show Flat = "flat"
     show NoPerspective = "noperspective"
+    show Flat = "flat"
 
 type IOVarID = String
 

@@ -47,14 +47,15 @@ instance HasExprID GLAst where
 
 
 getGLTypeInfo e = GLTypeInfo (getShaderType e) (showGlslType e)
-mkGLFn funcID r params args = 
-    GLAstFuncApp (combineIDs $ funcID : map getID args) (getGLTypeInfo r) func args where
+mkGLFn funcID callID r params args = 
+    GLAstFuncApp callID (getGLTypeInfo r) func args where
         func = GLAstFunc funcID (getGLTypeInfo r) (toGLAst r) params
 mkGLExpr id e = GLAstExpr id (getGLTypeInfo e)
 
 showSizedArrayType e n = takeWhile (/= ']') (showGlslType e) ++ show n ++ "]"
 showPotentialArrayType e arr = 
     if arrayLen arr == 1 then showGlslType e else showSizedArrayType e (arrayLen arr)
+-- TODO: keep this as an assertion, but enforce the constraint at the type level
 vd = error "GLLift*: Function may only return a fixed-size list"
 
 
@@ -81,12 +82,12 @@ toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift6 f _ _ _ _ _ _)))) = GLAstAtom
 
 toGLAst e@(GLAtom id x) = GLAstAtom id (getGLTypeInfo e) x
 
-toGLAst (GLFunc id (GLFunc1 f x x0)) = mkGLFn id (f x) [toGLAst x] [toGLAst x0]
-toGLAst (GLFunc id (GLFunc2 f x y x0 y0)) = mkGLFn id (f x y) [toGLAst x, toGLAst y] [toGLAst x0, toGLAst y0]
-toGLAst (GLFunc id (GLFunc3 f x y z x0 y0 z0)) = mkGLFn id (f x y z) [toGLAst x, toGLAst y, toGLAst z] [toGLAst x0, toGLAst y0, toGLAst z0]
-toGLAst (GLFunc id (GLFunc4 f x y z w x0 y0 z0 w0)) = mkGLFn id (f x y z w) [toGLAst x, toGLAst y, toGLAst z, toGLAst w] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0]
-toGLAst (GLFunc id (GLFunc5 f x y z w u x0 y0 z0 w0 u0)) = mkGLFn id (f x y z w u) [toGLAst x, toGLAst y, toGLAst z, toGLAst w, toGLAst u] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0, toGLAst u0]
-toGLAst (GLFunc id (GLFunc6 f x y z w u v x0 y0 z0 w0 u0 v0)) = mkGLFn id (f x y z w u v) [toGLAst x, toGLAst y, toGLAst z, toGLAst u, toGLAst v] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0, toGLAst u0, toGLAst v0]
+toGLAst e@(GLFunc fnID (GLFunc1 f x x0)) = mkGLFn fnID (getID e) (f x) [toGLAst x] [toGLAst x0]
+toGLAst e@(GLFunc fnID (GLFunc2 f x y x0 y0)) = mkGLFn fnID (getID e) (f x y) [toGLAst x, toGLAst y] [toGLAst x0, toGLAst y0]
+toGLAst e@(GLFunc fnID (GLFunc3 f x y z x0 y0 z0)) = mkGLFn fnID (getID e) (f x y z) [toGLAst x, toGLAst y, toGLAst z] [toGLAst x0, toGLAst y0, toGLAst z0]
+toGLAst e@(GLFunc fnID (GLFunc4 f x y z w x0 y0 z0 w0)) = mkGLFn fnID (getID e) (f x y z w) [toGLAst x, toGLAst y, toGLAst z, toGLAst w] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0]
+toGLAst e@(GLFunc fnID (GLFunc5 f x y z w u x0 y0 z0 w0 u0)) = mkGLFn fnID (getID e) (f x y z w u) [toGLAst x, toGLAst y, toGLAst z, toGLAst w, toGLAst u] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0, toGLAst u0]
+toGLAst e@(GLFunc fnID (GLFunc6 f x y z w u v x0 y0 z0 w0 u0 v0)) = mkGLFn fnID (getID e) (f x y z w u v) [toGLAst x, toGLAst y, toGLAst z, toGLAst u, toGLAst v] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0, toGLAst u0, toGLAst v0]
 
 toGLAst e@(GLGenExpr id (GLVec2 x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (GLVec3 x y z)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y, toGLAst z]

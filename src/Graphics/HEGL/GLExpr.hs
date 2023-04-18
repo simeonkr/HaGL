@@ -376,8 +376,18 @@ instance Show (GLCol m) where
 
 instance HasExprID (GLExpr d t) where
     getID (GLAtom id _) = id
-    -- TODO: compute id on a per-call basis like in GLAst.hs
-    getID (GLFunc id _) = id
+    getID (GLFunc fnID (GLFunc1 _ _ x0)) = 
+        combineIDs [fnID, getID x0]
+    getID (GLFunc fnID (GLFunc2 _ _ _ x0 y0)) = 
+        combineIDs [fnID, getID x0, getID y0]
+    getID (GLFunc fnID (GLFunc3 _ _ _ _ x0 y0 z0)) = 
+        combineIDs [fnID, getID x0, getID y0, getID z0]
+    getID (GLFunc fnID (GLFunc4 _ _ _ _ _ x0 y0 z0 w0)) = 
+        combineIDs [fnID, getID x0, getID y0, getID z0, getID w0]
+    getID (GLFunc fnID (GLFunc5 _ _ _ _ _ _ x0 y0 z0 w0 u0)) = 
+        combineIDs [fnID, getID x0, getID y0, getID z0, getID w0, getID u0]
+    getID (GLFunc fnID (GLFunc6 _ _ _ _ _ _ _ x0 y0 z0 w0 u0 v0)) = 
+        combineIDs [fnID, getID x0, getID y0, getID z0, getID w0, getID u0, getID v0]
     getID (GLGenExpr id _) = id
 
 instance DepMap.GenHashable (GLExpr d) where

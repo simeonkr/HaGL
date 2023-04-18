@@ -247,6 +247,8 @@ defFn :: ExprID -> [GLAst] -> ([ShaderParam] -> [ShaderParam] -> CGState ()) -> 
 defFn id params initFn = do
     fns <- gets funcStack
     if id `List.elem` map fst fns then
+        -- TODO: 'error' should not be for user errors!
+        -- throw an exception instead
         error "Unsupported recursive function call"
     else do
         let parentParamExprs = concatMap snd fns

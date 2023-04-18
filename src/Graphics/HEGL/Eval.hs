@@ -39,10 +39,6 @@ data EvalState d a = EvalState {
 }
 
 cachedEval :: Monad a => GLExpr d t -> StateT (EvalState d a) a t
--- don't cache function calls, for now
-cachedEval expr@(GLFunc _ _) = do
-    evfn <- gets evalfn
-    evfn expr
 cachedEval expr = do
     evfn <- gets evalfn
     c <- gets cache
@@ -178,8 +174,9 @@ eval (GLGenExpr _ (OpXor x y)) = withEv2 x y $ \x y ->
     return $ x `xor` y
 eval (GLGenExpr _ (OpNot x)) = withEv1 x $ \x -> 
     return $ complement x
-eval (GLGenExpr _ (OpCond x y z)) = withEv3 x y z $ \x y z -> 
-    return $ if x then y else z
+eval (GLGenExpr _ (OpCond x y z)) =
+    -- this is the only case where we have to be lazy
+    eval x >>= \x -> if x then eval y else eval z
 eval (GLGenExpr _ (OpCompl x)) = withEv1 x $ \x ->
     return $ glMap complement x
 eval (GLGenExpr _ (OpLshift x y)) = withEv2 x y $ \x y -> 

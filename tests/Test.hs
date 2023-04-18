@@ -12,9 +12,6 @@ import Graphics.HEGL
 import Graphics.HEGL.Internal (dumpGlsl, hostEval)
 
 
--- TODO: write a test for each possible error that may occur
-
-
 -- Test setup
 
 data ExprTest d where
@@ -318,7 +315,7 @@ glFuncFact = ExprTest "glFunc_factorial" $
     let fact = glFunc1 $ \n -> fact' n 1
         fact' :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         fact' = glFunc2 $ \n a -> cond (n .== 0) a (fact' (n - 1) (a * n))
-    in fact 5 .== 120
+    in fact' 5 1 .== 120
 
 -- unsupported
 {-glFuncFactFlipped = ExprTest "glFunc_factorial_flipped" $ 

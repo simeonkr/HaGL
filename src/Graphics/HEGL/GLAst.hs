@@ -47,9 +47,8 @@ instance HasExprID GLAst where
 
 
 getGLTypeInfo e = GLTypeInfo (getShaderType e) (showGlslType e)
--- TODO: double check if GLAstFuncApp id is generated sensibly
 mkGLFn funcID r params args = 
-    GLAstFuncApp (genID (r, args)) (getGLTypeInfo r) func args where
+    GLAstFuncApp (combineIDs $ funcID : map getID args) (getGLTypeInfo r) func args where
         func = GLAstFunc funcID (getGLTypeInfo r) (toGLAst r) params
 mkGLExpr id e = GLAstExpr id (getGLTypeInfo e)
 

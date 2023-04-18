@@ -376,6 +376,7 @@ instance Show (GLCol m) where
 
 instance HasExprID (GLExpr d t) where
     getID (GLAtom id _) = id
+    -- TODO: compute id on a per-call basis like in GLAst.hs
     getID (GLFunc id _) = id
     getID (GLGenExpr id _) = id
 

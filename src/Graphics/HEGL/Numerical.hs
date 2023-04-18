@@ -91,6 +91,8 @@ instance (KnownNat p, KnownNat q, Fractional t) => Fractional (Mat p q t) where
     m1 / m2 = (/) <$> m1 <*> m2
     fromRational = pure . fromRational
 
+-- TODO: Integral support?
+
 instance Show t => Show (Mat p q t) where
     show (Mat xs) = intercalate "\n" [showRow i | i <- [0..p]] ++ "\n" where
         showRow i = intercalate " " [showElt i j | j <- [0..q]]

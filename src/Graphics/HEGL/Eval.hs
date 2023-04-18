@@ -39,6 +39,10 @@ data EvalState d a = EvalState {
 }
 
 cachedEval :: Monad a => GLExpr d t -> StateT (EvalState d a) a t
+-- don't cache function calls, for now
+cachedEval expr@(GLFunc _ _) = do
+    evfn <- gets evalfn
+    evfn expr
 cachedEval expr = do
     evfn <- gets evalfn
     c <- gets cache

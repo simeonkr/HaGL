@@ -88,6 +88,7 @@ module Graphics.HEGL (
     glFunc6,
     -- * Builtin operators and functions
     -- ** Numeric operators
+    (./),
     (.%),
     -- ** Boolean operators
     (.<),
@@ -377,40 +378,47 @@ matCast m = mkExpr GLGenExpr $ MatCast m
 
 makeGenVar _ = mkExpr GLAtom GenVar
 
+{-# NOINLINE glFunc1 #-}
 glFunc1 :: (GLType t, GLType t1) => 
     (GLExpr d t1 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t 
-glFunc1 f = \x0 -> mkExpr GLFunc $ GLFunc1 f x x0
+glFunc1 f = (GLFunc (genID f)) . GLFunc1 f x
     where x = makeGenVar "x"
+{-# NOINLINE glFunc2 #-}
 glFunc2 :: (GLType t, GLType t1, GLType t2) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t 
-glFunc2 f = \x0 y0 -> mkExpr GLFunc $ GLFunc2 f x y x0 y0
+glFunc2 f = (GLFunc (genID f) .) . GLFunc2 f x y
     where (x, y) = (makeGenVar "x", makeGenVar "y")
+{-# NOINLINE glFunc3 #-}
 glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
-glFunc3 f = \x0 y0 z0 -> mkExpr GLFunc $ GLFunc3 f x y z x0 y0 z0
+glFunc3 f = ((GLFunc (genID f) .) .) . GLFunc3 f x y z
     where (x, y, z) = (makeGenVar "x", makeGenVar "y", makeGenVar "z")
+{-# NOINLINE glFunc4 #-}
 glFunc4 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t 
-glFunc4 f = \x0 y0 z0 w0 -> mkExpr GLFunc $ GLFunc4 f x y z w x0 y0 z0 w0
+glFunc4 f = (((GLFunc (genID f) .) .) .) . GLFunc4 f x y z w
     where (x, y, z, w) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w")
+{-# NOINLINE glFunc5 #-}
 glFunc5 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5-> GLExpr d t 
-glFunc5 f = \x0 y0 z0 w0 v0 -> mkExpr GLFunc $ GLFunc5 f x y z w v x0 y0 z0 w0 v0
+glFunc5 f = ((((GLFunc (genID f) .) .) .) .) . GLFunc5 f x y z w v
     where (x, y, z, w, v) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u")
+{-# NOINLINE glFunc6 #-}
 glFunc6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t 
-glFunc6 f = \x0 y0 z0 w0 v0 u0 -> mkExpr GLFunc $ GLFunc6 f x y z w v u x0 y0 z0 w0 v0 u0
+glFunc6 f = (((((GLFunc (genID f) .) .) .) .) .) . GLFunc6 f x y z w v u
     where (x, y, z, w, v, u) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u", makeGenVar "v")
 
 
 -- * Builtin operators and functions
 
+infixl 7 ./
 infixl 7 .%
 infix 4 .<, .<=, .>, .>=, .==, ./=
 infixl 3 .&&
@@ -423,6 +431,7 @@ infixl 4 .^
 infixl 7 .*
 infixl 7 .@
 
+x ./ y = mkExpr GLGenExpr $ OpDiv x y
 x .% y = mkExpr GLGenExpr $ OpMod x y
 x .< y = mkExpr GLGenExpr $ OpLessThan x y
 x .<= y = mkExpr GLGenExpr $ OpLessThanEqual x y

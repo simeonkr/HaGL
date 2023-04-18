@@ -10,14 +10,17 @@ module Graphics.HEGL.Util.DepMap (
     Graphics.HEGL.Util.DepMap.lookup) 
 where
 
+import Data.Word (Word64)
 import Data.Hashable (Hashable(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 import qualified Data.HashMap.Strict as HashMap
 
 
+type Hash = Word64
+
 class GenHashable k where
-    genHash :: k t -> Int
+    genHash :: k t -> Hash
 
 
 data DepMap :: (* -> *) -> (* -> *) -> * where

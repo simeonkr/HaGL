@@ -196,7 +196,7 @@ traverseGLAst scopeID (GLAstFuncApp callID ti fn args) =
     ifUndef scopeID callID $ do
         parentArgExprs <- map (\(ShaderParam name _) -> ShaderVarRef name) <$> 
             concatMap snd <$> gets funcStack
-        argExprs <- mapM (traverseGLAst LocalScope) args
+        argExprs <- mapM (traverseGLAst scopeID) args
         _ <- traverseGLAst LocalScope fn
         scopedStmt scopeID $ VarDeclAsmt (idLabel callID) (exprType ti)
             (ShaderExpr (idLabel $ getID fn) (parentArgExprs ++ argExprs))
@@ -216,6 +216,7 @@ localScope action = innerScope $ do
 innerScope :: CGState a -> CGState (a, [ShaderStmt])
 innerScope action = do
     scopeBefore <- getScope LocalScope
+    modifyScope LocalScope $ \scope -> scope { scopeStmts = [] }
     res <- action
     scopeAfter <- getScope LocalScope
     modifyScope LocalScope $ const scopeBefore

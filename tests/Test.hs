@@ -12,6 +12,9 @@ import Graphics.HEGL
 import Graphics.HEGL.Internal (dumpGlsl, hostEval)
 
 
+-- TODO: write a test for each possible error that may occur
+
+
 -- Test setup
 
 data ExprTest d where
@@ -104,6 +107,14 @@ genericTests = [
         reflectTest,
         refractTest,
         glFuncTrivial,
+        glFuncMultiple,
+        glFuncNested,
+        glFuncFact,
+        glFuncFib,
+        glFuncCollatz,
+        glFuncMandelbrot,
+        glFuncNestedCond,
+        glFuncVarCapture,
         vecArithmeticTest,
         trigIdentTest
     ]
@@ -204,6 +215,7 @@ rawConstrTest = ExprTest "raw_constr" $
 glLiftTest = ExprTest "glLift" $
     let f1 = glLift1 $ \x -> x + 1
         x1 = 1 :: GLExpr HostDomain Int
+        y1 = 2 :: GLExpr HostDomain Int
         f2 = glLift1 $ \x -> [x, x]
         x2 = 1 :: GLExpr HostDomain (Vec 2 Int)
         a2 = uniform $ array [x2, x2]
@@ -211,7 +223,8 @@ glLiftTest = ExprTest "glLift" $
         x3 = 1 :: GLExpr HostDomain Int
         y3 = 2 :: GLExpr HostDomain Int
         a3 = uniform $ array [1,2,3] :: GLExpr d [Int]
-    in uniform (f1 x1) .== 2 .&& uniform (f2 x2) .== a2 .&& uniform (f3 x3 y3) .== a3
+    in uniform (f1 x1) .== 2 .&& uniform (f1 y1) .== 3 .&& 
+       uniform (f2 x2) .== a2 .&& uniform (f3 x3 y3) .== a3
 
 
 -- Type conversion
@@ -281,11 +294,92 @@ glFuncTrivial = ExprTest "glFunc_trivial" $
         x1 = 2 :: GLExpr d Int
     in f x0 x1 .== 3
 
-glFuncNested = ExprTest "glFunc_nested" $
-    undefined
+glFuncMultiple = ExprTest "glFunc_multiple" $
+    let f1 :: GLExpr d Int -> GLExpr d Int
+        f1 = glFunc1 (3 *)
+        g1 :: GLExpr d Int -> GLExpr d Int
+        g1 = glFunc1 (2 *)
+        f2 :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        f2 = glFunc2 $ \x y -> 2 * x * y
+        g2 :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        g2 = glFunc2 $ \x y -> 3 * x * y
+    -- in the shader case, this should generate four non-main functions
+    in f1 1 .> g1 1 .&& f1 1 .< g1 2 .&& f2 2 1 .> g2 1 1
 
-glFuncRec = ExprTest "glFunc_rec" $
-    undefined
+glFuncNested = ExprTest "glFunc_nested" $
+    let f = glFunc2 $ \x y -> 2 * x + y
+        g = glFunc3 $ \x y z -> z * f x y * (- f x y) * f y x
+        x0 = 1 :: GLExpr d Int
+        y0 = 2 :: GLExpr d Int
+        z0 = 2 :: GLExpr d Int
+    in g x0 y0 z0 .== -160
+
+glFuncFact = ExprTest "glFunc_factorial" $ 
+    let fact = glFunc1 $ \n -> fact' n 1
+        fact' :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        fact' = glFunc2 $ \n a -> cond (n .== 0) a (fact' (n - 1) (a * n))
+    in fact 5 .== 120
+
+-- unsupported
+{-glFuncFactFlipped = ExprTest "glFunc_factorial_flipped" $ 
+    let fact = glFunc1 $ \n -> fact' 1 n
+        fact' :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        fact' = glFunc2 $ \a n -> cond (n .== 0) (fact' (n - 1) (a * n)) a
+    in fact 5 .== 120-}
+
+glFuncFib = ExprTest "glFunc_fibonacci" $ 
+    let fib = glFunc1 $ \n -> fib' n (vec2 0 1)
+        fib' :: GLExpr d Int -> GLExpr d (Vec 2 Int) -> GLExpr d Int
+        fib' = glFunc2 $ \n (decon -> (a, b)) -> cond (n .== 0) a (fib' (n - 1) (vec2 b (a + b)))
+    in fib 6 .== 8
+
+glFuncMandelbrot = ExprTest "glFunc_mandelbrot" $ 
+    let mand :: GLExpr d (Vec 2 Float) -> GLExpr d (Vec 2 Float) -> GLExpr d Int -> GLExpr d Int
+        mand = glFunc3 $ \pos0@(decon -> (x0, y0)) (decon -> (x, y)) i -> 
+            cond (i .>= 50 .|| ((x * x + y * y) .> 4)) i $
+                mand pos0 (vec2 (x * x - y * y + x0) (2 * x * y + y0)) (i + 1)
+    in mand (vec2 3 0) (vec2 0 0) 0 .== 1 .&& 
+       mand (vec2 0 0) (vec2 0 0) 0 .== 50
+
+-- unsupported; canonicalize as in test below
+{-glFuncCollatz = ExprTest "glFunc_collatz" $
+    let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        f = glFunc2 $ \n i -> cond (n .== 1) i $
+            cond (n .% 2 .== 1) (f (n / 2) (i + 1)) (f (3 * n + 1) (i + 1))
+    in f 27 0 .== 111-}
+
+glFuncCollatz = ExprTest "glFunc_collatz" $
+    let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        f = glFunc2 $ \n i -> cond (n .== 1) i $
+            f (cond (n .% 2 .== 0) (n ./ 2) (3 * n + 1)) (i + 1)
+    in f 7 1 .== 17
+
+-- unsupported; canonicalize as in test below
+{-glFuncNestedCond = ExprTest "glFunc_nested_cond" $
+    let f :: GLExpr d Int -> GLExpr d Int
+        f = glFunc1 $ \n -> 1 +
+            cond (n .== 1) 1 $
+                cond (n .== 2) 2 $
+                    cond (n .== 3) (f (n - 1)) $
+                        cond  (n .== 4) (f (n - 3)) (f (n - 1))
+    in f 1 .== 2 .&& f 2 .== 3 .&& f 3 .== 3 .&& f 4 .== 2 .&& f 10 .== 2-}
+
+glFuncNestedCond = ExprTest "glFunc_nested_cond" $
+    let f :: GLExpr d Int -> GLExpr d Int
+        f = glFunc1 $ \n -> 
+            cond (n .<= 4) (
+                cond (n .== 1) 2 $
+                cond (n .== 2) 3 $
+                cond (n .== 3) 3 2
+                ) $ f (n - 1)
+    in f 1 .== 2 .&& f 2 .== 3 .&& f 3 .== 3 .&& f 4 .== 2 .&& f 10 .== 2
+
+glFuncVarCapture = ExprTest "glFunc_var_capture" $
+    let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        f = glFunc2 $ \x u -> 
+            let g = glFunc2 $ \y v -> x + y + u + v
+            in g 2 0
+    in f 1 0 .== 3
 
 
 -- uniform, prec, & builtin I/O variables
@@ -347,6 +441,8 @@ vecArithmeticTest = ExprTest "vector_arithmetic" $
 trigIdentTest = ExprTest "trigonometric_identities" $
     let x0 = 0.1234 :: GLExpr d Float
     in almostEqual (pow (sin x0) 2 + pow (cos x0) 2) 1
+
+-- TODO: test caching and sharing using examples that would otherwise be infeasible to compute
 
 
 runTests :: Test -> IO ()

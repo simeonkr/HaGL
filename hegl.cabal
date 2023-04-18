@@ -60,6 +60,7 @@ library
     mtl,
     hashable,
     time,
+    cryptohash-md5,
     OpenGL,
     OpenGLRaw,
     GLUT,

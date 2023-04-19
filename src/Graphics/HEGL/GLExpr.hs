@@ -10,6 +10,7 @@ module Graphics.HEGL.GLExpr (
     GLCoord(..),
     GLCoordList(..),
     GLCol(..),
+    GLExprException(..),
     ConstExpr,
     HostExpr,
     VertExpr,
@@ -18,6 +19,7 @@ module Graphics.HEGL.GLExpr (
 
 import Prelude hiding (id)
 import GHC.TypeNats
+import Control.Exception (Exception)
 
 import Graphics.HEGL.GLType
 import Graphics.HEGL.Numerical
@@ -392,6 +394,21 @@ instance HasExprID (GLExpr d t) where
 
 instance DepMap.GenHashable (GLExpr d) where
     genHash = getID
+
+
+-- * Exceptions for illegal expressions that are difficult to disallow at the type level
+
+data GLExprException =
+    UnsupportedRecCall |
+    UnknownArraySize
+    deriving Eq
+
+instance Show GLExprException where
+    show UnsupportedRecCall = "Unsupported recursive function call"
+    show UnknownArraySize = "GLLift*: Function may only return a fixed-size list"
+
+instance Exception GLExprException
+
 
 -- * Synonyms
 

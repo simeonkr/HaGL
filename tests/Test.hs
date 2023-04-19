@@ -2,6 +2,7 @@ import Prelude hiding (all, min, max, sin, cos, sqrt, length)
 
 import Test.HUnit
 import Control.Monad (when)
+import Control.Exception
 import System.Exit
 import System.Directory (removeFile)
 import qualified Data.ByteString as BS
@@ -9,13 +10,17 @@ import qualified Data.List as List
 import qualified Graphics.UI.GLUT as GLUT
 
 import Graphics.HEGL
-import Graphics.HEGL.Internal (dumpGlsl, hostEval)
+import Graphics.HEGL.Internal (dumpGlsl, hostEval, GLExprException(..))
 
 
 -- Test setup
 
 data ExprTest d where
     ExprTest :: String -> GLExpr d Bool -> ExprTest d
+
+data ExprExceptionTest where
+    ExprExceptionTest :: String -> GLExprException -> 
+            GLExpr FragmentDomain Bool -> ExprExceptionTest
 
 data ObjTest =
     ObjTest String GLObj
@@ -32,6 +37,16 @@ mkHostTest (ExprTest label expr) =
 mkShaderTest :: ExprTest FragmentDomain -> Test
 mkShaderTest (ExprTest label expr) = 
     mkObjTest $ ObjTest label $ objFromImage $ Prelude.const $ cast expr .* 1
+
+-- verify that trying to set color to 'expr' throws the expected exception
+mkShaderExceptionTest :: ExprExceptionTest -> Test
+mkShaderExceptionTest (ExprExceptionTest label ex expr) =
+    TestLabel label $ TestCase $ do
+        let (TestLabel _ (TestCase act)) = mkShaderTest (ExprTest label expr)
+        res <- try act
+        case res of
+            Left ex' | ex' == ex -> return ()
+            _ -> assertFailure $ "Expected exception: " ++ show ex
 
 -- verify that the given object produces a white image
 mkObjTest :: ObjTest -> Test
@@ -103,15 +118,15 @@ genericTests = [
         faceforwardTest,
         reflectTest,
         refractTest,
-        glFuncTrivial,
-        glFuncMultiple,
-        glFuncNested,
-        glFuncFact,
-        glFuncFib,
-        glFuncCollatz,
-        glFuncMandelbrot,
-        glFuncNestedCond,
-        glFuncVarCapture,
+        glFuncTrivialTest,
+        glFuncMultipleTest,
+        glFuncNestedTest,
+        glFuncFactTest,
+        glFuncFibTest,
+        glFuncCollatzTest,
+        glFuncMandelbrotTest,
+        glFuncNestedCondTest,
+        glFuncVarCaptureTest,
         vecArithmeticTest,
         trigIdentTest
     ]
@@ -124,6 +139,16 @@ hostTests = [
 shaderTests :: [ExprTest FragmentDomain]
 shaderTests = [
         interpTest
+    ]
+
+shaderExceptionTests :: [ExprExceptionTest]
+shaderExceptionTests = [
+        glLiftIllegalTest,
+        glFuncFactIllegalTest,
+        glFuncCollatzIllegalTest,
+        glFuncNestedCondIllegalTest,
+        glFuncRecIllegalTest,
+        glFuncMutRecIllegalTest
     ]
 
 objTests :: [ObjTest]
@@ -223,6 +248,11 @@ glLiftTest = ExprTest "glLift" $
     in uniform (f1 x1) .== 2 .&& uniform (f1 y1) .== 3 .&& 
        uniform (f2 x2) .== a2 .&& uniform (f3 x3 y3) .== a3
 
+glLiftIllegalTest = ExprExceptionTest "glLift_illegal" UnknownArraySize $
+    let f = glLift1 $ \n -> replicate n 0
+        a = uniform $ array [0, 0, 0] :: GLExpr d [Int]
+    in uniform (f 3) .== a
+
 
 -- Type conversion
 
@@ -285,13 +315,13 @@ refractTest = ExprTest "refract" $
 
 -- Custom function support via glFunc
 
-glFuncTrivial = ExprTest "glFunc_trivial" $
+glFuncTrivialTest = ExprTest "glFunc_trivial" $
     let f = glFunc2 $ \x y -> x + y
         x0 = 1 :: GLExpr d Int
         x1 = 2 :: GLExpr d Int
     in f x0 x1 .== 3
 
-glFuncMultiple = ExprTest "glFunc_multiple" $
+glFuncMultipleTest = ExprTest "glFunc_multiple" $
     let f1 :: GLExpr d Int -> GLExpr d Int
         f1 = glFunc1 (3 *)
         g1 :: GLExpr d Int -> GLExpr d Int
@@ -303,7 +333,7 @@ glFuncMultiple = ExprTest "glFunc_multiple" $
     -- in the shader case, this should generate four non-main functions
     in f1 1 .> g1 1 .&& f1 1 .< g1 2 .&& f2 2 1 .> g2 1 1
 
-glFuncNested = ExprTest "glFunc_nested" $
+glFuncNestedTest = ExprTest "glFunc_nested" $
     let f = glFunc2 $ \x y -> 2 * x + y
         g = glFunc3 $ \x y z -> z * f x y * (- f x y) * f y x
         x0 = 1 :: GLExpr d Int
@@ -311,26 +341,26 @@ glFuncNested = ExprTest "glFunc_nested" $
         z0 = 2 :: GLExpr d Int
     in g x0 y0 z0 .== -160
 
-glFuncFact = ExprTest "glFunc_factorial" $ 
+-- unsupported; flip arguments to cond as below
+glFuncFactIllegalTest = ExprExceptionTest "glFunc_factorial_illegal" UnsupportedRecCall $ 
+    let fact = glFunc1 $ \n -> fact' n 1
+        fact' :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        fact' = glFunc2 $ \n a -> cond (n ./= 0) (fact' (n - 1) (a * n)) a
+    in fact 5 .== 120
+
+glFuncFactTest = ExprTest "glFunc_factorial" $ 
     let fact = glFunc1 $ \n -> fact' n 1
         fact' :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         fact' = glFunc2 $ \n a -> cond (n .== 0) a (fact' (n - 1) (a * n))
     in fact' 5 1 .== 120
 
--- unsupported
-{-glFuncFactFlipped = ExprTest "glFunc_factorial_flipped" $ 
-    let fact = glFunc1 $ \n -> fact' 1 n
-        fact' :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
-        fact' = glFunc2 $ \a n -> cond (n .== 0) (fact' (n - 1) (a * n)) a
-    in fact 5 .== 120-}
-
-glFuncFib = ExprTest "glFunc_fibonacci" $ 
+glFuncFibTest = ExprTest "glFunc_fibonacci" $ 
     let fib = glFunc1 $ \n -> fib' n (vec2 0 1)
         fib' :: GLExpr d Int -> GLExpr d (Vec 2 Int) -> GLExpr d Int
         fib' = glFunc2 $ \n (decon -> (a, b)) -> cond (n .== 0) a (fib' (n - 1) (vec2 b (a + b)))
     in fib 6 .== 8
 
-glFuncMandelbrot = ExprTest "glFunc_mandelbrot" $ 
+glFuncMandelbrotTest = ExprTest "glFunc_mandelbrot" $ 
     let mand :: GLExpr d (Vec 2 Float) -> GLExpr d (Vec 2 Float) -> GLExpr d Int -> GLExpr d Int
         mand = glFunc3 $ \pos0@(decon -> (x0, y0)) (decon -> (x, y)) i -> 
             cond (i .>= 50 .|| ((x * x + y * y) .> 4)) i $
@@ -339,44 +369,56 @@ glFuncMandelbrot = ExprTest "glFunc_mandelbrot" $
        mand (vec2 0 0) (vec2 0 0) 0 .== 50
 
 -- unsupported; canonicalize as in test below
-{-glFuncCollatz = ExprTest "glFunc_collatz" $
+glFuncCollatzIllegalTest = ExprExceptionTest "glFunc_collatz_illegal" UnsupportedRecCall $
     let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         f = glFunc2 $ \n i -> cond (n .== 1) i $
-            cond (n .% 2 .== 1) (f (n / 2) (i + 1)) (f (3 * n + 1) (i + 1))
-    in f 27 0 .== 111-}
+            cond (n .% 2 .== 0) (f (n ./ 2) (i + 1)) (f (3 * n + 1) (i + 1))
+    in f 27 0 .== 111
 
-glFuncCollatz = ExprTest "glFunc_collatz" $
+glFuncCollatzTest = ExprTest "glFunc_collatz" $
     let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         f = glFunc2 $ \n i -> cond (n .== 1) i $
             f (cond (n .% 2 .== 0) (n ./ 2) (3 * n + 1)) (i + 1)
     in f 7 1 .== 17
 
 -- unsupported; canonicalize as in test below
-{-glFuncNestedCond = ExprTest "glFunc_nested_cond" $
+glFuncNestedCondIllegalTest = ExprExceptionTest "glFunc_nested_cond_illegal" UnsupportedRecCall $
     let f :: GLExpr d Int -> GLExpr d Int
-        f = glFunc1 $ \n -> 1 +
+        f = glFunc1 $ \n -> (1 +) $
             cond (n .== 1) 1 $
                 cond (n .== 2) 2 $
                     cond (n .== 3) (f (n - 1)) $
                         cond  (n .== 4) (f (n - 3)) (f (n - 1))
-    in f 1 .== 2 .&& f 2 .== 3 .&& f 3 .== 3 .&& f 4 .== 2 .&& f 10 .== 2-}
+    in f 1 .== 2 .&& f 2 .== 3 .&& f 3 .== 4 .&& f 4 .== 3 .&& f 10 .== 9
 
-glFuncNestedCond = ExprTest "glFunc_nested_cond" $
-    let f :: GLExpr d Int -> GLExpr d Int
-        f = glFunc1 $ \n -> 
+glFuncNestedCondTest = ExprTest "glFunc_nested_cond" $
+    let f = glFunc1 $ \n -> f' n 0
+        f' :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        f' = glFunc2 $ \n a -> 
             cond (n .<= 4) (
-                cond (n .== 1) 2 $
-                cond (n .== 2) 3 $
-                cond (n .== 3) 3 2
-                ) $ f (n - 1)
-    in f 1 .== 2 .&& f 2 .== 3 .&& f 3 .== 3 .&& f 4 .== 2 .&& f 10 .== 2
+                cond (n .== 1) (2 + a) $
+                cond (n .== 2) (3 + a) $
+                cond (n .== 3) (4 + a) (3 + a)
+                ) $ f' (n - 1) (a + 1)
+    in f 1 .== 2 .&& f 2 .== 3 .&& f 3 .== 4 .&& f 4 .== 3 .&& f 10 .== 9
 
-glFuncVarCapture = ExprTest "glFunc_var_capture" $
+glFuncVarCaptureTest = ExprTest "glFunc_var_capture" $
     let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         f = glFunc2 $ \x u -> 
             let g = glFunc2 $ \y v -> x + y + u + v
             in g 2 0
     in f 1 0 .== 3
+
+glFuncRecIllegalTest = ExprExceptionTest "glFunc_rec_call_illegal" UnsupportedRecCall $
+    let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
+        f = glFunc2 $ \x y -> f x (y + 1) + 1
+    in f 0 0 .== 0
+
+glFuncMutRecIllegalTest = ExprExceptionTest "glFunc_mut_rec_call_illegal" UnsupportedRecCall $
+    let f :: GLExpr d Int -> GLExpr d Int
+        f = glFunc1 $ \x -> g x + 1
+        g = glFunc1 $ \x -> f x + 1
+    in f 0 .== 0
 
 
 -- uniform, prec, & builtin I/O variables
@@ -453,4 +495,5 @@ main = do
     runTests $ TestList $ map mkHostTest hostTests
     runTests $ TestList $ map mkShaderTest genericTests
     runTests $ TestList $ map mkShaderTest shaderTests
+    runTests $ TestList $ map mkShaderExceptionTest shaderExceptionTests
     runTests $ TestList $ map mkObjTest objTests

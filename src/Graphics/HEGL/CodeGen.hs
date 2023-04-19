@@ -6,6 +6,7 @@ module Graphics.HEGL.CodeGen (
 
 import Prelude hiding (id)
 import Control.Monad.State.Lazy (State, evalState, get, gets, modify, unless)
+import Control.Exception (throw)
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -49,7 +50,6 @@ instance Eq InpVar where
     x1 == x2 = getID x1 == getID x2
 instance Ord InpVar where
     compare x1 x2 = compare (getID x1) (getID x2)
-
 
 instance Show GLProgram where
     show glProg = {-}"\n" ++
@@ -247,9 +247,7 @@ defFn :: ExprID -> [GLAst] -> ([ShaderParam] -> [ShaderParam] -> CGState ()) -> 
 defFn id params initFn = do
     fns <- gets funcStack
     if id `List.elem` map fst fns then
-        -- TODO: 'error' should not be for user errors!
-        -- throw an exception instead
-        error "Unsupported recursive function call"
+        throw UnsupportedRecCall
     else do
         let parentParamExprs = concatMap snd fns
             glastToParamExpr (GLAstAtom id ti GenVar) = 

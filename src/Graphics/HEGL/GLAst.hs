@@ -10,6 +10,7 @@ module Graphics.HEGL.GLAst (
 ) where
 
 import Prelude hiding (id)
+import Control.Exception (throw)
 
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
@@ -56,7 +57,7 @@ showSizedArrayType e n = takeWhile (/= ']') (showGlslType e) ++ show n ++ "]"
 showPotentialArrayType e arr = 
     if arrayLen arr == 1 then showGlslType e else showSizedArrayType e (arrayLen arr)
 -- TODO: keep this as an assertion, but enforce the constraint at the type level
-vd = error "GLLift*: Function may only return a fixed-size list"
+vd = throw UnknownArraySize
 
 
 toGLAst :: IsGLDomain d => GLExpr d t -> GLAst

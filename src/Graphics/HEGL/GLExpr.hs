@@ -37,6 +37,7 @@ data GLExpr :: ShaderDomain -> * -> * where
 
 
 -- Irreducible variables and placeholders
+
 data GLAtom :: ShaderDomain -> * -> * where
 
     Const :: GLType t => 
@@ -102,6 +103,7 @@ data GLFunc :: ShaderDomain -> * -> * where
 
 
 -- Compound expressions corresponding to built-in functions and operators
+
 data GLGenExpr :: ShaderDomain -> * -> * where
 
     GLVec2 :: (GLPrim t, GLType (Vec 2 t)) =>
@@ -110,23 +112,23 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d (Vec 3 t)
     GLVec4 :: (GLPrim t, GLType (Vec 4 t)) =>
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d (Vec 4 t)
-    GLMat2x2 :: (GLPrim t, GLType (Vec 2 t), GLType (Mat 2 2 t)) =>
+    GLMat2x2 :: (GLFloating t, GLType (Vec 2 t), GLType (Mat 2 2 t)) =>
         GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLGenExpr d (Mat 2 2 t)
-    GLMat2x3 :: (GLPrim t, GLType (Vec 2 t), GLType (Mat 2 3 t)) =>
+    GLMat2x3 :: (GLFloating t, GLType (Vec 2 t), GLType (Mat 2 3 t)) =>
         GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLGenExpr d (Mat 2 3 t)
-    GLMat2x4 :: (GLPrim t, GLType (Vec 2 t), GLType (Mat 2 4 t)) =>
+    GLMat2x4 :: (GLFloating t, GLType (Vec 2 t), GLType (Mat 2 4 t)) =>
         GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLGenExpr d (Mat 2 4 t)
-    GLMat3x2 :: (GLPrim t, GLType (Vec 3 t), GLType (Mat 3 2 t)) =>
+    GLMat3x2 :: (GLFloating t, GLType (Vec 3 t), GLType (Mat 3 2 t)) =>
         GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLGenExpr d (Mat 3 2 t)
-    GLMat3x3 :: (GLPrim t, GLType (Vec 3 t), GLType (Mat 3 3 t)) =>
+    GLMat3x3 :: (GLFloating t, GLType (Vec 3 t), GLType (Mat 3 3 t)) =>
         GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLGenExpr d (Mat 3 3 t)
-    GLMat3x4 :: (GLPrim t, GLType (Vec 3 t), GLType (Mat 3 4 t)) =>
+    GLMat3x4 :: (GLFloating t, GLType (Vec 3 t), GLType (Mat 3 4 t)) =>
         GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLExpr d (Vec 3 t) -> GLGenExpr d (Mat 3 4 t)
-    GLMat4x2 :: (GLPrim t, GLType (Vec 4 t), GLType (Mat 4 2 t)) =>
+    GLMat4x2 :: (GLFloating t, GLType (Vec 4 t), GLType (Mat 4 2 t)) =>
         GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLGenExpr d (Mat 4 2 t)
-    GLMat4x3 :: (GLPrim t, GLType (Vec 4 t), GLType (Mat 4 3 t)) =>
+    GLMat4x3 :: (GLFloating t, GLType (Vec 4 t), GLType (Mat 4 3 t)) =>
         GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLGenExpr d (Mat 4 3 t)
-    GLMat4x4 :: (GLPrim t, GLType (Vec 4 t), GLType (Mat 4 4 t)) =>
+    GLMat4x4 :: (GLFloating t, GLType (Vec 4 t), GLType (Mat 4 4 t)) =>
         GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLGenExpr d (Mat 4 4 t)
     Pre :: (GLPrim t, GLType (Vec n t), GLType (Vec (n + 1) t)) => 
         GLExpr d t -> GLExpr d (Vec n t) -> GLGenExpr d (Vec (n + 1) t)

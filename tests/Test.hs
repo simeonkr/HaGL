@@ -29,7 +29,7 @@ data ObjTest =
 mkHostTest :: ExprTest HostDomain -> Test
 mkHostTest (ExprTest label expr) = 
     TestLabel (label ++ "_host") $ TestCase $ do
-        let ioev = error "Tests do not support evaluation of I/O GLExprs"
+        let ioev = error "Host tests do not support evaluation of I/O GLExprs"
         res <- hostEval ioev expr
         assertBool ("Failed to evaluate to true on host: " ++ label) res
 
@@ -127,6 +127,9 @@ genericTests = [
         glFuncMandelbrotTest,
         glFuncNestedCondTest,
         glFuncVarCaptureTest,
+        uniformTrivialTest,
+        intVecUniformTest,
+        floatMatUniformTest,
         vecArithmeticTest,
         trigIdentTest
     ]
@@ -138,7 +141,11 @@ hostTests = [
 
 shaderTests :: [ExprTest FragmentDomain]
 shaderTests = [
-        interpTest
+        interpTest,
+        precTrivialTest,
+        precNestedTest,
+        precIntegrateTest,
+        precTimeTest
     ]
 
 shaderExceptionTests :: [ExprExceptionTest]
@@ -423,6 +430,42 @@ glFuncMutRecIllegalTest = ExprExceptionTest "glFunc_mut_rec_call_illegal" Unsupp
 
 -- uniform, prec, & builtin I/O variables
 
+uniformTrivialTest = ExprTest "uniform_trivial" $
+    uniform (1 :: GLExpr d Int) .== 1
+
+intVecUniformTest = ExprTest "int_vec_uniform" $
+    let v2 = vec2 1 2 :: GLExpr d (Vec 2 Int)
+        v3 = vec3 1 2 3 :: GLExpr d (Vec 3 Int)
+        v4 = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
+    in uniform v2 .== v2 .&&
+       uniform v3 .== v3 .&&
+       uniform v4 .== v4
+
+floatMatUniformTest = ExprTest "float_mat_uniform" $
+    let m2 = mat2 (vec2 1 3) (vec2 2 4) :: GLExpr d (Mat 2 2 Float)
+    in almostMatPx2Equal (uniform m2) m2
+
+precTrivialTest = ExprTest "prec_trivial" $
+    let x = prec (0 :: GLExpr d Int) x
+        x1 = prec (0 :: GLExpr d Int) (x1 + 1)
+        y1 = prec (0 :: GLExpr d Int) (y1 + 1)
+    in uniform x .== 0 .&& uniform x1 .> 0 .&& uniform x1 .== uniform y1
+
+precNestedTest = ExprTest "prec_nested" $
+    let x = prec (0 :: GLExpr d Int) (x + 1)
+        y = prec (-1 :: GLExpr d Int) x
+    in uniform y .> 0
+
+precIntegrateTest = ExprTest "prec_integrate" $
+    let t = prec (0 :: GLExpr d Int) (t + 1)
+        x = prec (0 :: GLExpr d Int) (x + t)
+    in uniform t .> 0 .&&
+       2 * uniform x .== uniform t * (uniform t - 1)
+
+precTimeTest = ExprTest "prec_time" $
+    let dt = prec 0 (time - prec 0 time)
+        dt_sum = prec 0 (dt_sum + dt)
+    in almostEqual (uniform $ prec 0 time) (uniform dt_sum)
 
 
 -- Shader-specific tests

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Graphics.HEGL.Backend.GLUT (
     GlutOptions(..),
     GlutRunMode(..),
@@ -152,8 +154,8 @@ setUniform ioState obj (UniformVar id x) = do
 
 updatePrecMap :: IOState -> RunObj -> IO ()
 updatePrecMap ioState obj = do
-    let updateVal ioState obj expr _ =
-            Identity <$> hostEval (ioEval ioState obj) expr
+    let updateVal ioState obj e@(GLAtom _ (IOPrec _ x) :: GLExpr HostDomain t) _ =
+            Identity <$> hostEval (ioEval ioState obj) x
     pm <- readIORef $ precMap obj
     pm1 <- DepMap.traverseWithKey (updateVal ioState obj) pm
     writeIORef (precMap obj) pm1
@@ -207,16 +209,14 @@ motion ioState (Position x y) =
 
 ioEval :: IOState -> RunObj -> GLExpr HostDomain t -> IO t
 
-ioEval ioState obj (GLAtom _ (IOPrec x0 x)) = do
+ioEval ioState obj e@(GLAtom _ (IOPrec x0 x)) = do
     pm <- readIORef $ precMap obj
-    case DepMap.lookup x pm of
-        -- if this strategy causes problems, store a variable in ioState indicating whether
-        -- we've initialized the ioPrecs or not and use it to determine what value to return
+    case DepMap.lookup e pm of
         Just val -> return $ runIdentity val
         Nothing -> do
-            _ <- ioEval ioState obj x
-            val <- ioEval ioState obj x0
-            writeIORef (precMap obj) $ DepMap.insert x0 (Identity val) pm
+            val <- hostEval (ioEval ioState obj) x0
+            writeIORef (precMap obj) $ DepMap.insert e (Identity val) pm
+            _ <- hostEval (ioEval ioState obj) x
             return val
 
 ioEval ioState _ (GLAtom _ (IOFloat "time")) = do

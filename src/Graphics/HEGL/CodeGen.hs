@@ -206,6 +206,7 @@ traverseGLAst scopeID (GLAstExpr id ti exprName subnodes) =
         scopedStmt scopeID $ VarDeclAsmt (idLabel id) (exprType ti) $
             ShaderExpr exprName subexprs
 
+
 -- Scope management
 
 localScope :: CGState a -> CGState (a, [ShaderStmt])

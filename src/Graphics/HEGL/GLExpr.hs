@@ -73,6 +73,7 @@ data GLAtom :: ShaderDomain -> * -> * where
     GLLift6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) =>
         (t1 -> t2 -> t3 -> t4 -> t5 -> t6 -> t) -> GLExpr HostDomain t1 -> GLExpr HostDomain t2 -> GLExpr HostDomain t3 -> GLExpr HostDomain t4 -> GLExpr HostDomain t5 -> GLExpr HostDomain t6 -> GLAtom HostDomain t
 
+
 -- User-defined functions
 
 data GLFunc :: ShaderDomain -> * -> * where

@@ -49,8 +49,8 @@ printGLAst (GLAstAtom id ty GenVar) =
     printNode id ty "genVar"
 printGLAst (GLAstAtom id ty (Uniform x)) = do
     printNode id ty "uniform"
-    {-ifNotTraversed id $ do
-        indented $ printGLAst $ toGLAst x-}
+    ifNotTraversed id $ do
+        indented $ printGLAst $ toGLAst x
 printGLAst (GLAstAtom id ty (Inp _)) =
     printNode id ty "inp"
 printGLAst (GLAstAtom id ty (Frag _ x)) = do
@@ -69,9 +69,9 @@ printGLAst (GLAstAtom id ty (IOBool _)) =
     printNode id ty "ioBool"
 printGLAst (GLAstAtom id ty (IOPrec x0 x)) = do
     printNode id ty "ioPrec"
-    {-ifNotTraversed id $ do
+    ifNotTraversed id $ do
         indented $ printGLAst $ toGLAst x0
-        indented $ printGLAst $ toGLAst x-}
+        indented $ printGLAst $ toGLAst x
 printGLAst (GLAstAtom id ty _) =
     printNode id ty "glLift"
 printGLAst (GLAstFunc id ty r params) = do

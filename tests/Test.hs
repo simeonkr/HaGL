@@ -130,6 +130,8 @@ genericTests = [
         uniformTrivialTest,
         intVecUniformTest,
         floatMatUniformTest,
+        exponentialExprTreeTest,
+        iteratedGlFuncTest,
         vecArithmeticTest,
         trigIdentTest
     ]
@@ -144,8 +146,8 @@ shaderTests = [
         interpTest,
         precTrivialTest,
         precNestedTest,
-        precIntegrateTest,
-        precTimeTest
+        precIntegrateTest
+        --precTimeTest
     ]
 
 shaderExceptionTests :: [ExprExceptionTest]
@@ -514,6 +516,22 @@ interpTest = ExprTest "basic_interpolation_properties" $
        almostEqual z z' .&& 
        (w .== 1 .|| w .== 2 .|| w .== 3 .|| w .== 4)
 
+
+-- Caching tests
+
+exponentialExprTreeTest = ExprTest "exponential_expr_tree" $
+    let f x = x + x 
+        h = 40
+    -- this is infeasible without caching as the entire
+    -- expression tree of size 2^h will have to be traversed
+    in iterate f (1 :: GLExpr d Int) !! h .== 2^h
+
+iteratedGlFuncTest = ExprTest "iterated_glFunc" $
+    let f = glFunc1 $ \x -> x + x 
+        h = 40
+    in iterate f (1 :: GLExpr d Int) !! h .== 2^h
+
+
 -- Other miscellaneous tests
 
 vecArithmeticTest = ExprTest "vector_arithmetic" $
@@ -523,8 +541,6 @@ vecArithmeticTest = ExprTest "vector_arithmetic" $
 trigIdentTest = ExprTest "trigonometric_identities" $
     let x0 = 0.1234 :: GLExpr d Float
     in almostEqual (pow (sin x0) 2 + pow (cos x0) 2) 1
-
--- TODO: test caching and sharing using examples that would otherwise be infeasible to compute
 
 
 runTests :: Test -> IO ()

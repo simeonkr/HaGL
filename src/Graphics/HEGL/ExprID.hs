@@ -13,7 +13,8 @@ import Data.Word (Word64)
 import Data.Bits (shiftL, (.|.))
 import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
-import qualified Data.ByteString as BS (pack, unpack)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Builder as BB
 import qualified Crypto.Hash.MD5 as MD5
 
 type ExprID = Word64
@@ -38,7 +39,7 @@ genID _ = unsafePerformIO $ do
 -- TODO: try to remove dependency on md5 and probabilistic assumptions
 combineIDs :: [ExprID] -> ExprID
 combineIDs = fromBytes . take 8 . map fromIntegral . BS.unpack . 
-    MD5.hash . BS.pack . map fromIntegral where
+    MD5.hashlazy . BB.toLazyByteString . mconcat . map BB.word64BE where
         fromBytes = fst . foldr (\x (s, i) -> (s .|. shiftL x i, i + 8)) (0, 0)
 
 idLabel :: ExprID -> String

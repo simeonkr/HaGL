@@ -118,6 +118,8 @@ genericTests = [
         faceforwardTest,
         reflectTest,
         refractTest,
+        vecArithmeticTest,
+        trigIdentTest,
         glFuncTrivialTest,
         glFuncMultipleTest,
         glFuncNestedTest,
@@ -131,9 +133,7 @@ genericTests = [
         intVecUniformTest,
         floatMatUniformTest,
         exponentialExprTreeTest,
-        iteratedGlFuncTest,
-        vecArithmeticTest,
-        trigIdentTest
+        iteratedGlFuncTest
     ]
 
 hostTests :: [ExprTest HostDomain]
@@ -146,8 +146,9 @@ shaderTests = [
         interpTest,
         precTrivialTest,
         precNestedTest,
-        precIntegrateTest
+        precIntegrateTest,
         --precTimeTest
+        precSequenceTest
     ]
 
 shaderExceptionTests :: [ExprExceptionTest]
@@ -322,6 +323,17 @@ refractTest = ExprTest "refract" $
 
 
 
+-- General numerical tests
+
+vecArithmeticTest = ExprTest "vector_arithmetic" $
+    2 .* vec4 1 2 3 4 - 3 * vec4 1 2 3 4 .== - (vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)) .&&
+    1 .* abs (vec4 1 1 1 1) - abs (-1) .== (vec4 0 0 0 0 :: GLExpr d (Vec 4 Int))
+
+trigIdentTest = ExprTest "trigonometric_identities" $
+    let x0 = 0.1234 :: GLExpr d Float
+    in almostEqual (pow (sin x0) 2 + pow (cos x0) 2) 1
+
+
 -- Custom function support via glFunc
 
 glFuncTrivialTest = ExprTest "glFunc_trivial" $
@@ -469,6 +481,11 @@ precTimeTest = ExprTest "prec_time" $
         dt_sum = prec 0 (dt_sum + dt)
     in almostEqual (uniform $ prec 0 time) (uniform dt_sum)
 
+precSequenceTest = ExprTest "prec_sequence" $
+    let t = prec (0 :: GLExpr d Int) (t + 1)
+        tp = uniform $ array $ take 20 $ iterate (prec t) t
+    in tp .! 19 .== uniform t - 19
+
 
 -- Shader-specific tests
 
@@ -531,16 +548,6 @@ iteratedGlFuncTest = ExprTest "iterated_glFunc" $
         h = 40
     in iterate f (1 :: GLExpr d Int) !! h .== 2^h
 
-
--- Other miscellaneous tests
-
-vecArithmeticTest = ExprTest "vector_arithmetic" $
-    2 .* vec4 1 2 3 4 - 3 * vec4 1 2 3 4 .== - (vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)) .&&
-    1 .* abs (vec4 1 1 1 1) - abs (-1) .== (vec4 0 0 0 0 :: GLExpr d (Vec 4 Int))
-
-trigIdentTest = ExprTest "trigonometric_identities" $
-    let x0 = 0.1234 :: GLExpr d Float
-    in almostEqual (pow (sin x0) 2 + pow (cos x0) 2) 1
 
 
 runTests :: Test -> IO ()

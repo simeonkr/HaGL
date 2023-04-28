@@ -10,6 +10,7 @@ module Graphics.HEGL.GLType (
     GLPrim(..), 
     GLSingle, 
     GLNumeric, 
+    GLSigned,
     GLFloating, 
     GLSingleNumeric, 
     GLInteger,
@@ -824,7 +825,7 @@ instance GLPrim Int where
 instance GLPrim UInt where
     cast = toEnum . fromEnum
 instance GLPrim Bool where
-    cast = toEnum . fromEnum
+    cast = (/= toEnum 0)
 
 class (GLPrim t, Storable t, Enum t, Eq t, Ord t) => GLSingle t
 instance GLSingle Float
@@ -837,12 +838,18 @@ class (GLPrim t, Num t) => GLNumeric t where
 instance GLNumeric Float where genDiv = (/)
 instance GLNumeric Double where genDiv = (/)
 instance GLNumeric Int where genDiv = div
+instance GLNumeric UInt where genDiv = div
 
-class (GLNumeric t, RealFrac t, Floating t) => GLFloating t
+class GLNumeric t => GLSigned t where
+instance GLSigned Float
+instance GLSigned Double
+instance GLSigned Int
+
+class (GLSigned t, RealFrac t, Floating t) => GLFloating t
 instance GLFloating Float
 instance GLFloating Double
 
-class GLNumeric t => GLSingleNumeric t
+class GLSigned t => GLSingleNumeric t
 instance GLSingleNumeric Float
 instance GLSingleNumeric Int
 

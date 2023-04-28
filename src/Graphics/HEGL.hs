@@ -90,7 +90,9 @@ module Graphics.HEGL (
     -- ** Numeric operators
     (./),
     (.%),
-    -- ** Boolean operators
+    (.*),
+    (.@),
+    -- ** Boolean operators and comparison functions
     (.<),
     (.<=),
     (.>),
@@ -102,15 +104,13 @@ module Graphics.HEGL (
     (.^^),
     Graphics.HEGL.not,
     cond,
-    neg,
     -- ** Bitwise operators
     (.<<),
     (.>>),
     (.&),
     (.|),
     (.^),
-    (.*),
-    (.@),
+    neg,
     -- ** Angle and trigonometry functions
     radians,
     degrees,
@@ -226,13 +226,23 @@ instance GLPrim t => Enum (ConstExpr t) where
     toEnum x = mkExpr GLAtom $ Const (toEnum x)
     fromEnum = fromEnum . constEval
 
-instance (GLNumeric (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
+instance (GLSigned (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
     x + y = mkExpr GLGenExpr $ OpAdd x y
     x - y = mkExpr GLGenExpr $ OpSubt x y
     x * y = mkExpr GLGenExpr $ OpMult x y
     negate x = mkExpr GLGenExpr $ OpNeg x
     abs x = mkExpr GLGenExpr $ Abs x
     signum x = mkExpr GLGenExpr $ Sign x
+    fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
+
+instance {-# OVERLAPPING #-} Num (GLExpr d UInt) where
+    x + y = mkExpr GLGenExpr $ OpAdd x y
+    x - y = mkExpr GLGenExpr $ OpSubt x y
+    x * y = mkExpr GLGenExpr $ OpMult x y
+    negate x = mkExpr GLGenExpr $ OpCompl x
+    abs x = x
+    signum x = mkExpr GLGenExpr $ Cast $ 
+        mkExpr GLGenExpr $ OpGreaterThan x (mkExpr GLAtom $ Const 0)
     fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
 
 instance (GLFloating (GLElt t), GLType t, Fractional t) => Fractional (GLExpr d t) where
@@ -444,7 +454,6 @@ x .|| y = mkExpr GLGenExpr $ OpOr x y
 x .^^ y = mkExpr GLGenExpr $ OpXor x y
 not x = mkExpr GLGenExpr $ OpNot x
 cond x y z = mkExpr GLGenExpr $ OpCond x y z
-neg x = mkExpr GLGenExpr $ OpCompl x
 x .<< y = mkExpr GLGenExpr $ OpLshift x y
 x .>> y = mkExpr GLGenExpr $ OpRshift x y
 x .& y = mkExpr GLGenExpr $ OpBitAnd x y
@@ -452,6 +461,7 @@ x .| y = mkExpr GLGenExpr $ OpBitOr x y
 x .^ y = mkExpr GLGenExpr $ OpBitXor x y
 x .* y = mkExpr GLGenExpr $ OpScalarMult x y
 x .@ y = mkExpr GLGenExpr $ OpMatrixMult x y
+neg x = mkExpr GLGenExpr $ OpCompl x
 
 radians x = mkExpr GLGenExpr $ Radians x
 degrees x = mkExpr GLGenExpr $ Degrees x

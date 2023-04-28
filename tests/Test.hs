@@ -1,4 +1,4 @@
-import Prelude hiding (all, min, max, sin, cos, sqrt, length)
+import Prelude hiding (const, all, not, min, max, sin, cos, sqrt, length)
 
 import Test.HUnit
 import Control.Monad (when)
@@ -36,7 +36,7 @@ mkHostTest (ExprTest label expr) =
 -- verify that setting color to 'expr' produces a white image
 mkShaderTest :: ExprTest FragmentDomain -> Test
 mkShaderTest (ExprTest label expr) = 
-    mkObjTest $ ObjTest label $ objFromImage $ Prelude.const $ cast expr .* 1
+    mkObjTest $ ObjTest label $ objFromImage $ \_ -> cast expr .* 1
 
 -- verify that trying to set color to 'expr' throws the expected exception
 mkShaderExceptionTest :: ExprExceptionTest -> Test
@@ -109,7 +109,10 @@ genericTests = [
         arrayTest,
         rawConstrTest,
         glLiftTest,
-        booleanExprTest,
+        castTest,
+        matCastTest,
+        booleanExprsTest,
+        bitwiseExprsTest,
         lengthTest,
         distanceTest,
         dotTest,
@@ -266,12 +269,69 @@ glLiftIllegalTest = ExprExceptionTest "glLift_illegal" UnknownArraySize $
 
 -- Type conversion
 
+castTest = ExprTest "cast" $
+    cast (2 :: GLExpr d Int) .== true .&&
+    cast ((-1) :: GLExpr d Int) .== true .&&
+    cast (0 :: GLExpr d Int) .== false .&&
+    cast (2 :: GLExpr d UInt) .== true .&&
+    cast (0 :: GLExpr d UInt) .== false .&&
+    cast (1.7 :: GLExpr d Float) .== true .&&
+    cast (0.7 :: GLExpr d Float) .== true .&&
+    cast true .== (1 :: GLExpr d Int) .&&
+    cast false .== (0 :: GLExpr d Int) .&&
+    cast (1 :: GLExpr d UInt) .== (1 :: GLExpr d Int) .&&
+    cast (1.7 :: GLExpr d Float) .== (1 :: GLExpr d Int) .&&
+    cast ((-1.7) :: GLExpr d Float) .== ((-1) :: GLExpr d Int) .&&
+    almostEqual (cast true) (1 :: GLExpr d Float) .&&
+    almostEqual (cast false) (0 :: GLExpr d Float) .&&
+    almostEqual (cast (1 :: GLExpr d Int)) (1 :: GLExpr d Float) .&&
+    almostEqual (cast (1 :: GLExpr d UInt)) (1 :: GLExpr d Float)
+
+matCastTest = ExprTest "matCast" $
+    matCast (vec3 2 (-1) 0 :: GLExpr d (Vec 3 Int)) .== vec3 true true false .&&
+    almostVecEqual (matCast $ vec2 true false) (vec2 1 0 :: GLExpr d (Vec 2 Float))
 
 
 -- Boolean and bitwise expressions
 
-booleanExprTest = ExprTest "boolean_expression1" $
-    true .|| false .|| true .&& false .|| false .== true
+booleanExprsTest = ExprTest "boolean_expressions" $
+    (-1 :: GLExpr d Int) .< 0 .&&
+    (-1 :: GLExpr d Int) .<= 0 .&&
+    (-1 :: GLExpr d Int) .<= -1 .&&
+    (1 :: GLExpr d Int) .> 0 .&&
+    (1 :: GLExpr d Int) .>= 0 .&&
+    (1 :: GLExpr d Int) .>= 1 .&&
+    (1 :: GLExpr d Int) .== 1 .&&
+    (0 :: GLExpr d Int) ./= 1 .&&
+    (true .&& true) .== true .&&
+    (true .&& false) .== false .&&
+    (false .&& true) .== false .&&
+    (false .&& false) .== false .&&
+    (true  .|| true) .== true .&&
+    (true .|| false) .== true .&& 
+    (false .|| true) .== true .&&
+    (false .|| false) .== false .&&
+    (true .^^ true) .== false .&&
+    (true .^^ false) .== true .&&
+    (false .^^ true) .== true .&&
+    (false .^^ false) .== false .&&
+    not true .== false .&&
+    not false .== true .&&
+    cond true (2 :: GLExpr d Int) 1 .== 2 .&&
+    cond false (2 :: GLExpr d Int) 1 .== 1    
+
+
+bitwiseExprsTest = ExprTest "bitwise_expressions" $
+    (((7 :: GLExpr d Int) .<< 3) .>> 3) .== 7 .&&
+    ((7 :: GLExpr d Int) .>> 3) .== 0 .&&
+    ((12 :: GLExpr d Int) .& 10) .== 8 .&&
+    ((12 :: GLExpr d Int) .| 10) .== 14 .&&
+    ((12 :: GLExpr d Int) .^ 10) .== 6 .&&
+    (neg . neg) (12345678 :: GLExpr d Int) .== 12345678
+
+
+-- Num, Fractional, Floating
+
 
 
 -- Common math functions

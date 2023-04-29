@@ -293,6 +293,30 @@ instance GLType (Mat 2 2 Float) where
     uniformSet ul m = 
         makeMatSetter RawGL.glUniformMatrix2fv ul (toList $ transpose m)
 instance GLType (Mat 2 3 Float) where
+    showGlslVal m = printVec "mat3x2" (toList $ transpose m)
+    showGlslType = const "mat3x2"
+    glMap = fmap
+    glZipWith = liftA2
+    glZipWith3 = liftA3
+    eltSize = const 4
+    numComponents = const 6
+    arrayLen = const 1
+    getGlslType = const OpenGL.Float
+    uniformSet ul m = 
+        makeMatSetter RawGL.glUniformMatrix3x2fv ul (toList $ transpose m)
+instance GLType (Mat 2 4 Float) where
+    showGlslVal m = printVec "mat4x2" (toList $ transpose m)
+    showGlslType = const "mat4x2"
+    glMap = fmap
+    glZipWith = liftA2
+    glZipWith3 = liftA3
+    eltSize = const 4
+    numComponents = const 8
+    arrayLen = const 1
+    getGlslType = const OpenGL.Float
+    uniformSet ul m = 
+        makeMatSetter RawGL.glUniformMatrix4x2fv ul (toList $ transpose m)
+instance GLType (Mat 3 2 Float) where
     showGlslVal m = printVec "mat2x3" (toList $ transpose m)
     showGlslType = const "mat2x3"
     glMap = fmap
@@ -304,30 +328,6 @@ instance GLType (Mat 2 3 Float) where
     getGlslType = const OpenGL.Float
     uniformSet ul m = 
         makeMatSetter RawGL.glUniformMatrix2x3fv ul (toList $ transpose m)
-instance GLType (Mat 2 4 Float) where
-    showGlslVal m = printVec "mat2x4" (toList $ transpose m)
-    showGlslType = const "mat2x4"
-    glMap = fmap
-    glZipWith = liftA2
-    glZipWith3 = liftA3
-    eltSize = const 4
-    numComponents = const 8
-    arrayLen = const 1
-    getGlslType = const OpenGL.Float
-    uniformSet ul m = 
-        makeMatSetter RawGL.glUniformMatrix2x4fv ul (toList $ transpose m)
-instance GLType (Mat 3 2 Float) where
-    showGlslVal m = printVec "mat3x2" (toList $ transpose m)
-    showGlslType = const "mat3x2"
-    glMap = fmap
-    glZipWith = liftA2
-    glZipWith3 = liftA3
-    eltSize = const 4
-    numComponents = const 6
-    arrayLen = const 1
-    getGlslType = const OpenGL.Float
-    uniformSet ul m = 
-        makeMatSetter RawGL.glUniformMatrix2fv ul (toList $ transpose m)
 instance GLType (Mat 3 3 Float) where
     showGlslVal m = printVec "mat3x3" (toList $ transpose m)
     showGlslType = const "mat3x3"
@@ -341,30 +341,6 @@ instance GLType (Mat 3 3 Float) where
     uniformSet ul m = 
         makeMatSetter RawGL.glUniformMatrix3fv ul (toList $ transpose m)
 instance GLType (Mat 3 4 Float) where
-    showGlslVal m = printVec "mat3x4" (toList $ transpose m)
-    showGlslType = const "mat3x4"
-    glMap = fmap
-    glZipWith = liftA2
-    glZipWith3 = liftA3
-    eltSize = const 4
-    numComponents = const 12
-    arrayLen = const 1
-    getGlslType = const OpenGL.Float
-    uniformSet ul m = 
-        makeMatSetter RawGL.glUniformMatrix3x4fv ul (toList $ transpose m)
-instance GLType (Mat 4 2 Float) where
-    showGlslVal m = printVec "mat4x2" (toList $ transpose m)
-    showGlslType = const "mat4x2"
-    glMap = fmap
-    glZipWith = liftA2
-    glZipWith3 = liftA3
-    eltSize = const 4
-    numComponents = const 8
-    arrayLen = const 1
-    getGlslType = const OpenGL.Float
-    uniformSet ul m = 
-        makeMatSetter RawGL.glUniformMatrix4x2fv ul (toList $ transpose m)
-instance GLType (Mat 4 3 Float) where
     showGlslVal m = printVec "mat4x3" (toList $ transpose m)
     showGlslType = const "mat4x3"
     glMap = fmap
@@ -376,6 +352,30 @@ instance GLType (Mat 4 3 Float) where
     getGlslType = const OpenGL.Float
     uniformSet ul m = 
         makeMatSetter RawGL.glUniformMatrix4x3fv ul (toList $ transpose m)
+instance GLType (Mat 4 2 Float) where
+    showGlslVal m = printVec "mat2x4" (toList $ transpose m)
+    showGlslType = const "mat2x4"
+    glMap = fmap
+    glZipWith = liftA2
+    glZipWith3 = liftA3
+    eltSize = const 4
+    numComponents = const 8
+    arrayLen = const 1
+    getGlslType = const OpenGL.Float
+    uniformSet ul m = 
+        makeMatSetter RawGL.glUniformMatrix2x4fv ul (toList $ transpose m)
+instance GLType (Mat 4 3 Float) where
+    showGlslVal m = printVec "mat3x4" (toList $ transpose m)
+    showGlslType = const "mat3x4"
+    glMap = fmap
+    glZipWith = liftA2
+    glZipWith3 = liftA3
+    eltSize = const 4
+    numComponents = const 12
+    arrayLen = const 1
+    getGlslType = const OpenGL.Float
+    uniformSet ul m = 
+        makeMatSetter RawGL.glUniformMatrix3x4fv ul (toList $ transpose m)
 instance GLType (Mat 4 4 Float) where
     showGlslVal m = printVec "mat4x4" (toList $ transpose m)
     showGlslType = const "mat4x4"
@@ -401,30 +401,6 @@ instance GLType (Mat 2 2 Double) where
     uniformSet ul m = 
         makeMatSetter RawGL.glUniformMatrix2dv ul (toList $ transpose m)
 instance GLType (Mat 2 3 Double) where
-    showGlslVal m = printVec "dmat2x3" (toList $ transpose m)
-    showGlslType = const "dmat2x3"
-    glMap = fmap
-    glZipWith = liftA2
-    glZipWith3 = liftA3
-    eltSize = const 8
-    numComponents = const 6
-    arrayLen = const 1
-    getGlslType = const OpenGL.Double
-    uniformSet ul m = 
-        makeMatSetter RawGL.glUniformMatrix2x3dv ul (toList $ transpose m)
-instance GLType (Mat 2 4 Double) where
-    showGlslVal m = printVec "dmat2x4" (toList $ transpose m)
-    showGlslType = const "dmat2x4"
-    glMap = fmap
-    glZipWith = liftA2
-    glZipWith3 = liftA3
-    eltSize = const 8
-    numComponents = const 8
-    arrayLen = const 1
-    getGlslType = const OpenGL.Double
-    uniformSet ul m = 
-        makeMatSetter RawGL.glUniformMatrix2x4dv ul (toList $ transpose m)
-instance GLType (Mat 3 2 Double) where
     showGlslVal m = printVec "dmat3x2" (toList $ transpose m)
     showGlslType = const "dmat3x2"
     glMap = fmap
@@ -436,6 +412,30 @@ instance GLType (Mat 3 2 Double) where
     getGlslType = const OpenGL.Double
     uniformSet ul m = 
         makeMatSetter RawGL.glUniformMatrix3x2dv ul (toList $ transpose m)
+instance GLType (Mat 2 4 Double) where
+    showGlslVal m = printVec "dmat4x2" (toList $ transpose m)
+    showGlslType = const "dmat4x2"
+    glMap = fmap
+    glZipWith = liftA2
+    glZipWith3 = liftA3
+    eltSize = const 8
+    numComponents = const 8
+    arrayLen = const 1
+    getGlslType = const OpenGL.Double
+    uniformSet ul m = 
+        makeMatSetter RawGL.glUniformMatrix4x2dv ul (toList $ transpose m)
+instance GLType (Mat 3 2 Double) where
+    showGlslVal m = printVec "dmat2x3" (toList $ transpose m)
+    showGlslType = const "dmat2x3"
+    glMap = fmap
+    glZipWith = liftA2
+    glZipWith3 = liftA3
+    eltSize = const 8
+    numComponents = const 6
+    arrayLen = const 1
+    getGlslType = const OpenGL.Double
+    uniformSet ul m = 
+        makeMatSetter RawGL.glUniformMatrix2x3dv ul (toList $ transpose m)
 instance GLType (Mat 3 3 Double) where
     showGlslVal m = printVec "dmat3x3" (toList $ transpose m)
     showGlslType = const "dmat3x3"
@@ -449,30 +449,6 @@ instance GLType (Mat 3 3 Double) where
     uniformSet ul m = 
         makeMatSetter RawGL.glUniformMatrix3dv ul (toList $ transpose m)
 instance GLType (Mat 3 4 Double) where
-    showGlslVal m = printVec "dmat3x4" (toList $ transpose m)
-    showGlslType = const "dmat3x4"
-    glMap = fmap
-    glZipWith = liftA2
-    glZipWith3 = liftA3
-    eltSize = const 8
-    numComponents = const 12
-    arrayLen = const 1
-    getGlslType = const OpenGL.Double
-    uniformSet ul m = 
-        makeMatSetter RawGL.glUniformMatrix3x4dv ul (toList $ transpose m)
-instance GLType (Mat 4 2 Double) where
-    showGlslVal m = printVec "dmat4x2" (toList $ transpose m)
-    showGlslType = const "dmat4x2"
-    glMap = fmap
-    glZipWith = liftA2
-    glZipWith3 = liftA3
-    eltSize = const 8
-    numComponents = const 8
-    arrayLen = const 1
-    getGlslType = const OpenGL.Double
-    uniformSet ul m = 
-        makeMatSetter RawGL.glUniformMatrix4x2dv ul (toList $ transpose m)
-instance GLType (Mat 4 3 Double) where
     showGlslVal m = printVec "dmat4x3" (toList $ transpose m)
     showGlslType = const "dmat4x3"
     glMap = fmap
@@ -484,6 +460,30 @@ instance GLType (Mat 4 3 Double) where
     getGlslType = const OpenGL.Double
     uniformSet ul m = 
         makeMatSetter RawGL.glUniformMatrix4x3dv ul (toList $ transpose m)
+instance GLType (Mat 4 2 Double) where
+    showGlslVal m = printVec "dmat2x4" (toList $ transpose m)
+    showGlslType = const "dmat2x4"
+    glMap = fmap
+    glZipWith = liftA2
+    glZipWith3 = liftA3
+    eltSize = const 8
+    numComponents = const 8
+    arrayLen = const 1
+    getGlslType = const OpenGL.Double
+    uniformSet ul m = 
+        makeMatSetter RawGL.glUniformMatrix2x4dv ul (toList $ transpose m)
+instance GLType (Mat 4 3 Double) where
+    showGlslVal m = printVec "dmat3x4" (toList $ transpose m)
+    showGlslType = const "dmat3x4"
+    glMap = fmap
+    glZipWith = liftA2
+    glZipWith3 = liftA3
+    eltSize = const 8
+    numComponents = const 12
+    arrayLen = const 1
+    getGlslType = const OpenGL.Double
+    uniformSet ul m = 
+        makeMatSetter RawGL.glUniformMatrix3x4dv ul (toList $ transpose m)
 instance GLType (Mat 4 4 Double) where
     showGlslVal m = printVec "dmat4x4" (toList $ transpose m)
     showGlslType = const "dmat4x4"

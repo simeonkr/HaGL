@@ -106,6 +106,14 @@ genericTests = [
         vec3Test,
         vec4Test,
         mat2Test,
+        mat3Test,
+        mat4Test,
+        mat2x3Test,
+        mat2x3Test,
+        mat3x2Test,
+        mat3x4Test,
+        mat4x2Test,
+        mat4x3Test,
         arrayTest,
         rawConstrTest,
         glLiftTest,
@@ -220,9 +228,64 @@ vec4Test = ExprTest "vec4" $
        v .== app ((xyz_ . xyz_) v) w
 
 mat2Test = ExprTest "mat2" $
-    let m = mat2 (vec2 1 3) (vec2 2 4) :: GLExpr d (Mat 2 2 Float)
-    in almostMatPx2Equal m (mat2 (col0 m) (col1 m))
+    let m = mat2 (vec2 1 2) (vec2 3 4) :: GLExpr d (Mat 2 2 Float)
+        (decon -> (c0, c1)) = m
+    in almostMatPx2Equal m (mat2 (col0 m) (col1 m)) .&&
+       almostMatPx2Equal m (mat2 c0 c1)
 
+mat3Test = ExprTest "mat3" $
+    let m = mat3 (vec3 1 2 3) (vec3 4 5 6) (vec3 7 8 9) :: GLExpr d (Mat 3 3 Float)
+        (decon -> (c0, c1, c2)) = m
+    in almostMatPx3Equal m (mat3 (col0 m) (col1 m) (col2 m)) .&&
+       almostMatPx3Equal m (mat3 c0 c1 c2) {-.&&
+       almostMatPx3Equal m ((mat3x2 c0 c1) $| c2) .&&
+       almostMatPx3Equal m (c0 $| (mat3x2 c1 c2))-}
+
+mat4Test = ExprTest "mat4" $
+    let m = mat4 (vec4 1 2 3 4) (vec4 5 6 7 8) 
+                 (vec4 9 10 11 12) (vec4 13 14 15 16) :: GLExpr d (Mat 4 4 Float)
+        (decon -> (c0, c1, c2, c3)) = m
+    in almostMatPx4Equal m (mat4 (col0 m) (col1 m) (col2 m) (col3 m)) .&&
+       almostMatPx4Equal m (mat4 c0 c1 c2 c3) {-.&&
+       almostMatPx4Equal m ((mat4x3 c0 c1 c2) $| c3) .&&
+       almostMatPx4Equal m ((mat4x2 c0 c1) $| (mat4x2 c2 c3)) .&&
+       almostMatPx4Equal m (c0 $| (mat4x3 c1 c2 c3))-}
+
+mat2x3Test = ExprTest "mat2x3" $
+    let m = mat2x3 (vec2 1 2) (vec2 3 4) (vec2 5 6) :: GLExpr d (Mat 2 3 Float)
+        (decon -> (c0, c1, c2)) = m
+    in almostMatPx3Equal m (mat2x3 (col0 m) (col1 m) (col2 m)) .&&
+       almostMatPx3Equal m (mat2x3 c0 c1 c2)
+
+mat2x4Test = ExprTest "mat2x4" $
+    let m = mat2x4 (vec2 1 2) (vec2 3 4) (vec2 5 6) (vec2 7 8) :: GLExpr d (Mat 2 4 Float)
+        (decon -> (c0, c1, c2, c3)) = m
+    in almostMatPx4Equal m (mat2x4 (col0 m) (col1 m) (col2 m) (col3 m)) .&&
+       almostMatPx4Equal m (mat2x4 c0 c1 c2 c3)
+
+mat3x2Test = ExprTest "mat3x2" $
+    let m = mat3x2 (vec3 1 2 3) (vec3 4 5 6) :: GLExpr d (Mat 3 2 Float)
+        (decon -> (c0, c1)) = m
+    in almostMatPx2Equal m (mat3x2 (col0 m) (col1 m)) .&&
+       almostMatPx2Equal m (mat3x2 c0 c1)
+
+mat3x4Test = ExprTest "mat3x4" $
+    let m = mat3x4 (vec3 1 2 3) (vec3 4 5 6) (vec3 7 8 9) (vec3 10 11 12) :: GLExpr d (Mat 3 4 Float)
+        (decon -> (c0, c1, c2, c3)) = m
+    in almostMatPx4Equal m (mat3x4 (col0 m) (col1 m) (col2 m) (col3 m)) .&&
+       almostMatPx4Equal m (mat3x4 c0 c1 c2 c3)
+
+mat4x2Test = ExprTest "mat4x2" $
+    let m = mat4x2 (vec4 1 2 3 4) (vec4 5 6 7 9) :: GLExpr d (Mat 4 2 Float)
+        (decon -> (c0, c1)) = m
+    in almostMatPx2Equal m (mat4x2 (col0 m) (col1 m)) .&&
+       almostMatPx2Equal m (mat4x2 c0 c1)
+
+mat4x3Test = ExprTest "mat4x3" $
+    let m = mat4x3 (vec4 1 2 3 4) (vec4 5 6 7 8) (vec4 9 10 11 12) :: GLExpr d (Mat 4 3 Float)
+        (decon -> (c0, c1, c2)) = m
+    in almostMatPx3Equal m (mat4x3 (col0 m) (col1 m) (col2 m)) .&&
+       almostMatPx3Equal m (mat4x3 c0 c1 c2)
 
 -- Arrays
 
@@ -332,6 +395,17 @@ bitwiseExprsTest = ExprTest "bitwise_expressions" $
 
 -- Num, Fractional, Floating
 
+numTest = ExprTest "num_test" $
+    true
+
+numUnsignedTest = ExprTest "num_unsigned" $
+    true
+
+fractionalTest = ExprTest "fractional_test" $
+    true
+
+floatingTest = ExprTest "floating_test" $
+    true
 
 
 -- Common math functions
@@ -518,6 +592,8 @@ intVecUniformTest = ExprTest "int_vec_uniform" $
 floatMatUniformTest = ExprTest "float_mat_uniform" $
     let m2 = mat2 (vec2 1 3) (vec2 2 4) :: GLExpr d (Mat 2 2 Float)
     in almostMatPx2Equal (uniform m2) m2
+
+-- TODO: one uniform test for each GLType
 
 precTrivialTest = ExprTest "prec_trivial" $
     let x = prec (0 :: GLExpr d Int) x

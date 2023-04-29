@@ -120,8 +120,6 @@ eval (GLGenExpr _ (App xs x)) = withEv2 xs x $ \xs x ->
     return $ vertConcat xs (x %| m0)
 eval (GLGenExpr _ (Conc xs ys)) = withEv2 xs ys $ \xs ys ->
     return $ vertConcat xs ys
-eval (GLGenExpr _ (HorConc xs ys)) = withEv2 xs ys $ \xs ys ->
-    return $ horConcat xs ys
 eval (GLGenExpr _ (GLArray xs)) = 
     mapM cachedEval xs
 

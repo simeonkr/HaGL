@@ -105,7 +105,6 @@ toGLAst e@(GLGenExpr id (GLMat4x4 x y z w)) = mkGLExpr id e (showGlslType e) [to
 toGLAst e@(GLGenExpr id (Pre x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (App x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (Conc x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
-toGLAst e@(GLGenExpr id (HorConc x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 -- FIXME: temporary patch-up to make printGLAST work
 toGLAst e@(GLGenExpr id (GLArray xs)) = mkGLExpr id e (showGlslType e) []
 

@@ -121,13 +121,13 @@ eltAt (Mat xs) (i, j) = xs ! (i, j)
 
 eltsAt :: Mat p q t -> FinList m (Int, Int) -> Vec m t
 eltsAt (Mat xs) fl = Mat $ listArray ((0, 0), (m-1, 0)) vs where
-    vs =  [xs ! ind | ind <- inds]
+    vs = [xs ! ind | ind <- inds]
     inds = flToList fl
     m = Data.List.length inds
 
-matCol :: Mat p q t -> Int -> Vec p t
+matCol :: Show t => Mat p q t -> Int -> Vec p t
 matCol (Mat xs) j = Mat $ listArray ((0, 0), (p, 0)) vs where
-    vs =  [xs ! (i, j) | i <- [0..p]]
+    vs = [xs ! (i, j) | i <- [0..p]]
     ((0, 0), (p, _)) = bounds xs
 
 

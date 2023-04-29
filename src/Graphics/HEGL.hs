@@ -18,7 +18,6 @@ module Graphics.HEGL (
     UInt,
     Mat,
     Vec,
-    RowVec,
     -- ** Raw vector/matrix constructors
     -- | Usually only useful for loading data from externally computed arrays via lifts.
     fromMapping,
@@ -61,7 +60,6 @@ module Graphics.HEGL (
     pre,
     app,
     ($-),
-    ($|),
     array,
     -- * Deconstruction and indexing
     Deconstructible(..),
@@ -207,7 +205,7 @@ module Graphics.HEGL (
 import qualified Graphics.Rendering.OpenGL as OpenGL
 
 import Graphics.HEGL.TH.HEGL (gen2DCoordDecls, gen3DCoordDecls)
-import Graphics.HEGL.Numerical (Mat, Vec, RowVec, fromMapping, fromList)
+import Graphics.HEGL.Numerical (Mat, Vec, fromMapping, fromList)
 import Graphics.HEGL.GLType
 import Graphics.HEGL.GLExpr
 import Graphics.HEGL.ExprID (genID)
@@ -329,10 +327,8 @@ mat4x4 x y z w = mkExpr GLGenExpr $ GLMat4x4 x y z w
 pre x y = mkExpr GLGenExpr $ Pre x y
 app x y = mkExpr GLGenExpr $ App x y
 
-infixr 9 $|
 infixr 8 $-
 
-x $| y = mkExpr GLGenExpr $ HorConc x y
 x $- y = mkExpr GLGenExpr $ Conc x y
 
 array xs = mkExpr GLGenExpr $ GLArray xs

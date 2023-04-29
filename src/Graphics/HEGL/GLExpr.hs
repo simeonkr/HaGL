@@ -137,8 +137,6 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d (Vec n t) -> GLExpr d t -> GLGenExpr d (Vec (n + 1) t)
     Conc :: (GLPrim t, GLType (Vec m t), GLType (Vec n t), GLType (Vec (m + n) t)) => 
         GLExpr d (Vec m t) -> GLExpr d (Vec n t) -> GLGenExpr d (Vec (m + n) t)
-    HorConc :: (GLPrim t, GLType (Mat p q1 t), GLType (Mat p q2 t), GLType (Mat p (q1 + q2) t)) => 
-        GLExpr d (Mat p q1 t) -> GLExpr d (Mat p q2 t) -> GLGenExpr d (Mat p (q1 + q2) t)
     GLArray :: GLType [t] =>
         [GLExpr HostDomain t] -> GLGenExpr HostDomain [t]
 
@@ -146,7 +144,7 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLCoord m -> GLExpr d (Vec n t) -> GLGenExpr d t
     OpCoordMulti :: (GLPrim t, GLType (Vec n t), GLType (Vec l t), m <= n) =>
         GLCoordList l m -> GLExpr d (Vec n t) -> GLGenExpr d (Vec l t)
-    OpCol :: (GLPrim t, GLType (Mat r c t), GLType (Vec r t), m <= c) =>
+    OpCol :: (GLPrim t, GLType (Mat r c t), GLType (Vec r t), m + 1 <= c) =>
         GLCol m -> GLExpr d (Mat r c t) -> GLGenExpr d (Vec r t)
     OpArrayElt :: (GLType [t], GLType t) =>
         GLExpr d [t] -> GLExpr d Int -> GLGenExpr d t

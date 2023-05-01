@@ -520,8 +520,8 @@ instance GLType [Vec 2 Float] where
     uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform2fv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 3 Float] where
-    showGlslVal xs = "vec2[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
-    showGlslType = const "vec2[]"
+    showGlslVal xs = "vec3[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
+    showGlslType = const "vec3[]"
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
@@ -532,8 +532,8 @@ instance GLType [Vec 3 Float] where
     uniformSet ul xs = let xs' = concatMap toList xs in
         withArray xs' $ RawGL.glUniform3fv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 4 Float] where
-    showGlslVal xs = "vec2[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
-    showGlslType = const "vec2[]"
+    showGlslVal xs = "vec4[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
+    showGlslType = const "vec4[]"
     glMap = fmap
     glZipWith = liftA2
     glZipWith3 = liftA3
@@ -626,7 +626,7 @@ instance GLType [Vec 3 Int] where
     numComponents = const 3
     getGlslType = const OpenGL.Int
     uniformSet ul xs = let xs' = map toEnum $ concatMap toList xs in
-        withArray xs' $ RawGL.glUniform2iv ul (fromIntegral $ Prelude.length xs')
+        withArray xs' $ RawGL.glUniform3iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [Vec 4 Int] where
     showGlslVal xs = "ivec4[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
     showGlslType = const "ivec4[]"
@@ -638,7 +638,7 @@ instance GLType [Vec 4 Int] where
     numComponents = const 4
     getGlslType = const OpenGL.Int
     uniformSet ul xs = let xs' = map toEnum $ concatMap toList xs in
-        withArray xs' $ RawGL.glUniform2iv ul (fromIntegral $ Prelude.length xs')
+        withArray xs' $ RawGL.glUniform4iv ul (fromIntegral $ Prelude.length xs')
 instance GLType [UInt] where
     showGlslVal xs = "uint[](" ++ intercalate ", " (map showGlslVal xs) ++ ")"
     showGlslType = const "uint[]"

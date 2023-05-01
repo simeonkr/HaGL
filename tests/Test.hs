@@ -166,6 +166,22 @@ genericTests = [
         uniformMat3x4Test,
         uniformMat4x2Test,
         uniformMat4x3Test,
+        uniformFloatArrayTest,
+        uniformVec2ArrayTest,
+        uniformVec3ArrayTest,
+        uniformVec4ArrayTest,
+        uniformIntArrayTest,
+        uniformIntVec2ArrayTest,
+        uniformIntVec3ArrayTest,
+        uniformIntVec4ArrayTest,
+        uniformUIntArrayTest,
+        uniformUIntVec2ArrayTest,
+        uniformUIntVec3ArrayTest,
+        uniformUIntVec4ArrayTest,
+        uniformBoolArrayTest,
+        uniformBoolVec2ArrayTest,
+        uniformBoolVec3ArrayTest,
+        uniformBoolVec4ArrayTest,
         exponentialExprTreeTest,
         iteratedGlFuncTest
     ]
@@ -700,6 +716,70 @@ uniformMat4x2Test = ExprTest "uniform_mat4x2" $
 uniformMat4x3Test = ExprTest "uniform_mat4x3" $
     let m = mat4x3 (vec4 1 2 3 4) (vec4 5 6 7 8) (vec4 9 10 11 12) :: GLExpr d (Mat 4 3 Float)
     in almostMatPx3Equal (uniform m) (mat4x3 (vec4 1 2 3 4) (vec4 5 6 7 8) (vec4 9 10 11 12))
+
+uniformFloatArrayTest = ExprTest "uniform_float[]" $
+    let a = map (+ 0.2345) [1, 2, 3, 4] :: [GLExpr d Float]
+    in foldr (\i e -> e .&& almostEqual (uniform (array a) .! const i) (a !! (fromEnum i))) true [0..3]
+    
+uniformVec2ArrayTest = ExprTest "uniform_vec2[]" $
+    let a = map (+ 0.2345) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Float)]
+    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! const i) (a !! (fromEnum i))) true [0..3]
+    
+uniformVec3ArrayTest = ExprTest "uniform_vec3[]" $
+    let a = map (+ 0.2345) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 Float)]
+    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! const i) (a !! (fromEnum i))) true [0..3]
+    
+uniformVec4ArrayTest = ExprTest "uniform_vec4[]" $
+    let a = map (+ 0.2345) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 Float)]
+    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! const i) (a !! (fromEnum i))) true [0..3]
+
+uniformIntArrayTest = ExprTest "uniform_int[]" $
+    let a = map (+ 2_000_000_000) [1, 2, 3, 4] :: [GLExpr d Int]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformIntVec2ArrayTest = ExprTest "uniform_ivec2[]" $
+    let a = map (+ 2_000_000_000) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Int)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformIntVec3ArrayTest = ExprTest "uniform_ivec3[]" $
+    let a = map (+ 2_000_000_000) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 Int)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformIntVec4ArrayTest = ExprTest "uniform_ivec4[]" $
+    let a = map (+ 2_000_000_000) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 Int)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+
+uniformUIntArrayTest = ExprTest "uniform_uint[]" $
+    let a = map (+ 4_000_000_000) [1, 2, 3, 4] :: [GLExpr d UInt]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformUIntVec2ArrayTest = ExprTest "uniform_uvec2[]" $
+    let a = map (+ 4_000_000_000) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 UInt)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformUIntVec3ArrayTest = ExprTest "uniform_uvec3[]" $
+    let a = map (+ 4_000_000_000) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 UInt)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformUIntVec4ArrayTest = ExprTest "uniform_uvec4[]" $
+    let a = map (+ 4_000_000_000) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 UInt)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+
+uniformBoolArrayTest = ExprTest "uniform_bool[]" $
+    let a = [true, false, true, false] :: [GLExpr d Bool]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformBoolVec2ArrayTest = ExprTest "uniform_bvec2[]" $
+    let a = [vec2 true true, vec2 true false, vec2 false true, vec2 false false] :: [GLExpr d (Vec 2 Bool)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformBoolVec3ArrayTest = ExprTest "uniform_bvec3[]" $
+    let a = [vec3 true true true, vec3 true true false, vec3 true false true, vec3 true false false] :: [GLExpr d (Vec 3 Bool)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    
+uniformBoolVec4ArrayTest = ExprTest "uniform_bvec4[]" $
+    let a = [vec4 true true true true, vec4 true true true false, vec4 true true false true, vec4 true true false false] :: [GLExpr d (Vec 4 Bool)]
+    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
 
 precTrivialTest = ExprTest "prec_trivial" $
     let x = prec (0 :: GLExpr d Int) x

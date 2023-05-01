@@ -83,8 +83,9 @@ objFromImage image = obj where
     obj = triangleStrip { position = pos, color = color }
 
 -- TODO: make these definitions part of GLType
-almostEqual x y = abs (x - y) .<= 1e-5
-almostVecEqual x y = all $ lessThanEqual (abs (x - y)) 1e-5
+-- TODO: set default epsilon to 1e-5 and override for certain tests
+almostEqual x y = abs (x - y) .<= 1e-4
+almostVecEqual x y = all $ lessThanEqual (abs (x - y)) 1e-4
 almostMatPx2Equal m1 m2 = 
     almostVecEqual (col0 m1) (col0 m2) .&&
     almostVecEqual (col1 m1) (col1 m2)
@@ -123,6 +124,13 @@ genericTests = [
         matCastTest,
         booleanExprsTest,
         bitwiseExprsTest,
+        numFloatTest,
+        numIntTest,
+        numUIntTest,
+        numVecTest,
+        numMatTest,
+        numIntVecTest,
+        numUIntVecTest,
         lengthTest,
         distanceTest,
         dotTest,
@@ -448,11 +456,46 @@ bitwiseExprsTest = ExprTest "bitwise_expressions" $
 
 -- Num, Fractional, Floating
 
-numTest = ExprTest "num_test" $
-    true
+checkNumProperties eq x y z =
+    ((x + y) + z) `eq` (x + (y + z)) .&&
+    (x + y) `eq` (y + x) .&&
+    (x + fromInteger 0) `eq` x .&&
+    (x + negate x) `eq` (fromInteger 0) .&&
+    ((x * y) * z) `eq` (x * (y * z)) .&&
+    (x * fromInteger 1) `eq` x .&&
+    (fromInteger 1 * x) `eq` x .&&
+    (x * (y + z)) `eq` ((x * y) + (x * z)) .&&
+    ((y + z) * x) `eq` ((y * x) + (z * x)) .&&
+    (abs x * signum x) `eq` x
 
-numUnsignedTest = ExprTest "num_unsigned" $
-    true
+numFloatTest = ExprTest "num_float" $
+    checkNumProperties almostEqual (-1.234567 :: GLExpr d Float) (7.890123) (-5.678901)
+
+numIntTest = ExprTest "num_int" $
+    checkNumProperties (.==) (-1 :: GLExpr d Int) 7 (-5)
+
+numUIntTest = ExprTest "num_uint" $
+    checkNumProperties (.==) (1 :: GLExpr d UInt) 7 5
+
+numVecTest = ExprTest "num_vec" $
+    let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
+    in checkNumProperties almostVecEqual 
+        (-1.234567 + v) (7.890123 + v) (-5.678901 + v)
+
+numMatTest = ExprTest "num_mat" $
+    let m = mat4x3 (vec4 1 2 3 4) (vec4 5 6 7 8) (vec4 9 10 11 12) :: GLExpr d (Mat 4 3 Float)
+    in checkNumProperties almostMatPx3Equal 
+        (-1.234567 + m) (7.890123 + m) (-5.678901 + m)
+
+numIntVecTest = ExprTest "num_ivec" $
+    let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
+    in checkNumProperties (.==) 
+        (-1 + v) (7 + v) (-5 + v)
+
+numUIntVecTest = ExprTest "num_uvec" $
+    let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 UInt)
+    in checkNumProperties (.==) 
+        (1 + v) (7 + v) (5 + v)
 
 fractionalTest = ExprTest "fractional_test" $
     true

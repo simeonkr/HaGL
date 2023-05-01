@@ -820,9 +820,9 @@ instance GLPrim Float where
 instance GLPrim Double where
     cast = fromIntegral . fromEnum
 instance GLPrim Int where
-    cast = toEnum . fromEnum
+    cast = fromEnum
 instance GLPrim UInt where
-    cast = toEnum . fromEnum
+    cast = fromIntegral . fromEnum
 instance GLPrim Bool where
     cast = (/= toEnum 0)
 

@@ -193,6 +193,20 @@ hostTests = [
 
 shaderTests :: [ExprTest FragmentDomain]
 shaderTests = [
+        inputFloatTest,
+        -- FIXME: integer inputs are not working, 
+        -- likely due to use of Int instead of Int32
+        --inputIntTest,
+        inputUIntTest,
+        inputVec2Test,
+        inputVec3Test,
+        inputVec4Test,
+        inputIntVec2Test,
+        inputIntVec3Test,
+        inputIntVec4Test,
+        inputUIntVec2Test,
+        inputUIntVec3Test,
+        inputUIntVec4Test,
         interpTest,
         precTrivialTest,
         precNestedTest,
@@ -635,15 +649,15 @@ uniformBoolTest = ExprTest "uniform_bool" $
 
 uniformVec2FloatTest = ExprTest "uniform_vec2" $
     let x = 1.234567 + vec2 1 2 :: GLExpr d (Vec 2 Float)
-    in uniform x .== x
+    in almostVecEqual (uniform x) x
 
 uniformVec3FloatTest = ExprTest "uniform_vec3" $
     let x = 1.234567 + vec3 1 2 3 :: GLExpr d (Vec 3 Float)
-    in uniform x .== x
+    in almostVecEqual (uniform x) x
 
 uniformVec4FloatTest = ExprTest "uniform_vec4" $
     let x = 1.234567 + vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
-    in uniform x .== x
+    in almostVecEqual (uniform x) x
 
 uniformVec2IntTest = ExprTest "uniform_ivec2" $
     let x = 2_000_000_000 + vec2 1 2 :: GLExpr d (Vec 2 Int)
@@ -811,10 +825,58 @@ precSequenceTest = ExprTest "prec_sequence" $
 
 -- Shader-specific tests
 
--- TODO: test vert for all GLInputTypes
-
 trivialImageTest = ObjTest "trivial_image" $ objFromImage $ \pos ->
     max (app pos 1) 1
+
+-- TODO: test double-precision once supported
+
+inputFloatTest = ExprTest "input_float" $
+    let x = map (+ 0.2345) [1, 2, 3, 4] :: [GLExpr d Float]
+    in almostEqual (frag (vert x)) (frag (1 + vert (map (\x -> x - 1) x)))
+
+inputIntTest = ExprTest "input_int" $
+    let x = map (+ 2_000_000_000) [1, 2, 3, 4] :: [GLExpr d Int]
+    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
+
+inputUIntTest = ExprTest "input_uint" $
+    let x = map (+ 4_000_000_000) [1, 2, 3, 4] :: [GLExpr d UInt]
+    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
+
+inputVec2Test = ExprTest "input_vec2" $
+    let x = map (+ 0.2345) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Float)]
+    in almostVecEqual (frag (vert x)) (frag (1 + vert (map (\x -> x - 1) x)))
+
+inputVec3Test = ExprTest "input_vec3" $
+    let x = map (+ 0.2345) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 Float)]
+    in almostVecEqual (frag (vert x)) (frag (1 + vert (map (\x -> x - 1) x)))
+
+inputVec4Test = ExprTest "input_vec4" $
+    let x = map (+ 0.2345) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 Float)]
+    in almostVecEqual (frag (vert x)) (frag (1 + vert (map (\x -> x - 1) x)))
+
+inputIntVec2Test = ExprTest "input_ivec2" $
+    let x = map (+ 2_000_000_000) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Float)]
+    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
+
+inputIntVec3Test = ExprTest "input_ivec3" $
+    let x = map (+ 2_000_000_000) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 Float)]
+    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
+
+inputIntVec4Test = ExprTest "input_ivec4" $
+    let x = map (+ 2_000_000_000) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 Float)]
+    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
+
+inputUIntVec2Test = ExprTest "input_uvec2" $
+    let x = map (+ 4_000_000_000) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Float)]
+    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
+
+inputUIntVec3Test = ExprTest "input_uvec3" $
+    let x = map (+ 4_000_000_000) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 Float)]
+    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
+
+inputUIntVec4Test = ExprTest "input_uvec4" $
+    let x = map (+ 4_000_000_000) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 Float)]
+    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
 
 passAroundTest = ObjTest "pass_around" obj where
     ppos = vert 

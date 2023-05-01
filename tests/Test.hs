@@ -1,3 +1,5 @@
+{-# LANGUAGE NumericUnderscores #-}
+
 import Prelude hiding (const, all, not, min, max, sin, cos, sqrt, length)
 
 import Test.HUnit
@@ -140,9 +142,30 @@ genericTests = [
         glFuncMandelbrotTest,
         glFuncNestedCondTest,
         glFuncVarCaptureTest,
-        uniformTrivialTest,
-        intVecUniformTest,
-        floatMatUniformTest,
+        uniformFloatTest,
+        uniformUIntTest,
+        uniformBoolTest,
+        uniformVec2FloatTest,
+        uniformVec3FloatTest,
+        uniformVec4FloatTest,
+        uniformVec2IntTest,
+        uniformVec3IntTest,
+        uniformVec4IntTest,
+        uniformVec2UIntTest,
+        uniformVec3UIntTest,
+        uniformVec4UIntTest,
+        uniformVec2BoolTest,
+        uniformVec3BoolTest,
+        uniformVec4BoolTest,
+        uniformMat2Test,
+        uniformMat3Test,
+        uniformMat4Test,
+        uniformMat2x3Test,
+        uniformMat2x4Test,
+        uniformMat3x2Test,
+        uniformMat3x4Test,
+        uniformMat4x2Test,
+        uniformMat4x3Test,
         exponentialExprTreeTest,
         iteratedGlFuncTest
     ]
@@ -578,22 +601,105 @@ glFuncMutRecIllegalTest = ExprExceptionTest "glFunc_mut_rec_call_illegal" Unsupp
 
 -- uniform, prec, & builtin I/O variables
 
-uniformTrivialTest = ExprTest "uniform_trivial" $
-    uniform (1 :: GLExpr d Int) .== 1
+-- TODO: test double-precision once supported
 
-intVecUniformTest = ExprTest "int_vec_uniform" $
-    let v2 = vec2 1 2 :: GLExpr d (Vec 2 Int)
-        v3 = vec3 1 2 3 :: GLExpr d (Vec 3 Int)
-        v4 = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
-    in uniform v2 .== v2 .&&
-       uniform v3 .== v3 .&&
-       uniform v4 .== v4
+uniformFloatTest = ExprTest "uniform_float" $
+    almostEqual (uniform (1.2345 :: GLExpr d Float)) 1.2345
 
-floatMatUniformTest = ExprTest "float_mat_uniform" $
-    let m2 = mat2 (vec2 1 3) (vec2 2 4) :: GLExpr d (Mat 2 2 Float)
-    in almostMatPx2Equal (uniform m2) m2
+uniformIntTest = ExprTest "uniform_int" $
+    let x = 2_000_000_000 :: GLExpr d Int
+    in uniform x .== x
 
--- TODO: one uniform test for each GLType
+uniformUIntTest = ExprTest "uniform_uint" $
+    let x = 4_000_000_000 :: GLExpr d UInt
+    in uniform x .== x
+
+uniformBoolTest = ExprTest "uniform_bool" $
+    uniform true .== true .&& uniform false .== false
+
+uniformVec2FloatTest = ExprTest "uniform_vec2" $
+    let x = 1.234567 + vec2 1 2 :: GLExpr d (Vec 2 Float)
+    in uniform x .== x
+
+uniformVec3FloatTest = ExprTest "uniform_vec3" $
+    let x = 1.234567 + vec3 1 2 3 :: GLExpr d (Vec 3 Float)
+    in uniform x .== x
+
+uniformVec4FloatTest = ExprTest "uniform_vec4" $
+    let x = 1.234567 + vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
+    in uniform x .== x
+
+uniformVec2IntTest = ExprTest "uniform_ivec2" $
+    let x = 2_000_000_000 + vec2 1 2 :: GLExpr d (Vec 2 Int)
+    in uniform x .== x
+
+uniformVec3IntTest = ExprTest "uniform_ivec3" $
+    let x = 2_000_000_000 + vec3 1 2 3 :: GLExpr d (Vec 3 Int)
+    in uniform x .== x
+
+uniformVec4IntTest = ExprTest "uniform_ivec4" $
+    let x = 2_000_000_000 + vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
+    in uniform x .== x
+
+uniformVec2UIntTest = ExprTest "uniform_uvec2" $
+    let x = vec2 4_000_000_000 4_000_000_001 :: GLExpr d (Vec 2 UInt)
+    in uniform x .== x
+
+uniformVec3UIntTest = ExprTest "uniform_uvec3" $
+    let x = 4_000_000_000 + vec3 1 2 3 :: GLExpr d (Vec 3 UInt)
+    in uniform x .== x
+
+uniformVec4UIntTest = ExprTest "uniform_uvec4" $
+    let x = 4_000_000_000 + vec4 1 2 3 4 :: GLExpr d (Vec 4 UInt)
+    in uniform x .== x
+
+uniformVec2BoolTest = ExprTest "uniform_bvec2" $
+    let x = vec2 true false :: GLExpr d (Vec 2 Bool)
+    in uniform x .== x
+
+uniformVec3BoolTest = ExprTest "uniform_bvec3" $
+    let x = vec3 false true false :: GLExpr d (Vec 3 Bool)
+    in uniform x .== x
+
+uniformVec4BoolTest = ExprTest "uniform_bvec4" $
+    let x = vec4 true false true false :: GLExpr d (Vec 4 Bool)
+    in uniform x .== x
+
+uniformMat2Test = ExprTest "uniform_mat2" $
+    let m = mat2 (vec2 1 2) (vec2 3 4) :: GLExpr d (Mat 2 2 Float)
+    in almostMatPx2Equal (uniform m) m
+
+uniformMat3Test = ExprTest "uniform_mat3" $
+    let m = mat3 (vec3 1 2 3) (vec3 4 5 6) (vec3 7 8 9) :: GLExpr d (Mat 3 3 Float)
+    in almostMatPx3Equal (uniform m) m
+
+uniformMat4Test = ExprTest "uniform_mat4" $
+    let m = mat4 (vec4 1 2 3 4) (vec4 5 6 7 8) (vec4 9 10 11 12) (vec4 13 14 15 16) :: GLExpr d (Mat 4 4 Float)
+    in almostMatPx4Equal (uniform m) m
+
+uniformMat2x3Test = ExprTest "uniform_mat2x3" $
+    let m = mat2x3 (vec2 1 2) (vec2 3 4) (vec2 5 6) :: GLExpr d (Mat 2 3 Float)
+    in almostMatPx3Equal (uniform m) m
+
+uniformMat2x4Test = ExprTest "uniform_mat2x4" $
+    let m = mat2x4 (vec2 1 2) (vec2 3 4) (vec2 5 6) (vec2 7 8) :: GLExpr d (Mat 2 4 Float)
+    in almostMatPx4Equal (uniform m) m
+
+uniformMat3x2Test = ExprTest "uniform_mat3x2" $
+    let m = mat3x2 (vec3 1 2 3) (vec3 4 5 6) :: GLExpr d (Mat 3 2 Float)
+    in almostMatPx2Equal (uniform m) m
+
+uniformMat3x4Test = ExprTest "uniform_mat3x4" $
+    let m = mat3x4 (vec3 1 2 3) (vec3 4 5 6) (vec3 7 8 9) (vec3 10 11 12) :: GLExpr d (Mat 3 4 Float)
+    in almostMatPx4Equal (uniform m) m
+
+uniformMat4x2Test = ExprTest "uniform_mat4x2" $
+    let m = mat4x2 (vec4 1 2 3 4) (vec4 5 6 7 8) :: GLExpr d (Mat 4 2 Float)
+    in almostMatPx2Equal (uniform m) m
+
+uniformMat4x3Test = ExprTest "uniform_mat4x3" $
+    let m = mat4x3 (vec4 1 2 3 4) (vec4 5 6 7 8) (vec4 9 10 11 12) :: GLExpr d (Mat 4 3 Float)
+    in almostMatPx3Equal (uniform m) (mat4x3 (vec4 1 2 3 4) (vec4 5 6 7 8) (vec4 9 10 11 12))
 
 precTrivialTest = ExprTest "prec_trivial" $
     let x = prec (0 :: GLExpr d Int) x
@@ -624,6 +730,8 @@ precSequenceTest = ExprTest "prec_sequence" $
 
 
 -- Shader-specific tests
+
+-- TODO: test vert for all GLInputTypes
 
 trivialImageTest = ObjTest "trivial_image" $ objFromImage $ \pos ->
     max (app pos 1) 1

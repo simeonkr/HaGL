@@ -245,9 +245,9 @@ data GLGenExpr :: ShaderDomain -> * -> * where
     Inversesqrt :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
 
-    Abs :: (GLSigned (GLElt t), GLType t) => 
+    Abs :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
-    Sign :: (GLSigned (GLElt t), GLType t) => 
+    Sign :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
     Floor :: (GLFloating (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t

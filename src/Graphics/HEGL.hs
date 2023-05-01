@@ -202,6 +202,7 @@ module Graphics.HEGL (
     defaultGlutOptions,
 ) where
 
+import GHC.TypeNats (KnownNat)
 import qualified Graphics.Rendering.OpenGL as OpenGL
 
 import Graphics.HEGL.TH.HEGL (gen2DCoordDecls, gen3DCoordDecls)
@@ -224,7 +225,7 @@ instance GLPrim t => Enum (ConstExpr t) where
     toEnum x = mkExpr GLAtom $ Const (toEnum x)
     fromEnum = fromEnum . constEval
 
-instance (GLSigned (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
+instance (GLNumeric (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
     x + y = mkExpr GLGenExpr $ OpAdd x y
     x - y = mkExpr GLGenExpr $ OpSubt x y
     x * y = mkExpr GLGenExpr $ OpMult x y
@@ -233,15 +234,31 @@ instance (GLSigned (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
     signum x = mkExpr GLGenExpr $ Sign x
     fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
 
+-- unsigned integers need special treatment since Haskell permits
+-- signed operations on them whereas glsl does not
 instance {-# OVERLAPPING #-} Num (GLExpr d UInt) where
     x + y = mkExpr GLGenExpr $ OpAdd x y
     x - y = mkExpr GLGenExpr $ OpSubt x y
     x * y = mkExpr GLGenExpr $ OpMult x y
-    negate x = mkExpr GLGenExpr $ OpCompl x
+    negate x = mkExpr GLGenExpr $ Cast $ mkExpr GLGenExpr $ OpNeg
+        (mkExpr GLGenExpr $ Cast x :: GLExpr _ Int)
     abs x = x
-    signum x = mkExpr GLGenExpr $ Cast $ 
-        mkExpr GLGenExpr $ OpGreaterThan x (mkExpr GLAtom $ Const 0)
+    signum x = mkExpr GLGenExpr $ Cast
+        (mkExpr GLGenExpr $ Cast x :: GLExpr _ Bool)
     fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
+
+instance {-# OVERLAPPING #-} (GLType (Mat p q UInt), GLType (Mat p q Int), GLType (Mat p q Bool), 
+        Num (Mat p q UInt), KnownNat p, KnownNat q) => Num (GLExpr d (Mat p q UInt)) where
+    x + y = mkExpr GLGenExpr $ OpAdd x y
+    x - y = mkExpr GLGenExpr $ OpSubt x y
+    x * y = mkExpr GLGenExpr $ OpMult x y
+    negate x = mkExpr GLGenExpr $ MatCast $ mkExpr GLGenExpr $ OpNeg
+        (mkExpr GLGenExpr $ MatCast x :: GLExpr _ (Mat _ _ Int))
+    abs x = x
+    signum x = mkExpr GLGenExpr $ MatCast
+        (mkExpr GLGenExpr $ MatCast x :: GLExpr _ (Mat _ _ Bool))
+    fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
+-----------------------------------------------------------
 
 instance (GLFloating (GLElt t), GLType t, Fractional t) => Fractional (GLExpr d t) where
     x / y = mkExpr GLGenExpr $ OpDiv x y

@@ -10,7 +10,6 @@ module Graphics.HEGL.GLType (
     GLPrim(..), 
     GLSingle, 
     GLNumeric, 
-    GLSigned,
     GLFloating, 
     GLSingleNumeric, 
     GLInteger,
@@ -80,7 +79,7 @@ instance GLType Int where
     uniformSet i x = RawGL.glUniform1i i (toEnum x)
 instance GLType UInt where
     showGlslType = const "uint"
-    showGlslVal = show
+    showGlslVal x = show x ++ "u"
     glMap = id
     glZipWith = id
     glZipWith3 = id
@@ -840,16 +839,11 @@ instance GLNumeric Double where genDiv = (/)
 instance GLNumeric Int where genDiv = div
 instance GLNumeric UInt where genDiv = div
 
-class GLNumeric t => GLSigned t where
-instance GLSigned Float
-instance GLSigned Double
-instance GLSigned Int
-
-class (GLSigned t, RealFrac t, Floating t) => GLFloating t
+class (GLNumeric t, RealFrac t, Floating t) => GLFloating t
 instance GLFloating Float
 instance GLFloating Double
 
-class GLSigned t => GLSingleNumeric t
+class GLNumeric t => GLSingleNumeric t
 instance GLSingleNumeric Float
 instance GLSingleNumeric Int
 

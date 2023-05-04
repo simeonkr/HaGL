@@ -163,7 +163,7 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
     OpDiv :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    OpMod :: (GLInteger (GLElt t), GLType t) =>
+    OpMod :: (GLInteger (GLElt t), GLPrimOrVec t) =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
     OpNeg :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLGenExpr d t
@@ -202,71 +202,71 @@ data GLGenExpr :: ShaderDomain -> * -> * where
     OpMatrixMult :: (GLFloating t, GLType (Mat p q t), GLType (Mat q r t), GLType (Mat p r t)) => 
         GLExpr d (Mat p q t) -> GLExpr d (Mat q r t) -> GLGenExpr d (Mat p r t)
 
-    Radians :: (GLElt t ~ Float, GLType t) => 
+    Radians :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Degrees :: (GLElt t ~ Float, GLType t) => 
+    Degrees :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Sin :: (GLElt t ~ Float, GLType t) => 
+    Sin :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Cos :: (GLElt t ~ Float, GLType t) => 
+    Cos :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Tan :: (GLElt t ~ Float, GLType t) => 
+    Tan :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Asin :: (GLElt t ~ Float, GLType t) => 
+    Asin :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Acos :: (GLElt t ~ Float, GLType t) => 
+    Acos :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Atan :: (GLElt t ~ Float, GLType t) => 
+    Atan :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Sinh :: (GLElt t ~ Float, GLType t) => 
+    Sinh :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Cosh :: (GLElt t ~ Float, GLType t) => 
+    Cosh :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Tanh :: (GLElt t ~ Float, GLType t) => 
+    Tanh :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Asinh :: (GLElt t ~ Float, GLType t) => 
+    Asinh :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Acosh :: (GLElt t ~ Float, GLType t) => 
+    Acosh :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
-    Atanh :: (GLElt t ~ Float, GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-
-    Pow :: (GLElt t ~ Float, GLType t) =>
-        GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Exp :: (GLElt t ~ Float, GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Log :: (GLElt t ~ Float, GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Exp2 :: (GLElt t ~ Float, GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Log2 :: (GLElt t ~ Float, GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Sqrt :: (GLFloating (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Inversesqrt :: (GLFloating (GLElt t), GLType t) => 
+    Atanh :: (GLElt t ~ Float, GLPrimOrVec t) => 
         GLExpr d t -> GLGenExpr d t
 
-    Abs :: (GLNumeric (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Sign :: (GLNumeric (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Floor :: (GLFloating (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Trunc :: (GLFloating (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Round :: (GLFloating (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    RoundEven :: (GLFloating (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Ceil :: (GLFloating (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Fract :: (GLFloating (GLElt t), GLType t) => 
-        GLExpr d t -> GLGenExpr d t
-    Mod :: (GLFloating (GLElt t), GLType t) => 
+    Pow :: (GLElt t ~ Float, GLPrimOrVec t) =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Min :: (GLNumeric (GLElt t), GLType t) => 
+    Exp :: (GLElt t ~ Float, GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Log :: (GLElt t ~ Float, GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Exp2 :: (GLElt t ~ Float, GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Log2 :: (GLElt t ~ Float, GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Sqrt :: (GLFloating (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Inversesqrt :: (GLFloating (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+
+    Abs :: (GLSigned (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Sign :: (GLSigned (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Floor :: (GLFloating (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Trunc :: (GLFloating (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Round :: (GLFloating (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    RoundEven :: (GLFloating (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Ceil :: (GLFloating (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Fract :: (GLFloating (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLGenExpr d t
+    Mod :: (GLFloating (GLElt t), GLPrimOrVec t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Max :: (GLNumeric (GLElt t), GLType t) => 
+    Min :: (GLNumeric (GLElt t), GLPrimOrVec t) => 
+        GLExpr d t -> GLExpr d t -> GLGenExpr d t
+    Max :: (GLNumeric (GLElt t), GLPrimOrVec t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
     Clamp :: (GLNumeric (GLElt t), GLPrimOrVec t) => 
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d t

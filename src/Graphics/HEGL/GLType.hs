@@ -12,7 +12,8 @@ module Graphics.HEGL.GLType (
     GLElt,
     GLPrim(..), 
     GLSingle, 
-    GLNumeric, 
+    GLNumeric,
+    GLSigned,
     GLFloating, 
     GLSingleNumeric, 
     GLInteger,
@@ -860,11 +861,16 @@ instance GLNumeric Double where genDiv = (/)
 instance GLNumeric Int where genDiv = div
 instance GLNumeric UInt where genDiv = div
 
-class (GLNumeric t, RealFrac t, Floating t) => GLFloating t
+class GLNumeric t => GLSigned t where
+instance GLSigned Float
+instance GLSigned Double
+instance GLSigned Int
+
+class (GLSigned t, RealFrac t, Floating t) => GLFloating t
 instance GLFloating Float
 instance GLFloating Double
 
-class GLNumeric t => GLSingleNumeric t
+class GLSigned t => GLSingleNumeric t
 instance GLSingleNumeric Float
 instance GLSingleNumeric Int
 

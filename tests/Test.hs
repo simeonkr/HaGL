@@ -82,7 +82,7 @@ objFromImage image = obj where
     color = app (image fPos) 1
     obj = triangleStrip { position = pos, color = color }
 
--- TODO: make these definitions part of GLType
+-- TODO: make these definitions part of GLType & use a smarter error estimate
 almostEqual x y = abs (x - y) .<= 1e-5
 almostVecEqual x y = all $ lessThanEqual (abs (x - y)) 1e-5
 almostMatPx2Equal m1 m2 = 
@@ -125,17 +125,12 @@ genericTests = [
         bitwiseExprsTest,
         numFloatTest,
         numIntTest,
-        numUIntTest,
         numVecTest,
-        numMatTest,
         numIntVecTest,
-        numUIntVecTest,
         fractionalFloatTest,
         fractionalVecTest,
-        fractionalMatTest,
         floatingFloatTest,
         floatingVecTest,
-        floatingMatTest,
         lengthTest,
         distanceTest,
         dotTest,
@@ -401,19 +396,19 @@ castTest = ExprTest "cast" $
     cast (2 :: GLExpr d Int) .== true .&&
     cast ((-1) :: GLExpr d Int) .== true .&&
     cast (0 :: GLExpr d Int) .== false .&&
-    cast (2 :: GLExpr d UInt) .== true .&&
-    cast (0 :: GLExpr d UInt) .== false .&&
+    cast (uint 2) .== true .&&
+    cast (uint 0) .== false .&&
     cast (1.7 :: GLExpr d Float) .== true .&&
     cast (0.7 :: GLExpr d Float) .== true .&&
     cast true .== (1 :: GLExpr d Int) .&&
     cast false .== (0 :: GLExpr d Int) .&&
-    cast (1 :: GLExpr d UInt) .== (1 :: GLExpr d Int) .&&
+    cast (uint 1) .== (1 :: GLExpr d Int) .&&
     cast (1.7 :: GLExpr d Float) .== (1 :: GLExpr d Int) .&&
     cast ((-1.7) :: GLExpr d Float) .== ((-1) :: GLExpr d Int) .&&
     almostEqual (cast true) (1 :: GLExpr d Float) .&&
     almostEqual (cast false) (0 :: GLExpr d Float) .&&
     almostEqual (cast (1 :: GLExpr d Int)) (1 :: GLExpr d Float) .&&
-    almostEqual (cast (1 :: GLExpr d UInt)) (1 :: GLExpr d Float)
+    almostEqual (cast (uint 1)) (1 :: GLExpr d Float)
 
 matCastTest = ExprTest "matCast" $
     matCast (vec3 2 (-1) 0 :: GLExpr d (Vec 3 Int)) .== vec3 true true false .&&
@@ -459,7 +454,6 @@ bitwiseExprsTest = ExprTest "bitwise_expressions" $
 
 
 -- Num, Fractional, Floating
--- TODO: instead of fudging the test inputs, make the almost*Equal functions more flexible
 
 checkNumProperties eq x y z =
     ((x + y) + z) `eq` (x + (y + z)) .&&
@@ -474,33 +468,20 @@ checkNumProperties eq x y z =
     (abs x * signum x) `eq` x
 
 numFloatTest = ExprTest "num_float" $
-    checkNumProperties almostEqual (-1.234567 :: GLExpr d Float) (7.890123) (-5.678901)
+    checkNumProperties almostEqual (-1.234567 :: GLExpr d Float) 1.789012 (-1.567890)
 
 numIntTest = ExprTest "num_int" $
     checkNumProperties (.==) (-1 :: GLExpr d Int) 7 (-5)
 
-numUIntTest = ExprTest "num_uint" $
-    checkNumProperties (.==) (1 :: GLExpr d UInt) 7 5
-
 numVecTest = ExprTest "num_vec" $
     let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
     in checkNumProperties almostVecEqual 
-        (-0.1234567 + v) (0.7890123 + v) (-0.5678901 + v)
-
-numMatTest = ExprTest "num_mat" $
-    let m = mat4x3 (vec4 1 2 3 4) (vec4 (-1) (-2) (-3) (-4)) (vec4 0 0.1 0.2 0.3) :: GLExpr d (Mat 4 3 Float)
-    in checkNumProperties almostMatPx3Equal 
-        (-0.1234567 + m) (0.7890123 + m) (-0.5678901 + m)
+        (-1.234567 + v) (1.789012 + v) (-1.567890 + v)
 
 numIntVecTest = ExprTest "num_ivec" $
     let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
     in checkNumProperties (.==) 
         (-1 + v) (7 + v) (-5 + v)
-
-numUIntVecTest = ExprTest "num_uvec" $
-    let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 UInt)
-    in checkNumProperties (.==) 
-        (1 + v) (7 + v) (5 + v)
 
 checkFractionalProperties eq x y z = 
     (x * recip x) `eq` (recip x * x) .&&
@@ -509,17 +490,12 @@ checkFractionalProperties eq x y z =
     (x / y) `eq` (recip (y / x))
 
 fractionalFloatTest = ExprTest "fractional_float" $
-    checkFractionalProperties almostEqual (-1.234567 :: GLExpr d Float) (7.890123) (-5.678901)
+    checkFractionalProperties almostEqual (-1.234567 :: GLExpr d Float) 1.789012 (-1.567890)
 
 fractionalVecTest = ExprTest "fractional_vec" $
     let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
     in checkFractionalProperties almostVecEqual 
-        (-0.1234567 + v) (0.7890123 + v) (-0.5678901 + v)
-
-fractionalMatTest = ExprTest "fractional_mat" $
-    let m = mat4x3 (vec4 1 2 3 4) (vec4 (-1) (-2) (-3) (-4)) (vec4 0 0.1 0.2 0.3) :: GLExpr d (Mat 4 3 Float)
-    in checkFractionalProperties almostMatPx3Equal 
-        (-0.1234567 + m) (0.7890123 + m) (-0.5678901 + m)
+        (-1.234567 + v) (1.789012 + v) (-1.567890 + v)
 
 checkFloatingProperties eq x y z = 
     (Prelude.exp (x + y)) `eq` (Prelude.exp x * Prelude.exp y) .&&
@@ -531,17 +507,12 @@ checkFloatingProperties eq x y z =
     ((Prelude.sin x ** 2) + (Prelude.cos x ** 2)) `eq` (fromInteger 1)
 
 floatingFloatTest = ExprTest "floating_float" $
-    checkFloatingProperties almostEqual (-0.1234567 :: GLExpr d Float) (0.7890123) (-0.5678901)
+    checkFloatingProperties almostEqual (-1.234567 :: GLExpr d Float) 1.789012 (-1.567890)
 
 floatingVecTest = ExprTest "floating_vec" $
     let v = vec4 0.1 0.2 0.3 0.4 :: GLExpr d (Vec 4 Float)
     in checkFloatingProperties almostVecEqual 
-        (-0.01234567 + v) (0.07890123 + v) (-0.05678901 + v)
-
-floatingMatTest = ExprTest "floating_mat" $
-    let m = mat4x3 (vec4 0.1 0.2 0.3 0.4) (vec4 (-0.1) (-0.2) (-0.3) (-0.4)) (vec4 0 0.07 0.08 0.09) :: GLExpr d (Mat 4 3 Float)
-    in checkFloatingProperties almostMatPx3Equal 
-        (-0.01234567 + m) (0.07890123 + m) (0.05678901 + m)
+        (-1.234567 + v) (1.789012 + v) (-1.567890 + v)
 
 
 -- Common math functions
@@ -659,13 +630,13 @@ glFuncMandelbrotTest = ExprTest "glFunc_mandelbrot" $
 glFuncCollatzIllegalTest = ExprExceptionTest "glFunc_collatz_illegal" UnsupportedRecCall $
     let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         f = glFunc2 $ \n i -> cond (n .== 1) i $
-            cond (n .% 2 .== 0) (f (n ./ 2) (i + 1)) (f (3 * n + 1) (i + 1))
+            cond (n .%. 2 .== 0) (f (n ./. 2) (i + 1)) (f (3 * n + 1) (i + 1))
     in f 27 0 .== 111
 
 glFuncCollatzTest = ExprTest "glFunc_collatz" $
     let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         f = glFunc2 $ \n i -> cond (n .== 1) i $
-            f (cond (n .% 2 .== 0) (n ./ 2) (3 * n + 1)) (i + 1)
+            f (cond (n .%. 2 .== 0) (n ./. 2) (3 * n + 1)) (i + 1)
     in f 7 1 .== 17
 
 -- unsupported; canonicalize as in test below
@@ -720,7 +691,7 @@ uniformIntTest = ExprTest "uniform_int" $
     in uniform x .== x
 
 uniformUIntTest = ExprTest "uniform_uint" $
-    let x = 4_000_000_000 :: GLExpr d UInt
+    let x = uint 4_000_000_000
     in uniform x .== x
 
 uniformBoolTest = ExprTest "uniform_bool" $
@@ -751,15 +722,15 @@ uniformVec4IntTest = ExprTest "uniform_ivec4" $
     in uniform x .== x
 
 uniformVec2UIntTest = ExprTest "uniform_uvec2" $
-    let x = vec2 4_000_000_000 4_000_000_001 :: GLExpr d (Vec 2 UInt)
+    let x = vec2 (uint 4_000_000_000) (uint 4_000_000_001)
     in uniform x .== x
 
 uniformVec3UIntTest = ExprTest "uniform_uvec3" $
-    let x = 4_000_000_000 + vec3 1 2 3 :: GLExpr d (Vec 3 UInt)
+    let x = vec3 (uint 4_000_000_001) (uint 4_000_000_002) (uint 4_000_000_003)
     in uniform x .== x
 
 uniformVec4UIntTest = ExprTest "uniform_uvec4" $
-    let x = 4_000_000_000 + vec4 1 2 3 4 :: GLExpr d (Vec 4 UInt)
+    let x = vec4 (uint 4_000_000_001) (uint 4_000_000_002) (uint 4_000_000_003) (uint 4_000_000_004)
     in uniform x .== x
 
 uniformVec2BoolTest = ExprTest "uniform_bvec2" $
@@ -843,19 +814,25 @@ uniformIntVec4ArrayTest = ExprTest "uniform_ivec4[]" $
     in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
 
 uniformUIntArrayTest = ExprTest "uniform_uint[]" $
-    let a = map (+ 4_000_000_000) [1, 2, 3, 4] :: [GLExpr d UInt]
+    let a = map (.+. (uint 4_000_000_000)) [uint 1, uint 2, uint 3, uint 4]
     in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
     
 uniformUIntVec2ArrayTest = ExprTest "uniform_uvec2[]" $
-    let a = map (+ 4_000_000_000) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 UInt)]
+    let a = map (.+. (uint 4_000_000_000 .* vec2 (uint 1) (uint 1))) 
+            [vec2 (uint 1) (uint 2), vec2 (uint 5) (uint 6), 
+             vec2 (uint 9) (uint 10), vec2 (uint 13) (uint 14)]
     in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
     
 uniformUIntVec3ArrayTest = ExprTest "uniform_uvec3[]" $
-    let a = map (+ 4_000_000_000) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 UInt)]
+    let a = map (.+. (uint 4_000_000_000 .* vec3 (uint 1) (uint 1) (uint 1))) 
+            [vec3 (uint 1) (uint 2) (uint 3), vec3 (uint 5) (uint 6) (uint 7), 
+             vec3 (uint 9) (uint 10) (uint 11), vec3 (uint 13) (uint 14) (uint 15)]
     in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
     
 uniformUIntVec4ArrayTest = ExprTest "uniform_uvec4[]" $
-    let a = map (+ 4_000_000_000) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 UInt)]
+    let a = map (.+. (uint 4_000_000_000 .* vec4 (uint 1) (uint 1) (uint 1) (uint 1))) 
+            [vec4 (uint 1) (uint 2) (uint 3) (uint 4), vec4 (uint 5) (uint 6) (uint 7) (uint 8), 
+             vec4 (uint 9) (uint 10) (uint 11) (uint 12), vec4 (uint 13) (uint 14) (uint 15) (uint 16)]
     in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
 
 uniformBoolArrayTest = ExprTest "uniform_bool[]" $
@@ -918,8 +895,8 @@ inputIntTest = ExprTest "input_int" $
     in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
 
 inputUIntTest = ExprTest "input_uint" $
-    let x = map (+ 4_000_000_000) [1, 2, 3, 4] :: [GLExpr d UInt]
-    in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
+    let x = map (.+. (uint 4_000_000_000)) [uint 1, uint 2, uint 3, uint 4]
+    in flatFrag (vert x) .== flatFrag (uint 1 .+. vert (map (\x -> x .-. uint 1) x))
 
 inputVec2Test = ExprTest "input_vec2" $
     let x = map (+ 0.2345) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Float)]

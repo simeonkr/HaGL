@@ -10,6 +10,7 @@ module Graphics.HEGL.GLAst (
 ) where
 
 import Prelude hiding (id)
+import Data.List (isPrefixOf)
 import Control.Exception (throw)
 
 import Graphics.HEGL.GLType
@@ -118,7 +119,12 @@ toGLAst e@(GLGenExpr id (MatCast x)) = mkGLExpr id e (showGlslType e) [toGLAst x
 
 toGLAst e@(GLGenExpr id (OpAdd x y)) = mkGLExpr id e "+" [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (OpSubt x y)) = mkGLExpr id e "-" [toGLAst x, toGLAst y]
-toGLAst e@(GLGenExpr id (OpMult x y)) = mkGLExpr id e "*" [toGLAst x, toGLAst y]
+toGLAst e@(GLGenExpr id (OpMult x y)) = 
+    let op = case showGlslType e of
+            ty | "mat" `isPrefixOf` ty -> "matrixCompMult"
+            ty | "dmat" `isPrefixOf` ty -> "matrixCompMult"
+            _ -> "*"
+    in mkGLExpr id e op [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (OpDiv x y)) = mkGLExpr id e "/" [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (OpMod x y)) = mkGLExpr id e "%" [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (OpNeg x)) = mkGLExpr id e "-" [toGLAst x]

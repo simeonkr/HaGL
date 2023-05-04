@@ -2,7 +2,10 @@
 
 module Graphics.HEGL.GLType (
     UInt,
+    Vec,
+    Mat,
     GLType(..),
+    GLPrimOrVec,
     GLInputType(..),
     GLSupportsSmoothInterp,
     GLSupportsBitwiseOps,
@@ -745,7 +748,26 @@ makeMatSetter rawSetter ul xs = do
     OpenGL.withMatrix m $ const $ rawSetter ul 1 0
 
 
-class (GLType t, Storable (GLElt t)) => GLInputType t where
+class GLType t => GLPrimOrVec t
+
+instance GLPrimOrVec Float
+instance GLPrimOrVec Double
+instance GLPrimOrVec Int
+instance GLPrimOrVec UInt
+instance GLPrimOrVec (Vec 2 Float)
+instance GLPrimOrVec (Vec 3 Float)
+instance GLPrimOrVec (Vec 4 Float)
+instance GLPrimOrVec (Vec 2 Double)
+instance GLPrimOrVec (Vec 3 Double)
+instance GLPrimOrVec (Vec 4 Double)
+instance GLPrimOrVec (Vec 2 Int)
+instance GLPrimOrVec (Vec 3 Int)
+instance GLPrimOrVec (Vec 4 Int)
+instance GLPrimOrVec (Vec 2 UInt)
+instance GLPrimOrVec (Vec 3 UInt)
+instance GLPrimOrVec (Vec 4 UInt)
+
+class (GLPrimOrVec t, Storable (GLElt t)) => GLInputType t where
     toStorableList :: [t] -> [GLElt t]
 
 instance GLInputType Float where
@@ -787,7 +809,6 @@ instance GLSupportsSmoothInterp Float
 instance GLSupportsSmoothInterp (Vec 2 Float)
 instance GLSupportsSmoothInterp (Vec 3 Float)
 instance GLSupportsSmoothInterp (Vec 4 Float)
-
 
 class (GLType t, Integral (GLElt t), Bits (GLElt t)) => GLSupportsBitwiseOps t
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 
-import Prelude hiding (const, all, not, min, max, sin, cos, sqrt, length)
+import Prelude hiding (const, all, not, min, max, length)
 
 import Test.HUnit
 import Control.Monad (when)
@@ -11,7 +11,7 @@ import qualified Data.ByteString as BS
 import qualified Data.List as List
 import qualified Graphics.UI.GLUT as GLUT
 
-import Graphics.HEGL
+import Graphics.HEGL hiding (sin, cos, sqrt)
 import Graphics.HEGL.Internal (dumpGlsl, hostEval, GLExprException(..))
 
 
@@ -83,9 +83,8 @@ objFromImage image = obj where
     obj = triangleStrip { position = pos, color = color }
 
 -- TODO: make these definitions part of GLType
--- TODO: set default epsilon to 1e-5 and override for certain tests
-almostEqual x y = abs (x - y) .<= 1e-4
-almostVecEqual x y = all $ lessThanEqual (abs (x - y)) 1e-4
+almostEqual x y = abs (x - y) .<= 1e-5
+almostVecEqual x y = all $ lessThanEqual (abs (x - y)) 1e-5
 almostMatPx2Equal m1 m2 = 
     almostVecEqual (col0 m1) (col0 m2) .&&
     almostVecEqual (col1 m1) (col1 m2)
@@ -131,6 +130,12 @@ genericTests = [
         numMatTest,
         numIntVecTest,
         numUIntVecTest,
+        fractionalFloatTest,
+        fractionalVecTest,
+        fractionalMatTest,
+        floatingFloatTest,
+        floatingVecTest,
+        floatingMatTest,
         lengthTest,
         distanceTest,
         dotTest,
@@ -140,7 +145,6 @@ genericTests = [
         reflectTest,
         refractTest,
         vecArithmeticTest,
-        trigIdentTest,
         glFuncTrivialTest,
         glFuncMultipleTest,
         glFuncNestedTest,
@@ -455,6 +459,7 @@ bitwiseExprsTest = ExprTest "bitwise_expressions" $
 
 
 -- Num, Fractional, Floating
+-- TODO: instead of fudging the test inputs, make the almost*Equal functions more flexible
 
 checkNumProperties eq x y z =
     ((x + y) + z) `eq` (x + (y + z)) .&&
@@ -480,12 +485,12 @@ numUIntTest = ExprTest "num_uint" $
 numVecTest = ExprTest "num_vec" $
     let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
     in checkNumProperties almostVecEqual 
-        (-1.234567 + v) (7.890123 + v) (-5.678901 + v)
+        (-0.1234567 + v) (0.7890123 + v) (-0.5678901 + v)
 
 numMatTest = ExprTest "num_mat" $
-    let m = mat4x3 (vec4 1 2 3 4) (vec4 5 6 7 8) (vec4 9 10 11 12) :: GLExpr d (Mat 4 3 Float)
+    let m = mat4x3 (vec4 1 2 3 4) (vec4 (-1) (-2) (-3) (-4)) (vec4 0 0.1 0.2 0.3) :: GLExpr d (Mat 4 3 Float)
     in checkNumProperties almostMatPx3Equal 
-        (-1.234567 + m) (7.890123 + m) (-5.678901 + m)
+        (-0.1234567 + m) (0.7890123 + m) (-0.5678901 + m)
 
 numIntVecTest = ExprTest "num_ivec" $
     let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
@@ -497,11 +502,46 @@ numUIntVecTest = ExprTest "num_uvec" $
     in checkNumProperties (.==) 
         (1 + v) (7 + v) (5 + v)
 
-fractionalTest = ExprTest "fractional_test" $
-    true
+checkFractionalProperties eq x y z = 
+    (x * recip x) `eq` (recip x * x) .&&
+    (x * recip x) `eq` (fromInteger 1) .&&
+    (x * recip x) `eq` (fromRational (toRational 1)) .&&
+    (x / y) `eq` (recip (y / x))
 
-floatingTest = ExprTest "floating_test" $
-    true
+fractionalFloatTest = ExprTest "fractional_float" $
+    checkFractionalProperties almostEqual (-1.234567 :: GLExpr d Float) (7.890123) (-5.678901)
+
+fractionalVecTest = ExprTest "fractional_vec" $
+    let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
+    in checkFractionalProperties almostVecEqual 
+        (-0.1234567 + v) (0.7890123 + v) (-0.5678901 + v)
+
+fractionalMatTest = ExprTest "fractional_mat" $
+    let m = mat4x3 (vec4 1 2 3 4) (vec4 (-1) (-2) (-3) (-4)) (vec4 0 0.1 0.2 0.3) :: GLExpr d (Mat 4 3 Float)
+    in checkFractionalProperties almostMatPx3Equal 
+        (-0.1234567 + m) (0.7890123 + m) (-0.5678901 + m)
+
+checkFloatingProperties eq x y z = 
+    (Prelude.exp (x + y)) `eq` (Prelude.exp x * Prelude.exp y) .&&
+    (Prelude.exp (fromInteger 0)) `eq` (fromInteger 1) .&&
+    (Prelude.log (abs $ x * y)) `eq` (Prelude.log (abs x) + Prelude.log (abs y)) .&&
+    (Prelude.log (abs $ x / y)) `eq` (Prelude.log (abs x) - Prelude.log (abs y)) .&&
+    (Prelude.sqrt (x ** 2)) `eq` (Prelude.abs x) .&&
+    (x ** (-2)) `eq` recip (x ** 2) .&&
+    ((Prelude.sin x ** 2) + (Prelude.cos x ** 2)) `eq` (fromInteger 1)
+
+floatingFloatTest = ExprTest "floating_float" $
+    checkFloatingProperties almostEqual (-0.1234567 :: GLExpr d Float) (0.7890123) (-0.5678901)
+
+floatingVecTest = ExprTest "floating_vec" $
+    let v = vec4 0.1 0.2 0.3 0.4 :: GLExpr d (Vec 4 Float)
+    in checkFloatingProperties almostVecEqual 
+        (-0.01234567 + v) (0.07890123 + v) (-0.05678901 + v)
+
+floatingMatTest = ExprTest "floating_mat" $
+    let m = mat4x3 (vec4 0.1 0.2 0.3 0.4) (vec4 (-0.1) (-0.2) (-0.3) (-0.4)) (vec4 0 0.07 0.08 0.09) :: GLExpr d (Mat 4 3 Float)
+    in checkFloatingProperties almostMatPx3Equal 
+        (-0.01234567 + m) (0.07890123 + m) (0.05678901 + m)
 
 
 -- Common math functions
@@ -558,10 +598,6 @@ refractTest = ExprTest "refract" $
 vecArithmeticTest = ExprTest "vector_arithmetic" $
     2 .* vec4 1 2 3 4 - 3 * vec4 1 2 3 4 .== - (vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)) .&&
     1 .* abs (vec4 1 1 1 1) - abs (-1) .== (vec4 0 0 0 0 :: GLExpr d (Vec 4 Int))
-
-trigIdentTest = ExprTest "trigonometric_identities" $
-    let x0 = 0.1234 :: GLExpr d Float
-    in almostEqual (pow (sin x0) 2 + pow (cos x0) 2) 1
 
 
 -- Custom function support via glFunc

@@ -219,69 +219,145 @@ import Graphics.HEGL.Backend.GLUT
 mkExpr con e = con (genID e) e
 
 
--- * Expressions: Main definitions
+-- Instance declarations
 
 instance GLPrim t => Enum (ConstExpr t) where
     toEnum x = mkExpr GLAtom $ Const (toEnum x)
     fromEnum = fromEnum . constEval
 
-instance (GLNumeric (GLElt t), GLType t, Num t) => Num (GLExpr d t) where
+instance (GLNumeric (GLElt t), GLType' t, Num t) => Num (GLExpr d t) where
     x + y = mkExpr GLGenExpr $ OpAdd x y
     x - y = mkExpr GLGenExpr $ OpSubt x y
-    x * y = mkExpr GLGenExpr $ OpMult x y
-    negate x = mkExpr GLGenExpr $ OpNeg x
-    abs x = mkExpr GLGenExpr $ Abs x
-    signum x = mkExpr GLGenExpr $ Sign x
+    x * y = legalize $ mkExpr GLGenExpr $ OpMult x y
+    negate x = legalize $ mkExpr GLGenExpr $ OpNeg x
+    abs x = legalize $ mkExpr GLGenExpr $ Abs x
+    signum x = legalize $ mkExpr GLGenExpr $ Sign x
     fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
 
--- unsigned integers need special treatment since Haskell permits
--- signed operations on them whereas glsl does not
-instance {-# OVERLAPPING #-} Num (GLExpr d UInt) where
-    x + y = mkExpr GLGenExpr $ OpAdd x y
-    x - y = mkExpr GLGenExpr $ OpSubt x y
-    x * y = mkExpr GLGenExpr $ OpMult x y
-    negate x = mkExpr GLGenExpr $ Cast $ mkExpr GLGenExpr $ OpNeg
-        (mkExpr GLGenExpr $ Cast x :: GLExpr _ Int)
-    abs x = x
-    signum x = mkExpr GLGenExpr $ Cast
-        (mkExpr GLGenExpr $ Cast x :: GLExpr _ Bool)
-    fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
-
-instance {-# OVERLAPPING #-} (GLType (Mat p q UInt), GLType (Mat p q Int), GLType (Mat p q Bool), 
-        Num (Mat p q UInt), KnownNat p, KnownNat q) => Num (GLExpr d (Mat p q UInt)) where
-    x + y = mkExpr GLGenExpr $ OpAdd x y
-    x - y = mkExpr GLGenExpr $ OpSubt x y
-    x * y = mkExpr GLGenExpr $ OpMult x y
-    negate x = mkExpr GLGenExpr $ MatCast $ mkExpr GLGenExpr $ OpNeg
-        (mkExpr GLGenExpr $ MatCast x :: GLExpr _ (Mat _ _ Int))
-    abs x = x
-    signum x = mkExpr GLGenExpr $ MatCast
-        (mkExpr GLGenExpr $ MatCast x :: GLExpr _ (Mat _ _ Bool))
-    fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
------------------------------------------------------------
-
-instance (GLFloating (GLElt t), GLType t, Fractional t) => Fractional (GLExpr d t) where
+instance (GLFloating (GLElt t), GLType' t, Fractional t) => Fractional (GLExpr d t) where
     x / y = mkExpr GLGenExpr $ OpDiv x y
     fromRational x = mkExpr GLAtom $ Const (fromRational x)
 
-instance Floating (GLExpr d Float) where
+instance (GLElt t ~ Float, GLType' t, Fractional t) => Floating (GLExpr d t) where
     pi = 3.141592653589793238
-    sin x = mkExpr GLGenExpr $ Sin x
-    cos x = mkExpr GLGenExpr $ Cos x
-    tan x = mkExpr GLGenExpr $ Tan x
-    asin x = mkExpr GLGenExpr $ Asin x
-    acos x = mkExpr GLGenExpr $ Acos x
-    atan x = mkExpr GLGenExpr $ Atan x
-    sinh x = mkExpr GLGenExpr $ Sinh x
-    cosh x = mkExpr GLGenExpr $ Cosh x
-    tanh x = mkExpr GLGenExpr $ Tanh x
-    asinh x = mkExpr GLGenExpr $ Asinh x
-    acosh x = mkExpr GLGenExpr $ Acosh x
-    atanh x = mkExpr GLGenExpr $ Atanh x
-    x ** y = mkExpr GLGenExpr $ Pow x y
-    exp x = mkExpr GLGenExpr $ Exp x
-    sqrt x = mkExpr GLGenExpr $ Sqrt x
-    log x = mkExpr GLGenExpr $ Log x
+    sin x = legalize $ mkExpr GLGenExpr $ Sin x
+    cos x = legalize $ mkExpr GLGenExpr $ Cos x
+    tan x = legalize $ mkExpr GLGenExpr $ Tan x
+    asin x = legalize $ mkExpr GLGenExpr $ Asin x
+    acos x = legalize $ mkExpr GLGenExpr $ Acos x
+    atan x = legalize $ mkExpr GLGenExpr $ Atan x
+    sinh x = legalize $ mkExpr GLGenExpr $ Sinh x
+    cosh x = legalize $ mkExpr GLGenExpr $ Cosh x
+    tanh x = legalize $ mkExpr GLGenExpr $ Tanh x
+    asinh x = legalize $ mkExpr GLGenExpr $ Asinh x
+    acosh x = legalize $ mkExpr GLGenExpr $ Acosh x
+    atanh x = legalize $ mkExpr GLGenExpr $ Atanh x
+    x ** y = legalize $ mkExpr GLGenExpr $ Pow x y
+    exp x = legalize $ mkExpr GLGenExpr $ Exp x
+    sqrt x = legalize $ mkExpr GLGenExpr $ Sqrt x
+    log x = legalize $ mkExpr GLGenExpr $ Log x
+
+-- Ad-hoc transformations to work around glsl restrictions
+
+-- As the following code shows, making non-vector matrices an instance of Num 
+-- adds unnecessary complexity and needs to be reconsidered. Component-wise
+-- operations on matrices are not common and can simply be dealt with
+-- operators like .+
+
+class GLType t => GLType' t where
+    legalize :: GLExpr d t -> GLExpr d t
+
+instance {-# OVERLAPPING #-} GLType t => GLType' t where
+    legalize x = x
+instance {-# OVERLAPPING #-} GLType' UInt where
+    legalize (GLGenExpr _ (OpNeg x)) = Graphics.HEGL.cast $ negate (Graphics.HEGL.cast x :: GLExpr _ Int)
+    legalize (GLGenExpr _ (Abs x)) = x
+    legalize (GLGenExpr _ (Sign x)) = Graphics.HEGL.cast (Graphics.HEGL.cast x :: GLExpr _ Bool)
+    legalize x = x
+instance {-# OVERLAPPING #-} GLType (Vec n t) => GLType' (Vec n t) where
+    legalize x = x
+instance {-# OVERLAPPING #-} (KnownNat n,  GLType (Vec n Bool), GLType (Vec n Int), GLType (Vec n UInt)) => GLType' (Vec n UInt) where
+    legalize (GLGenExpr _ (OpNeg x)) = matCast $ negate (matCast x :: GLExpr _ (Vec _ Int))
+    legalize (GLGenExpr _ (Abs x)) = x
+    legalize (GLGenExpr _ (Sign x)) = matCast (matCast x :: GLExpr _ (Vec _ Bool))
+    legalize x = x
+instance {-# OVERLAPPING #-} (KnownNat p, KnownNat q, GLFloating t, MappableMat (Mat p q t), GLType (Mat p q t)) => GLType' (Mat p q t) where
+    legalize (GLGenExpr _ (OpMult m1 m2)) = mkExpr GLGenExpr $ MatrixCompMult m1 m2
+    legalize (GLGenExpr _ (OpNeg m)) = colMap ((mkExpr GLGenExpr) . OpNeg) m
+    legalize (GLGenExpr _ (Radians m)) = colMap ((mkExpr GLGenExpr) . Radians) m
+    legalize (GLGenExpr _ (Sin m)) = colMap ((mkExpr GLGenExpr) . Sin) m
+    legalize (GLGenExpr _ (Cos m)) = colMap ((mkExpr GLGenExpr) . Cos) m
+    legalize (GLGenExpr _ (Tan m)) = colMap ((mkExpr GLGenExpr) . Tan) m
+    legalize (GLGenExpr _ (Asin m)) = colMap ((mkExpr GLGenExpr) . Asin) m
+    legalize (GLGenExpr _ (Acos m)) = colMap ((mkExpr GLGenExpr) . Acos) m
+    legalize (GLGenExpr _ (Atan m)) = colMap ((mkExpr GLGenExpr) . Atan) m
+    legalize (GLGenExpr _ (Sinh m)) = colMap ((mkExpr GLGenExpr) . Sinh) m
+    legalize (GLGenExpr _ (Cosh m)) = colMap ((mkExpr GLGenExpr) . Cosh) m
+    legalize (GLGenExpr _ (Tanh m)) = colMap ((mkExpr GLGenExpr) . Tanh) m
+    legalize (GLGenExpr _ (Asinh m)) = colMap ((mkExpr GLGenExpr) . Asinh) m
+    legalize (GLGenExpr _ (Acosh m)) = colMap ((mkExpr GLGenExpr) . Acosh) m
+    legalize (GLGenExpr _ (Atanh m)) = colMap ((mkExpr GLGenExpr) . Atanh) m
+    legalize (GLGenExpr _ (Pow m1 m2)) = colZipWith ((mkExpr GLGenExpr .) . Pow) m1 m2
+    legalize (GLGenExpr _ (Exp m)) = colMap ((mkExpr GLGenExpr) . Exp) m
+    legalize (GLGenExpr _ (Log m)) = colMap ((mkExpr GLGenExpr) . Log) m
+    legalize (GLGenExpr _ (Exp2 m)) = colMap ((mkExpr GLGenExpr) . Exp2) m
+    legalize (GLGenExpr _ (Log2 m)) = colMap ((mkExpr GLGenExpr) . Log2) m
+    legalize (GLGenExpr _ (Sqrt m)) = colMap ((mkExpr GLGenExpr) . Sqrt) m
+    legalize (GLGenExpr _ (Inversesqrt m)) = colMap ((mkExpr GLGenExpr) . Inversesqrt) m
+    legalize (GLGenExpr _ (Abs m)) = colMap ((mkExpr GLGenExpr) . Abs) m
+    legalize (GLGenExpr _ (Sign m)) = colMap ((mkExpr GLGenExpr) . Sign) m
+    legalize (GLGenExpr _ (Floor m)) = colMap ((mkExpr GLGenExpr) . Floor) m
+    legalize (GLGenExpr _ (Trunc m)) = colMap ((mkExpr GLGenExpr) . Trunc) m
+    legalize (GLGenExpr _ (Round m)) = colMap ((mkExpr GLGenExpr) . Round) m
+    legalize (GLGenExpr _ (RoundEven m)) = colMap ((mkExpr GLGenExpr) . RoundEven) m
+    legalize (GLGenExpr _ (Ceil m)) = colMap ((mkExpr GLGenExpr) . Ceil) m
+    legalize (GLGenExpr _ (Fract m)) = colMap ((mkExpr GLGenExpr) . Fract) m
+    legalize (GLGenExpr _ (Mod m1 m2)) = colZipWith ((mkExpr GLGenExpr .) . Mod) m1 m2
+    legalize (GLGenExpr _ (Min m1 m2)) = colZipWith ((mkExpr GLGenExpr .) . Min) m1 m2
+    legalize (GLGenExpr _ (Max m1 m2)) = colZipWith ((mkExpr GLGenExpr .) . Max) m1 m2
+    legalize m = m
+
+class (GLType t, GLElt (Col t) ~ GLElt t, GLType (Col t)) => MappableMat t where
+    type Col t
+    colMap :: (GLExpr d (Col t) -> GLExpr d (Col t)) -> GLExpr d t -> GLExpr d t
+    colZipWith :: (GLExpr d (Col t) -> GLExpr d (Col t) -> GLExpr d (Col t)) -> GLExpr d t -> GLExpr d t -> GLExpr d t
+
+instance (GLFloating t, GLType (Vec 2 t), GLType (Mat 2 2 t)) => MappableMat (Mat 2 2 t) where
+    type Col (Mat 2 2 t) = Vec 2 t
+    colMap f m = mat2x2 (f (col0 m)) (f (col1 m))
+    colZipWith f m1 m2 = mat2x2 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2))
+instance (GLFloating t, GLType (Vec 2 t), GLType (Mat 2 3 t)) => MappableMat (Mat 2 3 t) where
+    type Col (Mat 2 3 t) = Vec 2 t
+    colMap f m = mat2x3 (f (col0 m)) (f (col1 m)) (f (col2 m))
+    colZipWith f m1 m2 = mat2x3 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2)) (f (col2 m1) (col2 m2))
+instance (GLFloating t, GLType (Vec 2 t), GLType (Mat 2 4 t)) => MappableMat (Mat 2 4 t) where
+    type Col (Mat 2 4 t) = Vec 2 t
+    colMap f m = mat2x4 (f (col0 m)) (f (col1 m)) (f (col2 m)) (f (col3 m))
+    colZipWith f m1 m2 = mat2x4 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2)) (f (col2 m1) (col2 m2)) (f (col3 m1) (col3 m2))
+instance (GLFloating t, GLType (Vec 3 t), GLType (Mat 3 2 t)) => MappableMat (Mat 3 2 t) where
+    type Col (Mat 3 2 t) = Vec 3 t
+    colMap f m = mat3x2 (f (col0 m)) (f (col1 m))
+    colZipWith f m1 m2 = mat3x2 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2))
+instance (GLFloating t, GLType (Vec 3 t), GLType (Mat 3 3 t)) => MappableMat (Mat 3 3 t) where
+    type Col (Mat 3 3 t) = Vec 3 t
+    colMap f m = mat3x3 (f (col0 m)) (f (col1 m)) (f (col2 m))
+    colZipWith f m1 m2 = mat3x3 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2)) (f (col2 m1) (col2 m2))
+instance (GLFloating t, GLType (Vec 3 t), GLType (Mat 3 4 t)) => MappableMat (Mat 3 4 t) where
+    type Col (Mat 3 4 t) = Vec 3 t
+    colMap f m = mat3x4 (f (col0 m)) (f (col1 m)) (f (col2 m)) (f (col3 m))
+    colZipWith f m1 m2 = mat3x4 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2)) (f (col2 m1) (col2 m2)) (f (col3 m1) (col3 m2))
+instance (GLFloating t, GLType (Vec 4 t), GLType (Mat 4 2 t)) => MappableMat (Mat 4 2 t) where
+    type Col (Mat 4 2 t) = Vec 4 t
+    colMap f m = mat4x2 (f (col0 m)) (f (col1 m))
+    colZipWith f m1 m2 = mat4x2 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2))
+instance (GLFloating t, GLType (Vec 4 t), GLType (Mat 4 3 t)) => MappableMat (Mat 4 3 t) where
+    type Col (Mat 4 3 t) = Vec 4 t
+    colMap f m = mat4x3 (f (col0 m)) (f (col1 m)) (f (col2 m))
+    colZipWith f m1 m2 = mat4x3 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2)) (f (col2 m1) (col2 m2))
+instance (GLFloating t, GLType (Vec 4 t), GLType (Mat 4 4 t)) => MappableMat (Mat 4 4 t) where
+    type Col (Mat 4 4 t) = Vec 4 t
+    colMap f m = mat4x4 (f (col0 m)) (f (col1 m)) (f (col2 m)) (f (col3 m))
+    colZipWith f m1 m2 = mat4x4 (f (col0 m1) (col0 m2)) (f (col1 m1) (col1 m2)) (f (col2 m1) (col2 m2)) (f (col3 m1) (col3 m2))
 
 
 -- * Expressions: Lifts from raw types
@@ -357,8 +433,6 @@ x_ v = mkExpr GLGenExpr $ OpCoord CoordX v
 y_ v = mkExpr GLGenExpr $ OpCoord CoordY v
 z_ v = mkExpr GLGenExpr $ OpCoord CoordZ v
 w_ v = mkExpr GLGenExpr $ OpCoord CoordW v
-$gen2DCoordDecls
-$gen3DCoordDecls
 
 col0 m = mkExpr GLGenExpr $ OpCol Col0 m
 col1 m = mkExpr GLGenExpr $ OpCol Col1 m
@@ -593,6 +667,7 @@ quads = defaultObj { primitiveMode = OpenGL.Quads }
 quadStrip = defaultObj { primitiveMode = OpenGL.QuadStrip }
 polygon = defaultObj { primitiveMode = OpenGL.Polygon }
 
+
 -- * Backends
 
 data Backend =
@@ -613,3 +688,7 @@ defaultGlutOptions = GlutOptions {
     glLineWidth = 3,
     runMode = GlutNormal
 }
+
+-- Splices
+$gen2DCoordDecls
+$gen3DCoordDecls

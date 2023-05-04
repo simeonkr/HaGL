@@ -104,6 +104,7 @@ data GLFunc :: ShaderDomain -> * -> * where
 
 
 -- Compound expressions corresponding to built-in functions and operators
+-- TODO: order constraints in a consistent manner
 
 data GLGenExpr :: ShaderDomain -> * -> * where
 
@@ -267,13 +268,13 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
     Max :: (GLNumeric (GLElt t), GLType t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Clamp :: (GLNumeric (GLElt t), GLType t) => 
+    Clamp :: (GLNumeric (GLElt t), GLPrimOrVec t) => 
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Mix :: (GLFloating (GLElt t), GLType t) => 
+    Mix :: (GLFloating (GLElt t), GLPrimOrVec t) => 
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Step :: (GLFloating (GLElt t), GLType t) => 
+    Step :: (GLFloating (GLElt t), GLPrimOrVec t) => 
         GLExpr d t -> GLExpr d t -> GLGenExpr d t
-    Smoothstep :: (GLFloating (GLElt t), GLType t) => 
+    Smoothstep :: (GLFloating (GLElt t), GLPrimOrVec t) => 
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d t
 
     Length :: GLFloating t =>
@@ -324,6 +325,7 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d (Vec n Bool) -> GLGenExpr d (Vec n Bool)
 
 
+-- TODO: rename to GLDomain as not all domains relate to shaders
 data ShaderDomain = ConstDomain | HostDomain | VertexDomain | FragmentDomain
     deriving (Eq, Ord)
 

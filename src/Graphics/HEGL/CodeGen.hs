@@ -92,7 +92,7 @@ initCGDat glObj = CGDat {
 }
 
 data ScopeID =
-    MainScope ShaderDomain |
+    MainScope GLDomain |
     GlobalScope |
     LocalScope
     deriving (Eq, Ord)
@@ -266,7 +266,7 @@ scopedStmt scopeID stmt = modifyScope scopeID $ \scope ->
 
 -- Shader modification
 
-modifyShader :: ShaderDomain -> (Shader -> Shader) -> CGState ()
+modifyShader :: GLDomain -> (Shader -> Shader) -> CGState ()
 modifyShader VertexDomain f = modify (\s -> s { 
     program = (program s) { vertexShader = f $ vertexShader $ program s } })
 modifyShader FragmentDomain f = modify (\s -> s { 

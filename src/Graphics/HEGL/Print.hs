@@ -21,7 +21,7 @@ instance (IsGLDomain d, GLType t) => Show (GLExpr d t) where
 instance Show GLAst where
     show = runPrinter . printGLAst
 
-instance Show ShaderDomain where
+instance Show GLDomain where
     show ConstDomain = "const"
     show HostDomain = "host"
     show VertexDomain = "vert"

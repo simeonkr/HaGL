@@ -1,7 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 
-import Prelude hiding (const, all, not, min, max, length)
-
+import Prelude hiding (all, not, min, max, length)
 import Test.HUnit
 import Control.Monad (when)
 import Control.Exception
@@ -38,7 +37,7 @@ mkHostTest (ExprTest label expr) =
 -- verify that setting color to 'expr' produces a white image
 mkShaderTest :: ExprTest FragmentDomain -> Test
 mkShaderTest (ExprTest label expr) = 
-    mkObjTest $ ObjTest label $ objFromImage $ \_ -> cast expr .* 1
+    mkObjTest $ ObjTest label $ objFromImage $ \_ -> cast expr .# 1
 
 -- verify that trying to set color to 'expr' throws the expected exception
 mkShaderExceptionTest :: ExprExceptionTest -> Test
@@ -248,8 +247,8 @@ vec2Test = ExprTest "vec2" $
     let v = vec2 1 2 :: GLExpr d (Vec 2 Int)
         (decon -> (x, y)) = v
     in v .== 1 + vec2 0 1 .&&
-       v .== 0 + 1 .* v + 0 .&&
-       v .== vec2 1 0 + 2 .* vec2 0 1 .&&
+       v .== 0 + 1 .# v + 0 .&&
+       v .== vec2 1 0 + 2 .# vec2 0 1 .&&
        v .== vec2 (x_ v) (y_ v) .&&
        v .== vec2 x y .&&
        v .== (yx_ . yx_) v .&&
@@ -261,8 +260,8 @@ vec3Test = ExprTest "vec3" $
     in v .== pre 1 (vec2 2 3) .&&
        v .== app (vec2 1 2) 3 .&&
        v .== 1 + vec3 0 1 2 .&&
-       v .== 0 + 1.* v + 0 .&&
-       v .== vec3 1 0 0 + 2 .* vec3 0 1 0 + 3 .* vec3 0 0 1 .&&
+       v .== 0 + 1.# v + 0 .&&
+       v .== vec3 1 0 0 + 2 .# vec3 0 1 0 + 3 .# vec3 0 0 1 .&&
        v .== vec3 (x_ v) (y_ v) (z_ v) .&&
        v .== vec3 x y z .&&
        v .== pre x (vec2 y z) .&&
@@ -277,9 +276,9 @@ vec4Test = ExprTest "vec4" $
        v .== pre 1 (vec3 2 3 4) .&&
        v .== app (vec3 1 2 3) 4 .&&
        v .== 1 + vec4 0 1 2 3 .&&
-       v .== 0 + 1 .* v + 0 .&&
-       v .== vec4 1 0 0 0 + 2 .* vec4 0 1 0 0 + 
-             3 .* vec4 0 0 1 0 + 4 .* vec4 0 0 0 1 .&&
+       v .== 0 + 1 .# v + 0 .&&
+       v .== vec4 1 0 0 0 + 2 .# vec4 0 1 0 0 + 
+             3 .# vec4 0 0 1 0 + 4 .# vec4 0 0 0 1 .&&
        v .== vec4 (x_ v) (y_ v) (z_ v) (w_ v) .&&
        v .== vec4 x y z w .&&
        v .== pre x (vec3 y z w) .&&
@@ -350,7 +349,7 @@ mat4x3Test = ExprTest "mat4x3" $
 -- Arrays
 
 arrayTest = ExprTest "array" $
-    let a1 = uniform $ array [Graphics.HEGL.const (2 * i) | i <- [0..999]] :: GLExpr d [Int]
+    let a1 = uniform $ array [cnst (2 * i) | i <- [0..999]] :: GLExpr d [Int]
         a2 = uniform $ array [vec2 1 1, vec2 2 2] :: GLExpr d [Vec 2 Int]
     in a1 .! 0 .== 0 .&& a1 .! 10 .== 2 * 10 .&&
        a1 .! 999 .== 2 * 999 .&&
@@ -438,8 +437,8 @@ booleanExprsTest = ExprTest "boolean_expressions" $
     (true .^^ false) .== true .&&
     (false .^^ true) .== true .&&
     (false .^^ false) .== false .&&
-    not true .== false .&&
-    not false .== true .&&
+    nt true .== false .&&
+    nt false .== true .&&
     cond true (2 :: GLExpr d Int) 1 .== 2 .&&
     cond false (2 :: GLExpr d Int) 1 .== 1    
 
@@ -450,7 +449,7 @@ bitwiseExprsTest = ExprTest "bitwise_expressions" $
     ((12 :: GLExpr d Int) .& 10) .== 8 .&&
     ((12 :: GLExpr d Int) .| 10) .== 14 .&&
     ((12 :: GLExpr d Int) .^ 10) .== 6 .&&
-    (neg . neg) (12345678 :: GLExpr d Int) .== 12345678
+    (compl . compl) (12345678 :: GLExpr d Int) .== 12345678
 
 
 -- Num, Fractional, Floating
@@ -544,7 +543,7 @@ crossTest = ExprTest "cross" $
 
 normalizeTest = ExprTest "normalize" $
     let x = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
-    in almostVecEqual (normalize x) ((1 / length x) .* x)
+    in almostVecEqual (normalize x) ((1 / length x) .# x)
 
 faceforwardTest = ExprTest "faceforward" $
     true
@@ -567,8 +566,8 @@ refractTest = ExprTest "refract" $
 -- General numerical tests
 
 vecArithmeticTest = ExprTest "vector_arithmetic" $
-    2 .* vec4 1 2 3 4 - 3 * vec4 1 2 3 4 .== - (vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)) .&&
-    1 .* abs (vec4 1 1 1 1) - abs (-1) .== (vec4 0 0 0 0 :: GLExpr d (Vec 4 Int))
+    2 .# vec4 1 2 3 4 - 3 * vec4 1 2 3 4 .== - (vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)) .&&
+    1 .# abs (vec4 1 1 1 1) - abs (-1) .== (vec4 0 0 0 0 :: GLExpr d (Vec 4 Int))
 
 
 -- Custom function support via glFunc
@@ -630,13 +629,13 @@ glFuncMandelbrotTest = ExprTest "glFunc_mandelbrot" $
 glFuncCollatzIllegalTest = ExprExceptionTest "glFunc_collatz_illegal" UnsupportedRecCall $
     let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         f = glFunc2 $ \n i -> cond (n .== 1) i $
-            cond (n .%. 2 .== 0) (f (n ./. 2) (i + 1)) (f (3 * n + 1) (i + 1))
+            cond (n .% 2 .== 0) (f (n ./ 2) (i + 1)) (f (3 * n + 1) (i + 1))
     in f 27 0 .== 111
 
 glFuncCollatzTest = ExprTest "glFunc_collatz" $
     let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         f = glFunc2 $ \n i -> cond (n .== 1) i $
-            f (cond (n .%. 2 .== 0) (n ./. 2) (3 * n + 1)) (i + 1)
+            f (cond (n .% 2 .== 0) (n ./ 2) (3 * n + 1)) (i + 1)
     in f 7 1 .== 17
 
 -- unsupported; canonicalize as in test below
@@ -783,73 +782,73 @@ uniformMat4x3Test = ExprTest "uniform_mat4x3" $
 
 uniformFloatArrayTest = ExprTest "uniform_float[]" $
     let a = map (+ 0.2345) [1, 2, 3, 4] :: [GLExpr d Float]
-    in foldr (\i e -> e .&& almostEqual (uniform (array a) .! const i) (a !! (fromEnum i))) true [0..3]
+    in foldr (\i e -> e .&& almostEqual (uniform (array a) .! cnst i) (a !! (fromEnum i))) true [0..3]
     
 uniformVec2ArrayTest = ExprTest "uniform_vec2[]" $
     let a = map (+ 0.2345) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Float)]
-    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! const i) (a !! (fromEnum i))) true [0..3]
+    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! cnst i) (a !! (fromEnum i))) true [0..3]
     
 uniformVec3ArrayTest = ExprTest "uniform_vec3[]" $
     let a = map (+ 0.2345) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 Float)]
-    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! const i) (a !! (fromEnum i))) true [0..3]
+    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! cnst i) (a !! (fromEnum i))) true [0..3]
     
 uniformVec4ArrayTest = ExprTest "uniform_vec4[]" $
     let a = map (+ 0.2345) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 Float)]
-    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! const i) (a !! (fromEnum i))) true [0..3]
+    in foldr (\i e -> e .&& almostVecEqual (uniform (array a) .! cnst i) (a !! (fromEnum i))) true [0..3]
 
 uniformIntArrayTest = ExprTest "uniform_int[]" $
     let a = map (+ 2_000_000_000) [1, 2, 3, 4] :: [GLExpr d Int]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformIntVec2ArrayTest = ExprTest "uniform_ivec2[]" $
     let a = map (+ 2_000_000_000) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Int)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformIntVec3ArrayTest = ExprTest "uniform_ivec3[]" $
     let a = map (+ 2_000_000_000) [vec3 1 2 3, vec3 4 5 6, vec3 7 8 9, vec3 10 11 12] :: [GLExpr d (Vec 3 Int)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformIntVec4ArrayTest = ExprTest "uniform_ivec4[]" $
     let a = map (+ 2_000_000_000) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 Int)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
 
 uniformUIntArrayTest = ExprTest "uniform_uint[]" $
-    let a = map (.+. (uint 4_000_000_000)) [uint 1, uint 2, uint 3, uint 4]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    let a = map (.+ (uint 4_000_000_000)) [uint 1, uint 2, uint 3, uint 4]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformUIntVec2ArrayTest = ExprTest "uniform_uvec2[]" $
-    let a = map (.+. (uint 4_000_000_000 .* vec2 (uint 1) (uint 1))) 
+    let a = map (.+ (uint 4_000_000_000 .# vec2 (uint 1) (uint 1))) 
             [vec2 (uint 1) (uint 2), vec2 (uint 5) (uint 6), 
              vec2 (uint 9) (uint 10), vec2 (uint 13) (uint 14)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformUIntVec3ArrayTest = ExprTest "uniform_uvec3[]" $
-    let a = map (.+. (uint 4_000_000_000 .* vec3 (uint 1) (uint 1) (uint 1))) 
+    let a = map (.+ (uint 4_000_000_000 .# vec3 (uint 1) (uint 1) (uint 1))) 
             [vec3 (uint 1) (uint 2) (uint 3), vec3 (uint 5) (uint 6) (uint 7), 
              vec3 (uint 9) (uint 10) (uint 11), vec3 (uint 13) (uint 14) (uint 15)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformUIntVec4ArrayTest = ExprTest "uniform_uvec4[]" $
-    let a = map (.+. (uint 4_000_000_000 .* vec4 (uint 1) (uint 1) (uint 1) (uint 1))) 
+    let a = map (.+ (uint 4_000_000_000 .# vec4 (uint 1) (uint 1) (uint 1) (uint 1))) 
             [vec4 (uint 1) (uint 2) (uint 3) (uint 4), vec4 (uint 5) (uint 6) (uint 7) (uint 8), 
              vec4 (uint 9) (uint 10) (uint 11) (uint 12), vec4 (uint 13) (uint 14) (uint 15) (uint 16)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
 
 uniformBoolArrayTest = ExprTest "uniform_bool[]" $
     let a = [true, false, true, false] :: [GLExpr d Bool]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformBoolVec2ArrayTest = ExprTest "uniform_bvec2[]" $
     let a = [vec2 true true, vec2 true false, vec2 false true, vec2 false false] :: [GLExpr d (Vec 2 Bool)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformBoolVec3ArrayTest = ExprTest "uniform_bvec3[]" $
     let a = [vec3 true true true, vec3 true true false, vec3 true false true, vec3 true false false] :: [GLExpr d (Vec 3 Bool)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
     
 uniformBoolVec4ArrayTest = ExprTest "uniform_bvec4[]" $
     let a = [vec4 true true true true, vec4 true true true false, vec4 true true false true, vec4 true true false false] :: [GLExpr d (Vec 4 Bool)]
-    in foldr (\i e -> e .&& uniform (array a) .! const i .== a !! (fromEnum i)) true [0..3]
+    in foldr (\i e -> e .&& uniform (array a) .! cnst i .== a !! (fromEnum i)) true [0..3]
 
 precTrivialTest = ExprTest "prec_trivial" $
     let x = prec (0 :: GLExpr d Int) x
@@ -895,8 +894,8 @@ inputIntTest = ExprTest "input_int" $
     in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
 
 inputUIntTest = ExprTest "input_uint" $
-    let x = map (.+. (uint 4_000_000_000)) [uint 1, uint 2, uint 3, uint 4]
-    in flatFrag (vert x) .== flatFrag (uint 1 .+. vert (map (\x -> x .-. uint 1) x))
+    let x = map (.+ (uint 4_000_000_000)) [uint 1, uint 2, uint 3, uint 4]
+    in flatFrag (vert x) .== flatFrag (uint 1 .+ vert (map (\x -> x .- uint 1) x))
 
 inputVec2Test = ExprTest "input_vec2" $
     let x = map (+ 0.2345) [vec2 1 2, vec2 3 4, vec2 5 6, vec2 7 8] :: [GLExpr d (Vec 2 Float)]
@@ -961,7 +960,7 @@ passAroundTest = ObjTest "pass_around" obj where
         fppos'  + fnpos'' .== 0 .&&
         fppos'' + fnpos   .== 0 .&& 
         fppos'' + fnpos'  .== 0 .&&
-        fppos'' + fnpos'' .== 0) .* 1
+        fppos'' + fnpos'' .== 0) .# 1
     obj = triangleStrip { position = vpos, color = color }
 
 interpTest = ExprTest "basic_interpolation_properties" $

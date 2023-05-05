@@ -26,12 +26,12 @@ data GLAst where
 
 
 data GLTypeInfo = GLTypeInfo {
-    shaderType :: ShaderDomain,
+    shaderType :: GLDomain,
     exprType :: String
 }
 
-class IsGLDomain (d :: ShaderDomain) where
-    getShaderType :: GLExpr d t -> ShaderDomain
+class IsGLDomain (d :: GLDomain) where
+    getShaderType :: GLExpr d t -> GLDomain
 instance IsGLDomain ConstDomain where
     getShaderType = const ConstDomain
 instance IsGLDomain HostDomain where
@@ -211,4 +211,4 @@ toGLAst e@(GLGenExpr id (Equal x y)) = mkGLExpr id e "equal" [toGLAst x, toGLAst
 toGLAst e@(GLGenExpr id (NotEqual x y)) = mkGLExpr id e "notEqual" [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (Any x)) = mkGLExpr id e "any" [toGLAst x]
 toGLAst e@(GLGenExpr id (All x)) = mkGLExpr id e "all" [toGLAst x]
-toGLAst e@(GLGenExpr id (Compl x)) = mkGLExpr id e "not" [toGLAst x]
+toGLAst e@(GLGenExpr id (Not x)) = mkGLExpr id e "not" [toGLAst x]

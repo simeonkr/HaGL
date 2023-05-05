@@ -836,17 +836,17 @@ type family GLElt t where
 -- * Primitive GLTypes
 
 class (GLType t, Storable t, Enum t, Eq t, Ord t) => GLPrim t where
-    cast :: GLPrim t0 => t0 -> t
+    glCast :: GLPrim t0 => t0 -> t
 instance GLPrim Float where
-    cast = fromIntegral . fromEnum
+    glCast = fromIntegral . fromEnum
 instance GLPrim Double where
-    cast = fromIntegral . fromEnum
+    glCast = fromIntegral . fromEnum
 instance GLPrim Int where
-    cast = fromEnum
+    glCast = fromEnum
 instance GLPrim UInt where
-    cast = fromIntegral . fromEnum
+    glCast = fromIntegral . fromEnum
 instance GLPrim Bool where
-    cast = (/= toEnum 0)
+    glCast = (/= toEnum 0)
 
 class (GLPrim t, Storable t, Enum t, Eq t, Ord t) => GLSingle t
 instance GLSingle Float

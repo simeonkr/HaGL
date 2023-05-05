@@ -3,7 +3,7 @@ module Graphics.HEGL.GLExpr (
     GLAtom(..),
     GLFunc(..),
     GLGenExpr(..),
-    ShaderDomain(..),
+    GLDomain(..),
     shaderDomains,
     InterpolationType(..),
     IOVarID,
@@ -30,7 +30,7 @@ import qualified Graphics.HEGL.Util.DepMap as DepMap
 
 -- * Expression definitions
 
-data GLExpr :: ShaderDomain -> * -> * where
+data GLExpr :: GLDomain -> * -> * where
     GLAtom :: GLType t => ExprID -> GLAtom d t -> GLExpr d t
     GLFunc :: GLType t => ExprID -> GLFunc d t -> GLExpr d t
     GLGenExpr :: GLType t => ExprID -> GLGenExpr d t -> GLExpr d t
@@ -38,7 +38,7 @@ data GLExpr :: ShaderDomain -> * -> * where
 
 -- Irreducible variables and placeholders
 
-data GLAtom :: ShaderDomain -> * -> * where
+data GLAtom :: GLDomain -> * -> * where
 
     Const :: GLType t => 
         t -> GLAtom d t
@@ -76,7 +76,7 @@ data GLAtom :: ShaderDomain -> * -> * where
 
 -- User-defined functions
 
-data GLFunc :: ShaderDomain -> * -> * where
+data GLFunc :: GLDomain -> * -> * where
 
     GLFunc1 :: (GLType t, GLType t1) =>
         (GLExpr d t1 -> GLExpr d t) ->
@@ -104,15 +104,14 @@ data GLFunc :: ShaderDomain -> * -> * where
 
 
 -- Compound expressions corresponding to built-in functions and operators
--- TODO: order constraints in a consistent manner
 
-data GLGenExpr :: ShaderDomain -> * -> * where
+data GLGenExpr :: GLDomain -> * -> * where
 
-    GLVec2 :: (GLPrim t, GLType (Vec 2 t)) =>
+    GLVec2 :: (GLType (Vec 2 t)) =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d (Vec 2 t)
-    GLVec3 :: (GLPrim t, GLType (Vec 3 t)) =>
+    GLVec3 :: (GLType (Vec 3 t)) =>
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d (Vec 3 t)
-    GLVec4 :: (GLPrim t, GLType (Vec 4 t)) =>
+    GLVec4 :: (GLType (Vec 4 t)) =>
         GLExpr d t -> GLExpr d t -> GLExpr d t -> GLExpr d t -> GLGenExpr d (Vec 4 t)
     GLMat2x2 :: (GLFloating t, GLType (Vec 2 t), GLType (Mat 2 2 t)) =>
         GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t) -> GLGenExpr d (Mat 2 2 t)
@@ -132,20 +131,20 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLGenExpr d (Mat 4 3 t)
     GLMat4x4 :: (GLFloating t, GLType (Vec 4 t), GLType (Mat 4 4 t)) =>
         GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLExpr d (Vec 4 t) -> GLGenExpr d (Mat 4 4 t)
-    Pre :: (GLPrim t, GLType (Vec n t), GLType (Vec (n + 1) t)) => 
+    Pre :: (GLType (Vec n t), GLType (Vec (n + 1) t)) => 
         GLExpr d t -> GLExpr d (Vec n t) -> GLGenExpr d (Vec (n + 1) t)
-    App :: (GLPrim t, GLType (Vec n t), GLType t, GLType (Vec (n + 1) t)) => 
+    App :: (GLType (Vec n t), GLType t, GLType (Vec (n + 1) t)) => 
         GLExpr d (Vec n t) -> GLExpr d t -> GLGenExpr d (Vec (n + 1) t)
-    Conc :: (GLPrim t, GLType (Vec m t), GLType (Vec n t), GLType (Vec (m + n) t)) => 
+    Conc :: (GLType (Vec m t), GLType (Vec n t), GLType (Vec (m + n) t)) => 
         GLExpr d (Vec m t) -> GLExpr d (Vec n t) -> GLGenExpr d (Vec (m + n) t)
     GLArray :: GLType [t] =>
         [GLExpr HostDomain t] -> GLGenExpr HostDomain [t]
 
-    OpCoord :: (GLPrim t, GLType (Vec n t), m <= n) =>
+    OpCoord :: (GLType (Vec n t), m <= n) =>
         GLCoord m -> GLExpr d (Vec n t) -> GLGenExpr d t
-    OpCoordMulti :: (GLPrim t, GLType (Vec n t), GLType (Vec l t), m <= n) =>
+    OpCoordMulti :: (GLType (Vec n t), GLType (Vec l t), m <= n) =>
         GLCoordList l m -> GLExpr d (Vec n t) -> GLGenExpr d (Vec l t)
-    OpCol :: (GLPrim t, GLType (Mat r c t), GLType (Vec r t), m + 1 <= c) =>
+    OpCol :: (GLType (Mat r c t), GLType (Vec r t), m + 1 <= c) =>
         GLCol m -> GLExpr d (Mat r c t) -> GLGenExpr d (Vec r t)
     OpArrayElt :: (GLType [t], GLType t) =>
         GLExpr d [t] -> GLExpr d Int -> GLGenExpr d t
@@ -321,15 +320,14 @@ data GLGenExpr :: ShaderDomain -> * -> * where
         GLExpr d (Vec n Bool) -> GLGenExpr d Bool
     All :: GLType (Vec n Bool) =>
         GLExpr d (Vec n Bool) -> GLGenExpr d Bool
-    Compl :: GLType (Vec n Bool) =>
+    Not :: GLType (Vec n Bool) =>
         GLExpr d (Vec n Bool) -> GLGenExpr d (Vec n Bool)
 
 
--- TODO: rename to GLDomain as not all domains relate to shaders
-data ShaderDomain = ConstDomain | HostDomain | VertexDomain | FragmentDomain
+data GLDomain = ConstDomain | HostDomain | VertexDomain | FragmentDomain
     deriving (Eq, Ord)
 
-shaderDomains :: [ShaderDomain]
+shaderDomains :: [GLDomain]
 shaderDomains = [VertexDomain, FragmentDomain]
 
 

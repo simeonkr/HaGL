@@ -76,8 +76,6 @@ instance (KnownNat p, KnownNat q) => Applicative (Mat p q) where
     Mat fs <*> Mat xs = Mat $ listArray (bounds fs) 
         [(fs ! ind) (xs ! ind) | ind <- range (bounds fs)]
 
--- FIXME: Num & Fractional should not be provided by this library
-
 instance (KnownNat p, KnownNat q, Num t) => Num (Mat p q t) where
     m1 + m2 = (+) <$> m1 <*> m2
     m1 - m2 = (-) <$> m1 <*> m2
@@ -125,7 +123,7 @@ eltsAt (Mat xs) fl = Mat $ listArray ((0, 0), (m-1, 0)) vs where
     inds = flToList fl
     m = Data.List.length inds
 
-matCol :: Show t => Mat p q t -> Int -> Vec p t
+matCol :: Mat p q t -> Int -> Vec p t
 matCol (Mat xs) j = Mat $ listArray ((0, 0), (p, 0)) vs where
     vs = [xs ! (i, j) | i <- [0..p]]
     ((0, 0), (p, _)) = bounds xs

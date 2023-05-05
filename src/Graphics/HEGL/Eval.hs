@@ -6,13 +6,11 @@ module Graphics.HEGL.Eval (
     hostEval
 ) where
 
-import Prelude hiding (id, length)
-
+import Prelude hiding (id)
 import Control.Applicative (liftA2)
 import Control.Monad.State.Lazy
 import Data.Functor.Identity
 import Data.Bits
-import qualified Data.List as List (length)
 
 import Graphics.HEGL.Numerical
 import Graphics.HEGL.GLType
@@ -133,12 +131,12 @@ eval (GLGenExpr _ (OpCoordMulti coordList v)) = withEv1 v $ \v ->
 eval (GLGenExpr _ (OpCol col m)) = withEv1 m $ \m ->
     return $ m `matCol` colToIndex col
 eval (GLGenExpr _ (OpArrayElt arr i)) = withEv2 arr i $ \arr i ->
-    return $ arr !! fromIntegral (i `mod` (List.length arr))
+    return $ arr !! fromIntegral (i `mod` (Prelude.length arr))
 
 eval (GLGenExpr _ (Cast x)) = withEv1 x $ \x ->
-    return $ cast x
+    return $ glCast x
 eval (GLGenExpr _ (MatCast x)) = withEv1 x $ \x ->
-    return $ fromList . map cast . toList $ x
+    return $ fromList . map glCast . toList $ x
 
 eval (GLGenExpr _ (OpAdd x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith (+) x y
@@ -277,7 +275,7 @@ eval (GLGenExpr _ (Smoothstep x y z)) =  withEv3 x y z $ \x y z ->
             in t * t * (3 - 2 * t)
 
 eval (GLGenExpr _ (Length x)) = withEv1 x $ \x -> 
-    return $ length x
+    return $ Graphics.HEGL.Numerical.length x
 eval (GLGenExpr _ (Distance x y)) = withEv2 x y $ \x y -> 
     return $ x `distance` y
 eval (GLGenExpr _ (Dot x y)) = withEv2 x y $ \x y -> 
@@ -291,14 +289,14 @@ eval (GLGenExpr _ (Faceforward x y z)) = withEv3 x y z $ \x y z ->
         faceforward n i nr = if dot nr i < 0 then n else -n
 eval (GLGenExpr _ (Reflect x y)) = withEv2 x y $ \x y -> 
     return $ reflect x y where
-    c .* v = glMap (c *) v
-    reflect i n = i - 2 * dot n i .* n
+    c .# v = glMap (c *) v
+    reflect i n = i - 2 * dot n i .# n
 eval (GLGenExpr _ (Refract x y z)) = withEv3 x y z $ \x y z -> 
     return $ refract x y z where
-        c .* v = glMap (c *) v
+        c .# v = glMap (c *) v
         refract i n eta =
             let k = 1 - eta * eta * (1 - dot n i * dot n i)
-            in if k < 0 then 0 else eta .* i - (eta * dot n i + sqrt k) .* n
+            in if k < 0 then 0 else eta .# i - (eta * dot n i + sqrt k) .# n
 
 eval (GLGenExpr _ (MatrixCompMult x y)) = withEv2 x y $ \x y -> 
     return $ glZipWith (*) x y
@@ -327,7 +325,7 @@ eval (GLGenExpr _ (Any x)) = withEv1 x $ \x ->
     return $ foldr (.|.) False x
 eval (GLGenExpr _ (All x)) = withEv1 x $ \x -> 
     return $ foldr (.&.) True x
-eval (GLGenExpr _ (Compl x)) = withEv1 x $ \x -> 
+eval (GLGenExpr _ (Not x)) = withEv1 x $ \x -> 
     return $ fmap complement x
 
 

@@ -23,12 +23,12 @@ module Graphics.HEGL (
     fromMapping,
     fromList,
     -- ** Classes
-    GLType, GLInputType, GLElt,
+    GLType, GLPrimOrVec, GLInputType, GLElt,
     GLPrim, GLSingle, GLNumeric, GLSigned, GLFloating, GLSingleNumeric, GLInteger,
     GLSupportsSmoothInterp, GLSupportsBitwiseOps,
     -- * Expressions: Main definitions
     GLExpr,
-    ShaderDomain(..),
+    GLDomain(..),
     ConstExpr,
     HostExpr,
     VertExpr,
@@ -42,7 +42,7 @@ module Graphics.HEGL (
     glLift5,
     glLift6,
     -- * Generic constructors
-    Graphics.HEGL.const,
+    cnst,
     true,
     false,
     uint,
@@ -76,7 +76,7 @@ module Graphics.HEGL (
     col0, col1, col2, col3,
     (.!),
     -- * Type conversion
-    Graphics.HEGL.cast,
+    cast,
     matCast,
     -- * Custom function support
     glFunc1,
@@ -87,12 +87,12 @@ module Graphics.HEGL (
     glFunc6,
     -- * Builtin operators and functions
     -- ** Numeric operators
-    (.+.),
-    (.-.),
-    (.*.),
-    (./.),
-    (.%.),
+    (.+),
+    (.-),
     (.*),
+    (./),
+    (.%),
+    (.#),
     (.@),
     neg,
     -- ** Boolean operators and comparison functions
@@ -105,7 +105,7 @@ module Graphics.HEGL (
     (.&&),
     (.||),
     (.^^),
-    Graphics.HEGL.not,
+    nt,
     cond,
     -- ** Bitwise operators
     (.<<),
@@ -175,7 +175,7 @@ module Graphics.HEGL (
     notEqual,
     Graphics.HEGL.any,
     Graphics.HEGL.all,
-    compl,
+    Graphics.HEGL.not,
     -- * Builtin I/O variables
     time,
     mouseLeft,
@@ -276,12 +276,12 @@ glLift6 f x y z w u v = mkExpr GLAtom $ GLLift6 f x y z w u v
 
 -- * Generic expression constructors
 
-const :: GLType t => ConstExpr t -> GLExpr d t
-const x = mkExpr GLAtom $ Const (constEval x)
+cnst :: GLType t => ConstExpr t -> GLExpr d t
+cnst x = mkExpr GLAtom $ Const (constEval x)
 
 true, false :: GLExpr d Bool
-true = Graphics.HEGL.const $ toEnum . fromEnum $ 1
-false = Graphics.HEGL.const $ toEnum . fromEnum $ 0
+true = cnst $ toEnum . fromEnum $ 1
+false = cnst $ toEnum . fromEnum $ 0
 
 uint :: UInt -> GLExpr d UInt
 uint x = mkExpr GLAtom $ Const x
@@ -423,24 +423,24 @@ glFunc6 f = (((((GLFunc (genID f) .) .) .) .) .) . GLFunc6 f x y z w v u
 
 -- * Builtin operators and functions
 
-infixl 7  .*., ./., .%.
-infixl 6  .+., .-.
+infixl 6  .+, .-
+infixl 7  .*, ./, .%
 infix 4 .<, .<=, .>, .>=, .==, ./=
 infixl 3 .&&
-infixl 2 .||
-infixl 4 .^^
-infixl 1 .<<, .>>
+infixl 1 .||
+infixl 2 .^^
+infixl 5 .<<, .>>
 infixl 3 .&
-infixl 2 .|
-infixl 4 .^
-infixl 7 .*
+infixl 1 .|
+infixl 2 .^
+infixl 7 .#
 infixl 7 .@
 
-x .+. y = mkExpr GLGenExpr $ OpAdd x y
-x .-. y = mkExpr GLGenExpr $ OpSubt x y
-x .*. y = mkExpr GLGenExpr $ OpMult x y
-x ./. y = mkExpr GLGenExpr $ OpDiv x y
-x .%. y = mkExpr GLGenExpr $ OpMod x y
+x .+ y = mkExpr GLGenExpr $ OpAdd x y
+x .- y = mkExpr GLGenExpr $ OpSubt x y
+x .* y = mkExpr GLGenExpr $ OpMult x y
+x ./ y = mkExpr GLGenExpr $ OpDiv x y
+x .% y = mkExpr GLGenExpr $ OpMod x y
 neg x = mkExpr GLGenExpr $ OpNeg x
 x .< y = mkExpr GLGenExpr $ OpLessThan x y
 x .<= y = mkExpr GLGenExpr $ OpLessThanEqual x y
@@ -451,14 +451,15 @@ x ./= y = mkExpr GLGenExpr $ OpNotEqual x y
 x .&& y = mkExpr GLGenExpr $ OpAnd x y
 x .|| y = mkExpr GLGenExpr $ OpOr x y
 x .^^ y = mkExpr GLGenExpr $ OpXor x y
-not x = mkExpr GLGenExpr $ OpNot x
+nt x = mkExpr GLGenExpr $ OpNot x
 cond x y z = mkExpr GLGenExpr $ OpCond x y z
 x .<< y = mkExpr GLGenExpr $ OpLshift x y
 x .>> y = mkExpr GLGenExpr $ OpRshift x y
 x .& y = mkExpr GLGenExpr $ OpBitAnd x y
 x .| y = mkExpr GLGenExpr $ OpBitOr x y
 x .^ y = mkExpr GLGenExpr $ OpBitXor x y
-x .* y = mkExpr GLGenExpr $ OpScalarMult x y
+compl x = mkExpr GLGenExpr $ OpCompl x
+x .# y = mkExpr GLGenExpr $ OpScalarMult x y
 x .@ y = mkExpr GLGenExpr $ OpMatrixMult x y
 
 radians x = mkExpr GLGenExpr $ Radians x
@@ -521,7 +522,7 @@ equal x y = mkExpr GLGenExpr $ Equal x y
 notEqual x y = mkExpr GLGenExpr $ NotEqual x y
 any x = mkExpr GLGenExpr $ Any x
 all x = mkExpr GLGenExpr $ All x
-compl x = mkExpr GLGenExpr $ Compl x
+not x = mkExpr GLGenExpr $ Not x
 
 
 -- * Builtin I/O variables

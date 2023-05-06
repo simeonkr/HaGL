@@ -95,7 +95,7 @@ instance GLType UInt where
     uniformSet = RawGL.glUniform1ui
 instance GLType Bool where
     showGlslType = const "bool"
-    showGlslVal x = case x of True -> "true"; False -> "false"
+    showGlslVal x = if x then "true" else "false"
     glMap = id
     glZipWith = id
     glZipWith3 = id

@@ -9,7 +9,6 @@ import Graphics.HEGL.GLExpr
 import Graphics.HEGL.GLObj
 import Graphics.HEGL.Eval
 import Graphics.HEGL.CodeGen
-import Graphics.HEGL.Shader
 import Graphics.HEGL.Print
 
 dumpGlsl :: GLObj -> String

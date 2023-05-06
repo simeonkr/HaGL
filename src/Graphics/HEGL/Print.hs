@@ -49,13 +49,13 @@ printGLAst (GLAstAtom id ty GenVar) =
     printNode id ty "genVar"
 printGLAst (GLAstAtom id ty (Uniform x)) = do
     printNode id ty "uniform"
-    ifNotTraversed id $ do
+    ifNotTraversed id $
         indented $ printGLAst $ toGLAst x
 printGLAst (GLAstAtom id ty (Inp _)) =
     printNode id ty "inp"
 printGLAst (GLAstAtom id ty (Frag _ x)) = do
     printNode id ty "frag"
-    ifNotTraversed id $ do
+    ifNotTraversed id $
         indented $ printGLAst $ toGLAst x
 printGLAst (GLAstAtom id ty (IOFloat _)) =
     printNode id ty "ioFloat"

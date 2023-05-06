@@ -22,7 +22,6 @@ import GHC.TypeNats
 import Control.Exception (Exception)
 
 import Graphics.HEGL.GLType
-import Graphics.HEGL.Numerical
 import Graphics.HEGL.ExprID
 import Graphics.HEGL.Util.Types
 import qualified Graphics.HEGL.Util.DepMap as DepMap

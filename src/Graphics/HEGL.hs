@@ -207,7 +207,6 @@ module Graphics.HEGL (
     defaultGlutOptions,
 ) where
 
-import GHC.TypeNats (KnownNat)
 import qualified Graphics.Rendering.OpenGL as OpenGL
 
 import Graphics.HEGL.TH.HEGL (gen2DCoordDecls, gen3DCoordDecls)
@@ -280,8 +279,8 @@ cnst :: GLType t => ConstExpr t -> GLExpr d t
 cnst x = mkExpr GLAtom $ Const (constEval x)
 
 true, false :: GLExpr d Bool
-true = cnst $ toEnum . fromEnum $ 1
-false = cnst $ toEnum . fromEnum $ 0
+true = cnst $ toEnum 1
+false = cnst $ toEnum 0
 
 uint :: UInt -> GLExpr d UInt
 uint x = mkExpr GLAtom $ Const x

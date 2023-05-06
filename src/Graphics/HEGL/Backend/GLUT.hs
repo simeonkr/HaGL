@@ -154,7 +154,7 @@ setUniform ioState obj (UniformVar id x) = do
 
 updatePrecMap :: IOState -> RunObj -> IO ()
 updatePrecMap ioState obj = do
-    let updateVal ioState obj e@(GLAtom _ (IOPrec _ x) :: GLExpr HostDomain t) _ =
+    let updateVal ioState obj (GLAtom _ (IOPrec _ x) :: GLExpr HostDomain t) _ =
             Identity <$> hostEval (ioEval ioState obj) x
     pm <- readIORef $ precMap obj
     pm1 <- DepMap.traverseWithKey (updateVal ioState obj) pm

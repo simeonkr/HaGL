@@ -107,7 +107,7 @@ toGLAst e@(GLGenExpr id (Pre x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, 
 toGLAst e@(GLGenExpr id (App x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (Conc x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 -- FIXME: temporary patch-up to make printGLAST work
-toGLAst e@(GLGenExpr id (GLArray xs)) = mkGLExpr id e (showGlslType e) []
+toGLAst e@(GLGenExpr id (GLArray _)) = mkGLExpr id e (showGlslType e) []
 
 toGLAst e@(GLGenExpr id (OpCoord coord x)) = mkGLExpr id e ("." ++ show coord) [toGLAst x]
 toGLAst e@(GLGenExpr id (OpCoordMulti coordList x)) = mkGLExpr id e ("." ++ show coordList) [toGLAst x]

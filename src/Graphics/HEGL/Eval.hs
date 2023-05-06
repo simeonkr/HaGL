@@ -131,7 +131,7 @@ eval (GLGenExpr _ (OpCoordMulti coordList v)) = withEv1 v $ \v ->
 eval (GLGenExpr _ (OpCol col m)) = withEv1 m $ \m ->
     return $ m `matCol` colToIndex col
 eval (GLGenExpr _ (OpArrayElt arr i)) = withEv2 arr i $ \arr i ->
-    return $ arr !! fromIntegral (i `mod` (Prelude.length arr))
+    return $ arr !! fromIntegral (i `mod` Prelude.length arr)
 
 eval (GLGenExpr _ (Cast x)) = withEv1 x $ \x ->
     return $ glCast x

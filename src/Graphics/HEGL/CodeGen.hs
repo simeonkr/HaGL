@@ -5,7 +5,7 @@ module Graphics.HEGL.CodeGen (
 ) where
 
 import Prelude hiding (id)
-import Control.Monad.State.Lazy (State, evalState, get, gets, modify, unless)
+import Control.Monad.State.Lazy (State, evalState, gets, modify, unless)
 import Control.Exception (throw)
 import qualified Data.List as List
 import qualified Data.Map as Map

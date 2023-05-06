@@ -207,9 +207,7 @@ hostTests = [
 shaderTests :: [ExprTest FragmentDomain]
 shaderTests = [
         inputFloatTest,
-        -- FIXME: integer inputs are not working, 
-        -- likely due to use of Int instead of Int32
-        --inputIntTest,
+        inputIntTest,
         inputUIntTest,
         inputVec2Test,
         inputVec3Test,

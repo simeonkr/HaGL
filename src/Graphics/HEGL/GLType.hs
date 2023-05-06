@@ -22,6 +22,7 @@ module Graphics.HEGL.GLType (
 
 import Control.Applicative (liftA2, liftA3)
 import Data.Bits
+import Data.Int (Int32)
 import Data.Word (Word32)
 import Data.List (intercalate)
 import Foreign.Storable (Storable)
@@ -768,40 +769,57 @@ instance GLPrimOrVec (Vec 2 UInt)
 instance GLPrimOrVec (Vec 3 UInt)
 instance GLPrimOrVec (Vec 4 UInt)
 
-class (GLPrimOrVec t, Storable (GLElt t)) => GLInputType t where
-    toStorableList :: [t] -> [GLElt t]
+class (GLPrimOrVec t, Storable (StoreElt t)) => GLInputType t where
+    type StoreElt t
+    toStorableList :: [t] -> [StoreElt t]
 
 instance GLInputType Float where
+    type StoreElt Float = Float
     toStorableList = id
 instance GLInputType Double where
+    type StoreElt Double = Double
     toStorableList = id
 instance GLInputType Int where
-    toStorableList = id
+    type StoreElt Int = Int32
+    toStorableList = map fromIntegral
 instance GLInputType UInt where
+    type StoreElt UInt = Word32
     toStorableList = id
 instance GLInputType (Vec 2 Float) where
+    type StoreElt (Vec 2 Float) = Float
     toStorableList = concatMap toList
 instance GLInputType (Vec 3 Float) where
+    type StoreElt (Vec 3 Float) = Float
     toStorableList = concatMap toList
 instance GLInputType (Vec 4 Float) where
+    type StoreElt (Vec 4 Float) = Float
     toStorableList = concatMap toList
 instance GLInputType (Vec 2 Double) where
+    type StoreElt (Vec 2 Double) = Double
     toStorableList = concatMap toList
 instance GLInputType (Vec 3 Double) where
+    type StoreElt (Vec 3 Double) = Double
     toStorableList = concatMap toList
 instance GLInputType (Vec 4 Double) where
+    type StoreElt (Vec 4 Double) = Double
     toStorableList = concatMap toList
 instance GLInputType (Vec 2 Int) where
-    toStorableList = concatMap toList
+    type StoreElt (Vec 2 Int) = Int32
+    toStorableList = concatMap (map fromIntegral . toList)
 instance GLInputType (Vec 3 Int) where
-    toStorableList = concatMap toList
+    type StoreElt (Vec 3 Int) = Int32
+    toStorableList = concatMap (map fromIntegral . toList)
 instance GLInputType (Vec 4 Int) where
-    toStorableList = concatMap toList
+    type StoreElt (Vec 4 Int) = Int32
+    toStorableList = concatMap (map fromIntegral . toList)
 instance GLInputType (Vec 2 UInt) where
+    type StoreElt (Vec 2 UInt) = Word32
     toStorableList = concatMap toList
 instance GLInputType (Vec 3 UInt) where
+    type StoreElt (Vec 3 UInt) = Word32
     toStorableList = concatMap toList
 instance GLInputType (Vec 4 UInt) where
+    type StoreElt (Vec 4 UInt) = Word32
     toStorableList = concatMap toList
 
 class GLInputType t => GLSupportsSmoothInterp t

@@ -120,8 +120,6 @@ genericTests = [
         glLiftTest,
         castTest,
         matCastTest,
-        booleanExprsTest,
-        bitwiseExprsTest,
         numFloatTest,
         numIntTest,
         numVecTest,
@@ -130,6 +128,15 @@ genericTests = [
         fractionalVecTest,
         floatingFloatTest,
         floatingVecTest,
+        numOpsIntTest,
+        numOpsUIntTest,
+        numOpsVecTest,
+        numOpsIntVecTest,
+        modulusTest,
+        scalarMultTest,
+        matMultTest,
+        booleanExprsTest,
+        bitwiseExprsTest,
         lengthTest,
         distanceTest,
         dotTest,
@@ -414,46 +421,9 @@ matCastTest = ExprTest "matCast" $
     almostVecEqual (matCast $ vec2 true false) (vec2 1 0 :: GLExpr d (Vec 2 Float))
 
 
--- Boolean and bitwise expressions
-
-booleanExprsTest = ExprTest "boolean_expressions" $
-    (-1 :: GLExpr d Int) .< 0 .&&
-    (-1 :: GLExpr d Int) .<= 0 .&&
-    (-1 :: GLExpr d Int) .<= -1 .&&
-    (1 :: GLExpr d Int) .> 0 .&&
-    (1 :: GLExpr d Int) .>= 0 .&&
-    (1 :: GLExpr d Int) .>= 1 .&&
-    (1 :: GLExpr d Int) .== 1 .&&
-    (0 :: GLExpr d Int) ./= 1 .&&
-    (true .&& true) .== true .&&
-    (true .&& false) .== false .&&
-    (false .&& true) .== false .&&
-    (false .&& false) .== false .&&
-    (true  .|| true) .== true .&&
-    (true .|| false) .== true .&& 
-    (false .|| true) .== true .&&
-    (false .|| false) .== false .&&
-    (true .^^ true) .== false .&&
-    (true .^^ false) .== true .&&
-    (false .^^ true) .== true .&&
-    (false .^^ false) .== false .&&
-    nt true .== false .&&
-    nt false .== true .&&
-    cond true (2 :: GLExpr d Int) 1 .== 2 .&&
-    cond false (2 :: GLExpr d Int) 1 .== 1    
-
-
-bitwiseExprsTest = ExprTest "bitwise_expressions" $
-    (((7 :: GLExpr d Int) .<< 3) .>> 3) .== 7 .&&
-    ((7 :: GLExpr d Int) .>> 3) .== 0 .&&
-    ((12 :: GLExpr d Int) .& 10) .== 8 .&&
-    ((12 :: GLExpr d Int) .| 10) .== 14 .&&
-    ((12 :: GLExpr d Int) .^ 10) .== 6 .&&
-    (compl . compl) (12345678 :: GLExpr d Int) .== 12345678
-
-
 -- Num, Fractional, Floating
 
+-- TODO: use QuickCheck to verify properties like these, wherever possible
 checkNumProperties eq x y z =
     ((x + y) + z) `eq` (x + (y + z)) .&&
     (x + y) `eq` (y + x) .&&
@@ -480,7 +450,7 @@ numVecTest = ExprTest "num_vec" $
 numIntVecTest = ExprTest "num_ivec" $
     let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
     in checkNumProperties (.==) 
-        (-1 + v) (7 + v) (-5 + v)
+        v (7 + v) (-5 + v)
 
 checkFractionalProperties eq x y z = 
     (x * recip x) `eq` (recip x * x) .&&
@@ -512,6 +482,129 @@ floatingVecTest = ExprTest "floating_vec" $
     let v = vec4 0.1 0.2 0.3 0.4 :: GLExpr d (Vec 4 Float)
     in checkFloatingProperties almostVecEqual 
         (-1.234567 + v) (1.789012 + v) (-1.567890 + v)
+
+
+-- Numeric operators
+
+checkNumericOps eq zero one x y z =
+    ((x .+ y) .+ z) `eq` (x .+ (y .+ z)) .&&
+    (x .+ y) `eq` (y .+ x) .&&
+    (x .+ zero) `eq` x .&&
+    (x .+ neg x) `eq` zero .&&
+    ((x .* y) .* z) `eq` (x .* (y .* z)) .&&
+    (x .* one) `eq` x .&&
+    (one .* x) `eq` x .&&
+    (x .* (y .+ z)) `eq` ((x .* y) .+ (x .* z)) .&&
+    ((y .+ z) .* x) `eq` ((y .* x) .+ (z .* x)) .&&
+    (x ./ x) `eq` one .&&
+    (x .* y ./ x) `eq` y .&&
+    (x .* y ./ y) `eq` x
+
+numOpsFloatTest = ExprTest "num_ops_float" $
+    checkNumericOps almostEqual (0 :: GLExpr d Float) 1 (-1.234567) 1.789012 (-1.567890)
+
+numOpsIntTest = ExprTest "num_ops_int" $
+    checkNumericOps (.==) (0 :: GLExpr d Int) 1 (-1) 7 (-5) 
+
+numOpsUIntTest = ExprTest "num_ops_uint" $
+    checkNumericOps (.==) (uint 0) (uint 1) (uint 1) (uint 7) (uint 5)
+
+numOpsVecTest = ExprTest "num_ops_vec" $
+    let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Float)
+    in checkNumericOps almostVecEqual 0 1
+        (-1.234567 + v) (1.789012 + v) (-1.567890 + v)
+
+numOpsIntVecTest = ExprTest "num_ops_ivec" $
+    let v = vec4 1 2 3 4 :: GLExpr d (Vec 4 Int)
+    in checkNumericOps (.==) 0 1
+        v (7 + v) (-5 + v)
+
+modulusTest = ExprTest "modulus" $
+    vec4 10 100 101 200 .% (100 :: GLExpr d (Vec 4 Int)) .== vec4 10 0 1 0 .&&
+    uint 101 .% uint 100 .== uint 1
+
+scalarMultTest = ExprTest "scalar_mult" $
+    (2 :: GLExpr d Int) .# vec2 1 2 .== vec2 2 4 .&&
+    (2 :: GLExpr d Int) .# vec3 1 2 3 .== vec3 2 4 6 .&&
+    (2 :: GLExpr d Int) .# vec4 1 2 3 4.== vec4 2 4 6 8 .&&
+    ((2 :: GLExpr d Float) .# vec2 1 2) `almostVecEqual` vec2 2 4 .&&
+    ((2 :: GLExpr d Float) .# vec3 1 2 3) `almostVecEqual` vec3 2 4 6 .&&
+    ((2 :: GLExpr d Float) .# vec4 1 2 3 4) `almostVecEqual` vec4 2 4 6 8 .&&
+    ((2 :: GLExpr d Float) .# mat2x2 (vec2 0 1) (vec2 2 3)) `almostMatPx2Equal` 
+        mat2x2 (vec2 0 2) (vec2 4 6) .&&
+    ((2 :: GLExpr d Float) .# mat2x3 (vec2 0 1) (vec2 2 3) (vec2 4 5)) `almostMatPx3Equal` 
+        mat2x3 (vec2 0 2) (vec2 4 6) (vec2 8 10) .&&
+    ((2 :: GLExpr d Float) .# mat2x4 (vec2 0 1) (vec2 2 3) (vec2 4 5) (vec2 6 7)) `almostMatPx4Equal` 
+        mat2x4 (vec2 0 2) (vec2 4 6) (vec2 8 10) (vec2 12 14) .&&
+    ((2 :: GLExpr d Float) .# mat3x2 (vec3 0 1 2) (vec3 3 4 5)) `almostMatPx2Equal` 
+        mat3x2 (vec3 0 2 4) (vec3 6 8 10) .&&
+    ((2 :: GLExpr d Float) .# mat3x3 (vec3 0 1 2) (vec3 3 4 5) (vec3 6 7 8)) `almostMatPx3Equal` 
+        mat3x3 (vec3 0 2 4) (vec3 6 8 10) (vec3 12 14 16) .&&
+    ((2 :: GLExpr d Float) .# mat3x4 (vec3 0 1 2) (vec3 3 4 5) (vec3 6 7 8) (vec3 9 10 11)) `almostMatPx4Equal` 
+        mat3x4 (vec3 0 2 4) (vec3 6 8 10) (vec3 12 14 16) (vec3 18 20 22) .&&
+    ((2 :: GLExpr d Float) .# mat4x2 (vec4 0 1 2 3) (vec4 4 5 6 7)) `almostMatPx2Equal` 
+        mat4x2 (vec4 0 2 4 6) (vec4 8 10 12 14) .&&
+    ((2 :: GLExpr d Float) .# mat4x3 (vec4 0 1 2 3) (vec4 4 5 6 7) (vec4 8 9 10 11)) `almostMatPx3Equal` 
+        mat4x3 (vec4 0 2 4 6) (vec4 8 10 12 14) (vec4 16 18 20 22) .&&
+    ((2 :: GLExpr d Float) .# mat4x4 (vec4 0 1 2 3) (vec4 4 5 6 7) (vec4 8 9 10 11) (vec4 12 13 14 15)) `almostMatPx4Equal` 
+        mat4x4 (vec4 0 2 4 6) (vec4 8 10 12 14) (vec4 16 18 20 22) (vec4 24 26 28 30)
+
+matMultTest = ExprTest "mat_mult" $
+    let m2x2 = mat2x2 (vec2 0 1) (vec2 2 3) :: GLExpr d (Mat 2 2 Float)
+        m2x3 = mat2x3 (vec2 0 1) (vec2 2 3) (vec2 4 5) :: GLExpr d (Mat 2 3 Float)
+        m2x4 = mat2x4 (vec2 0 1) (vec2 2 3) (vec2 4 5) (vec2 6 7) :: GLExpr d (Mat 2 4 Float)
+        m3x2 = mat3x2 (vec3 0 1 2) (vec3 3 4 5) :: GLExpr d (Mat 3 2 Float)
+        m3x3 = mat3x3 (vec3 0 1 2) (vec3 3 4 5) (vec3 6 7 8) :: GLExpr d (Mat 3 3 Float)
+        m3x4 = mat3x4 (vec3 0 1 2) (vec3 3 4 5) (vec3 6 7 8) (vec3 9 10 11) :: GLExpr d (Mat 3 4 Float)
+        m4x2 = mat4x2 (vec4 0 1 2 3) (vec4 4 5 6 7) :: GLExpr d (Mat 4 2 Float)
+        m4x3 = mat4x3 (vec4 0 1 2 3) (vec4 4 5 6 7) (vec4 8 9 10 11) :: GLExpr d (Mat 4 3 Float)
+        m4x4 = mat4x4 (vec4 0 1 2 3) (vec4 4 5 6 7) (vec4 8 9 10 11) (vec4 12 13 14 15) :: GLExpr d (Mat 4 4 Float)
+    in (m2x2 .@ m2x2) `almostMatPx2Equal` mat2x2 (vec2 2 3) (vec2 6 11) .&&
+       (m2x4 .@ m4x3) `almostMatPx3Equal` mat2x3 (vec2 28 34) (vec2 76 98) (vec2 124 162) .&&
+       (m2x3 .@ m3x4) `almostMatPx4Equal` mat2x4 (vec2 10 13) (vec2 28 40) (vec2 46 67) (vec2 64 94) .&&
+       (m3x3 .@ m3x2) `almostMatPx2Equal` mat3x2 (vec3 15 18 21) (vec3 42 54 66) .&&
+       (m3x2 .@ m2x3) `almostMatPx3Equal` mat3x3 (vec3 3 4 5) (vec3 9 14 19) (vec3 15 24 33) .&&
+       (m3x4 .@ m4x4) `almostMatPx4Equal` mat3x4 (vec3 42 48 54) (vec3 114 136 158) (vec3 186 224 262) (vec3 258 312 366) .&&
+       (m4x4 .@ m4x2) `almostMatPx2Equal` mat4x2 (vec4 56 62 68 74) (vec4 152 174 196 218) .&&
+       (m4x3 .@ m3x3) `almostMatPx3Equal` mat4x3 (vec4 20 23 26 29) (vec4 56 68 80 92) (vec4 92 113 134 155) .&&
+       (m4x2 .@ m2x4) `almostMatPx4Equal` mat4x4 (vec4 4 5 6 7) (vec4 12 17 22 27) (vec4 20 29 38 47) (vec4 28 41 54 67)
+
+
+-- Boolean and bitwise expressions
+
+booleanExprsTest = ExprTest "boolean_expressions" $
+    (-1 :: GLExpr d Int) .< 0 .&&
+    (-1 :: GLExpr d Int) .<= 0 .&&
+    (-1 :: GLExpr d Int) .<= -1 .&&
+    (1 :: GLExpr d Int) .> 0 .&&
+    (1 :: GLExpr d Int) .>= 0 .&&
+    (1 :: GLExpr d Int) .>= 1 .&&
+    (1 :: GLExpr d Int) .== 1 .&&
+    (0 :: GLExpr d Int) ./= 1 .&&
+    (true .&& true) .== true .&&
+    (true .&& false) .== false .&&
+    (false .&& true) .== false .&&
+    (false .&& false) .== false .&&
+    (true  .|| true) .== true .&&
+    (true .|| false) .== true .&& 
+    (false .|| true) .== true .&&
+    (false .|| false) .== false .&&
+    (true .^^ true) .== false .&&
+    (true .^^ false) .== true .&&
+    (false .^^ true) .== true .&&
+    (false .^^ false) .== false .&&
+    nt true .== false .&&
+    nt false .== true .&&
+    cond true (2 :: GLExpr d Int) 1 .== 2 .&&
+    cond false (2 :: GLExpr d Int) 1 .== 1    
+
+bitwiseExprsTest = ExprTest "bitwise_expressions" $
+    (((7 :: GLExpr d Int) .<< 3) .>> 3) .== 7 .&&
+    ((7 :: GLExpr d Int) .>> 3) .== 0 .&&
+    ((12 :: GLExpr d Int) .& 10) .== 8 .&&
+    ((12 :: GLExpr d Int) .| 10) .== 14 .&&
+    ((12 :: GLExpr d Int) .^ 10) .== 6 .&&
+    (compl . compl) (12345678 :: GLExpr d Int) .== 12345678
 
 
 -- Common math functions

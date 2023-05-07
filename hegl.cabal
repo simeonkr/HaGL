@@ -21,8 +21,10 @@ library
   exposed-modules:
     Graphics.HEGL,
     Graphics.HEGL.Internal,
+    Graphics.HEGL.Lib.Image,
     Graphics.HEGL.Lib.Math
     Graphics.HEGL.Examples
+    Graphics.HEGL.Examples.Images
   other-modules:
     Graphics.HEGL.TH.HEGL
     Graphics.HEGL.Util

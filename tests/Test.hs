@@ -1,6 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 
-import Prelude hiding (all, not, min, max, length)
+import Prelude hiding (all, min, max, length)
 import Test.HUnit
 import Control.Monad (when)
 import Control.Exception
@@ -10,8 +10,10 @@ import qualified Data.ByteString as BS
 import qualified Data.List as List
 import qualified Graphics.UI.GLUT as GLUT
 
-import Graphics.HEGL hiding (sin, cos, sqrt)
+import Graphics.HEGL hiding (not, sin, cos, sqrt)
 import Graphics.HEGL.Internal (dumpGlsl, hostEval, GLExprException(..), GLObjException(..))
+import Graphics.HEGL.Lib.Image (fromImage)
+import Graphics.HEGL.Examples
 
 
 -- Test setup
@@ -39,43 +41,31 @@ mkHostTest (ExprTest label expr) =
 -- verify that setting color to 'expr' produces a white image
 mkShaderTest :: ExprTest FragmentDomain -> Test
 mkShaderTest (ExprTest label expr) = 
-    mkObjTest $ ObjTest label $ return $ objFromImage $ \_ -> cast expr .# 1
+    mkObjTest $ ObjTest label $ return $ fromImage $ \_ -> cast expr .# 1
 
 -- verify that trying to set color to 'expr' throws the expected exception
 mkShaderExceptionTest :: ExprExceptionTest -> Test
 mkShaderExceptionTest (ExprExceptionTest label ex expr) =
-    mkObjExceptionTest $ ObjExceptionTest label ex $ return $ objFromImage $ \_ -> cast expr .# 1
-
-objFromImage :: (FragExpr (Vec 2 Float) -> FragExpr (Vec 3 Float)) -> GLObj
-objFromImage image = obj where
-    quadPos = vert 
-        [vec2 (-1) (-1), 
-         vec2 (-1) 1, 
-         vec2 1 (-1), 
-         vec2 1 1]
-    pos = quadPos $- vec2 0 1
-    fPos = frag quadPos
-    color = app (image fPos) 1
-    obj = triangleStrip { position = pos, color = color }
+    mkObjExceptionTest $ ObjExceptionTest label ex $ return $ fromImage $ \_ -> cast expr .# 1
 
 -- verify that drawing the given objects produces a white image
 mkObjTest :: ObjTest -> Test
 mkObjTest (ObjTest label objs) = 
     TestLabel (label ++ "_shader") $ TestCase $
-        runObjs label objs >>=
+        runObjs False label objs >>=
             assertBool ("Failed to obtain a true value in shader: " ++ label)
 
 -- verify that drawing the given objects throws the expected exception
 mkObjExceptionTest :: ObjExceptionTest -> Test
 mkObjExceptionTest (ObjExceptionTest label ex objs) =
     TestLabel label $ TestCase $ do
-        res <- try $ runObjs label objs
+        res <- try $ runObjs False label objs
         case res of
             Left ex' | ex' == ex -> return ()
             _ -> assertFailure $ "Expected exception: " ++ show ex
 
-runObjs :: String -> [GLObj] -> IO Bool
-runObjs label objs = do
+runObjs :: Bool -> String -> [GLObj] -> IO Bool
+runObjs alwaysSave label objs = do
     mapM_ (dumpObj label) (zip [0..] objs)
     let captureFile = "dist/test/test_" ++ label ++ ".ppm"
     -- TODO: use the same GLUT window instead of creating a new one every time
@@ -86,7 +76,7 @@ runObjs label objs = do
         runMode = GlutCaptureAndExit captureFile }) objs
     dat <- BS.readFile captureFile
     let success = BS.all (== 0xff) . BS.drop 16 $ dat
-    when success $ removeFile captureFile
+    when (not alwaysSave && success) $ removeFile captureFile
     return success
 
 dumpObj label (i, obj) = do
@@ -1061,7 +1051,7 @@ interpTest = ExprTest "basic_interpolation_properties" $
 
 -- Object-level tests
 
-trivialImageTest = ObjTest "trivial_image" $ return $ objFromImage $ \pos ->
+trivialImageTest = ObjTest "trivial_image" $ return $ fromImage $ \pos ->
     max (app pos 1) 1
 
 passAroundTest = ObjTest "pass_around" [obj] where
@@ -1157,6 +1147,15 @@ iteratedGlFuncTest = ExprTest "iterated_glFunc" $
     in iterate f (1 :: GLExpr d Int) !! h .== 2^h
 
 
+-- Examples (verify output manually)
+
+testExamples = 
+    [("hello_triangles", [helloTriangles]),
+     ("color_grad", [colorGrad]),
+     ("circle", [circle]),
+     ("vstrip", [vstrip])
+    ]
+
 
 runTests :: Test -> IO ()
 runTests tests = do
@@ -1172,3 +1171,4 @@ main = do
     runTests $ TestList $ map mkShaderExceptionTest shaderExceptionTests
     runTests $ TestList $ map mkObjTest objTests
     runTests $ TestList $ map mkObjExceptionTest objExceptionTests
+    mapM_ (\(label, objs) -> runObjs True label objs) testExamples

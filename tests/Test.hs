@@ -11,7 +11,7 @@ import qualified Data.List as List
 import qualified Graphics.UI.GLUT as GLUT
 
 import Graphics.HEGL hiding (sin, cos, sqrt)
-import Graphics.HEGL.Internal (dumpGlsl, hostEval, GLExprException(..))
+import Graphics.HEGL.Internal (dumpGlsl, hostEval, GLExprException(..), GLObjException(..))
 
 
 -- Test setup
@@ -19,12 +19,14 @@ import Graphics.HEGL.Internal (dumpGlsl, hostEval, GLExprException(..))
 data ExprTest d where
     ExprTest :: String -> GLExpr d Bool -> ExprTest d
 
-data ExprExceptionTest where
-    ExprExceptionTest :: String -> GLExprException -> 
-            GLExpr FragmentDomain Bool -> ExprExceptionTest
+data ExprExceptionTest =
+    ExprExceptionTest String GLExprException (GLExpr FragmentDomain Bool)
 
 data ObjTest =
     ObjTest String GLObj
+
+data ObjExceptionTest where
+    ObjExceptionTest :: (Exception e, Eq e) => String -> e -> GLObj -> ObjExceptionTest
 
 -- verify that 'expr' evaluates to True
 mkHostTest :: ExprTest HostDomain -> Test
@@ -37,21 +39,16 @@ mkHostTest (ExprTest label expr) =
 -- verify that setting color to 'expr' produces a white image
 mkShaderTest :: ExprTest FragmentDomain -> Test
 mkShaderTest (ExprTest label expr) = 
-    mkObjTest $ ObjTest label $ objFromImage $ \_ -> cast expr .# 1
+    mkObjTest False $ ObjTest label $ objFromImage $ \_ -> cast expr .# 1
 
 -- verify that trying to set color to 'expr' throws the expected exception
 mkShaderExceptionTest :: ExprExceptionTest -> Test
 mkShaderExceptionTest (ExprExceptionTest label ex expr) =
-    TestLabel label $ TestCase $ do
-        let (TestLabel _ (TestCase act)) = mkShaderTest (ExprTest label expr)
-        res <- try act
-        case res of
-            Left ex' | ex' == ex -> return ()
-            _ -> assertFailure $ "Expected exception: " ++ show ex
+    mkObjExceptionTest $ ObjExceptionTest label ex $ objFromImage $ \_ -> cast expr .# 1
 
 -- verify that the given object produces a white image
-mkObjTest :: ObjTest -> Test
-mkObjTest (ObjTest label obj) = 
+mkObjTest :: Bool -> ObjTest -> Test
+mkObjTest runOnly (ObjTest label obj) = 
     TestLabel (label ++ "_shader") $ TestCase $ do
         let astDump = show (position obj) ++ "\n" ++ show (color obj)
             glsl = dumpGlsl obj
@@ -67,7 +64,18 @@ mkObjTest (ObjTest label obj) =
         dat <- BS.readFile captureFile
         let success = BS.all (== 0xff) . BS.drop 16 $ dat
         when success $ removeFile captureFile
-        assertBool ("Failed to obtain a true value in shader: " ++ label) success
+        when (runOnly == False) $
+            assertBool ("Failed to obtain a true value in shader: " ++ label) success
+
+-- verify that the given object throws the expected exception
+mkObjExceptionTest :: ObjExceptionTest -> Test
+mkObjExceptionTest (ObjExceptionTest label ex obj) =
+    TestLabel label $ TestCase $ do
+        let (TestLabel _ (TestCase act)) = mkObjTest True (ObjTest label obj)
+        res <- try act
+        case res of
+            Left ex' | ex' == ex -> return ()
+            _ -> assertFailure $ "Expected exception: " ++ show ex
 
 objFromImage :: (FragExpr (Vec 2 Float) -> FragExpr (Vec 3 Float)) -> GLObj
 objFromImage image = obj where
@@ -156,6 +164,7 @@ genericTests = [
         glFuncNestedCondTest,
         glFuncVarCaptureTest,
         uniformFloatTest,
+        uniformIntTest,
         uniformUIntTest,
         uniformBoolTest,
         uniformVec2FloatTest,
@@ -240,6 +249,13 @@ objTests :: [ObjTest]
 objTests = [
         trivialImageTest,
         passAroundTest
+    ]
+
+objExceptionTests :: [ObjExceptionTest]
+objExceptionTests = [
+        noInputVarsTest,
+        emptyInputVarTest,
+        mismatchedInputVarsTest
     ]
 
 
@@ -971,9 +987,6 @@ precSequenceTest = ExprTest "prec_sequence" $
 
 -- Shader-specific tests
 
-trivialImageTest = ObjTest "trivial_image" $ objFromImage $ \pos ->
-    max (app pos 1) 1
-
 -- TODO: test double-precision once supported
 
 inputFloatTest = ExprTest "input_float" $
@@ -1024,6 +1037,23 @@ inputUIntVec4Test = ExprTest "input_uvec4" $
     let x = map (+ 4_000_000_000) [vec4 1 2 3 4, vec4 5 6 7 8, vec4 9 10 11 12, vec4 13 14 15 16] :: [GLExpr d (Vec 4 Float)]
     in flatFrag (vert x) .== flatFrag (1 + vert (map (\x -> x - 1) x))
 
+interpTest = ExprTest "basic_interpolation_properties" $
+    let x = vert [1, 2, 3, 4] :: VertExpr Float
+        x' = vert $ map (\x -> 2 * x + 1) [1, 2, 3, 4]
+        y = frag x
+        z = 2 * noperspFrag x + 1
+        z' = noperspFrag x'
+        w = flatFrag x
+    in y .>=1 .&& y .<= 4 .&& 
+       almostEqual z z' .&& 
+       (w .== 1 .|| w .== 2 .|| w .== 3 .|| w .== 4)
+
+
+-- Object-level tests
+
+trivialImageTest = ObjTest "trivial_image" $ objFromImage $ \pos ->
+    max (app pos 1) 1
+
 passAroundTest = ObjTest "pass_around" obj where
     ppos = vert 
         [vec2 (-1) (-1), 
@@ -1054,16 +1084,14 @@ passAroundTest = ObjTest "pass_around" obj where
         fppos'' + fnpos'' .== 0) .# 1
     obj = triangleStrip { position = vpos, color = color }
 
-interpTest = ExprTest "basic_interpolation_properties" $
-    let x = vert [1, 2, 3, 4] :: VertExpr Float
-        x' = vert $ map (\x -> 2 * x + 1) [1, 2, 3, 4]
-        y = frag x
-        z = 2 * noperspFrag x + 1
-        z' = noperspFrag x'
-        w = flatFrag x
-    in y .>=1 .&& y .<= 4 .&& 
-       almostEqual z z' .&& 
-       (w .== 1 .|| w .== 2 .|| w .== 3 .|| w .== 4)
+noInputVarsTest = ObjExceptionTest "no_input_vars" NoInputVars $
+    triangleStrip
+
+emptyInputVarTest = ObjExceptionTest "empty_input_var" EmptyInputVar $
+    triangleStrip { position = vert [] }
+
+mismatchedInputVarsTest = ObjExceptionTest "mismatched_input_vars" MismatchedInputVars $
+    triangleStrip { position = vert [1, 1], color = frag (vert [1, 1, 1]) }
 
 
 -- Caching tests
@@ -1094,4 +1122,5 @@ main = do
     runTests $ TestList $ map mkShaderTest genericTests
     runTests $ TestList $ map mkShaderTest shaderTests
     runTests $ TestList $ map mkShaderExceptionTest shaderExceptionTests
-    runTests $ TestList $ map mkObjTest objTests
+    runTests $ TestList $ map (mkObjTest True) objTests
+    runTests $ TestList $ map mkObjExceptionTest objExceptionTests

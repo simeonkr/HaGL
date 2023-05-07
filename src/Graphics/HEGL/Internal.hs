@@ -2,7 +2,8 @@ module Graphics.HEGL.Internal (
     constEval,
     hostEval,
     dumpGlsl,
-    GLExprException(..)
+    GLExprException(..),
+    GLObjException(..)
 ) where
 
 import Graphics.HEGL.GLExpr

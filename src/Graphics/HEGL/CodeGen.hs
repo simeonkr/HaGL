@@ -26,6 +26,7 @@ data GLProgram = GLProgram {
     indices :: Maybe [ConstExpr UInt],
     uniformVars :: Set.Set UniformVar,
     inputVars :: Set.Set InpVar,
+    numElts :: Int,
     vertexShader :: Shader,
     fragmentShader :: Shader
 }
@@ -86,6 +87,7 @@ initCGDat glObj = CGDat {
             Graphics.HEGL.GLObj.indices glObj,
         uniformVars = Set.empty,
         inputVars = Set.empty,
+        numElts = 0,
         vertexShader = Shader [] [] [],
         fragmentShader = Shader [] [] []
     }
@@ -132,7 +134,15 @@ genProgram glObj = evalState gen (initCGDat glObj) where
         modifyShader FragmentDomain $ addStmt $
             DiscardStmt discardRef
 
-        gets program
+        verifyProg <$> gets program
+    
+    verifyProg :: GLProgram -> GLProgram
+    verifyProg prog =
+        case map (\(InpVar _ dat) -> length dat) (Set.toList (inputVars prog)) of
+            [] -> throw NoInputVars
+            lngts | elem 0 lngts -> throw EmptyInputVar
+            n:lngts | all (== n) lngts -> prog { numElts = n }
+            _ -> throw MismatchedInputVars
 
 
 -- Traversal

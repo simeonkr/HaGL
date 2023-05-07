@@ -42,7 +42,7 @@ genRunObj = progToRunObj . genProgram
 
 progToRunObj :: GLProgram -> IO RunObj
 progToRunObj (GLProgram primitiveMode indices 
-  uniformVars inputVars vertexShader fragmentShader) = do
+  uniformVars inputVars numElts vertexShader fragmentShader) = do
 
     vs <- loadShader VertexShader $ show vertexShader
     fs <- loadShader FragmentShader $ show fragmentShader
@@ -63,7 +63,7 @@ progToRunObj (GLProgram primitiveMode indices
     precMap <- newIORef DepMap.empty
 
     return $ RunObj primitiveMode indices
-        uniformVars precMap (getNumElts inputVars) vao prog
+        uniformVars precMap numElts vao prog
 
 loadShader :: ShaderType -> String -> IO Shader
 loadShader stype src = do
@@ -107,11 +107,6 @@ bindIndices (Just inds) = do
     withArray (map constEval inds) $ \ptr ->
         bufferData ElementArrayBuffer $= (indSize, ptr, StaticDraw)
 bindIndices _ = return ()
-
-getNumElts :: Set.Set InpVar -> Int
-getNumElts xs = assert (all (\x -> inpLen x == n) xs) n where
-    inpLen (InpVar _ dat) = length dat
-    n = inpLen $ head $ Set.toList xs
 
 makeOff :: Int -> Ptr a
 makeOff = wordPtrToPtr . fromIntegral

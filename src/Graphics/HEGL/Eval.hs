@@ -3,10 +3,12 @@
 
 module Graphics.HEGL.Eval (
     constEval,
-    hostEval
+    hostEval,
+    EvalException(..)
 ) where
 
 import Prelude hiding (id)
+import Control.Exception (Exception, throw)
 import Control.Applicative (liftA2)
 import Control.Monad.State.Lazy
 import Data.Functor.Identity
@@ -20,6 +22,15 @@ import qualified Graphics.HEGL.Util.DepMap as DepMap
 
 
 type IOEvaluator = forall t. GLExpr HostDomain t -> IO t
+
+
+data EvalException =
+    GenericUniformEval
+
+instance Exception EvalException
+
+instance Show EvalException where
+    show GenericUniformEval = "Attempted to evaluate a user-defined uniform variable"
 
 
 constEval :: GLExpr ConstDomain t -> t
@@ -56,7 +67,8 @@ hEval ioev e@(GLAtom _ (IOInt _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IOUInt _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IOBool _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IOPrec _ _)) = lift $ ioev e
-hEval ioev (GLAtom _ (Uniform x)) = hEval ioev x 
+hEval ioev (GLAtom _ (Uniform x)) = hEval ioev x
+hEval ioev (GLAtom _ (GenericUniform _)) = throw GenericUniformEval
 hEval _ e = eval e
 
 

@@ -51,6 +51,8 @@ printGLAst (GLAstAtom id ty (Uniform x)) = do
     printNode id ty "uniform"
     ifNotTraversed id $
         indented $ printGLAst $ toGLAst x
+printGLAst (GLAstAtom id ty (GenericUniform label)) = do
+    printNode id ty ("user-def.: " ++ label)
 printGLAst (GLAstAtom id ty (Inp _)) =
     printNode id ty "inp"
 printGLAst (GLAstAtom id ty (Frag _ x)) = do

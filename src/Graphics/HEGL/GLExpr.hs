@@ -45,6 +45,8 @@ data GLAtom :: GLDomain -> * -> * where
     GenVar :: GLType t => GLAtom d t
     Uniform :: GLType t => 
         GLExpr HostDomain t -> GLAtom d t
+    GenericUniform :: GLType t => 
+        String -> GLAtom d t
     Inp :: GLInputType t => 
         [GLExpr ConstDomain t] -> GLAtom VertexDomain t
     Frag :: GLInputType t =>

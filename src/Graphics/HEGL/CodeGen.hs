@@ -161,6 +161,11 @@ traverseGLAst _ (GLAstAtom id ti (Uniform x)) =
         addUniformVar $ UniformVar id x
         modifyShader (shaderType ti) $ addDecl $ 
             UniformDecl (idLabel id) (exprType ti)
+traverseGLAst _ (GLAstAtom _ ti (GenericUniform label)) = do
+    let safeLabel = "u_" ++ label
+    modifyShader (shaderType ti) $ addDecl $ 
+        UniformDecl safeLabel (exprType ti)
+    return $ ShaderVarRef safeLabel
 traverseGLAst _ (GLAstAtom id ti (Inp xs)) = 
     ifUndef GlobalScope id $ do
         addInputVar $ InpVar id xs

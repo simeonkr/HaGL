@@ -23,10 +23,10 @@ data ExprExceptionTest =
     ExprExceptionTest String GLExprException (GLExpr FragmentDomain Bool)
 
 data ObjTest =
-    ObjTest String GLObj
+    ObjTest String [GLObj]
 
 data ObjExceptionTest where
-    ObjExceptionTest :: (Exception e, Eq e) => String -> e -> GLObj -> ObjExceptionTest
+    ObjExceptionTest :: (Exception e, Eq e) => String -> e -> [GLObj] -> ObjExceptionTest
 
 -- verify that 'expr' evaluates to True
 mkHostTest :: ExprTest HostDomain -> Test
@@ -39,43 +39,12 @@ mkHostTest (ExprTest label expr) =
 -- verify that setting color to 'expr' produces a white image
 mkShaderTest :: ExprTest FragmentDomain -> Test
 mkShaderTest (ExprTest label expr) = 
-    mkObjTest False $ ObjTest label $ objFromImage $ \_ -> cast expr .# 1
+    mkObjTest $ ObjTest label $ return $ objFromImage $ \_ -> cast expr .# 1
 
 -- verify that trying to set color to 'expr' throws the expected exception
 mkShaderExceptionTest :: ExprExceptionTest -> Test
 mkShaderExceptionTest (ExprExceptionTest label ex expr) =
-    mkObjExceptionTest $ ObjExceptionTest label ex $ objFromImage $ \_ -> cast expr .# 1
-
--- verify that the given object produces a white image
-mkObjTest :: Bool -> ObjTest -> Test
-mkObjTest runOnly (ObjTest label obj) = 
-    TestLabel (label ++ "_shader") $ TestCase $ do
-        let astDump = show (position obj) ++ "\n" ++ show (color obj)
-            glsl = dumpGlsl obj
-        writeFile ("dist/test/test_" ++ label ++ ".dump") astDump
-        writeFile ("dist/test/test_" ++ label ++ ".glsl") glsl
-        let captureFile = "dist/test/test_" ++ label ++ ".ppm"
-        -- TODO: use the same GLUT window instead of creating a new one every time
-        GLUT.exit -- make sure GLUT has cleaned up, if a previous test errored
-        -- TODO: calling drawGlut directly is inefficient 
-        -- as it generates shader code a second time
-        drawGlutCustom (defaultGlutOptions { 
-            runMode = GlutCaptureAndExit captureFile }) obj
-        dat <- BS.readFile captureFile
-        let success = BS.all (== 0xff) . BS.drop 16 $ dat
-        when success $ removeFile captureFile
-        when (runOnly == False) $
-            assertBool ("Failed to obtain a true value in shader: " ++ label) success
-
--- verify that the given object throws the expected exception
-mkObjExceptionTest :: ObjExceptionTest -> Test
-mkObjExceptionTest (ObjExceptionTest label ex obj) =
-    TestLabel label $ TestCase $ do
-        let (TestLabel _ (TestCase act)) = mkObjTest True (ObjTest label obj)
-        res <- try act
-        case res of
-            Left ex' | ex' == ex -> return ()
-            _ -> assertFailure $ "Expected exception: " ++ show ex
+    mkObjExceptionTest $ ObjExceptionTest label ex $ return $ objFromImage $ \_ -> cast expr .# 1
 
 objFromImage :: (FragExpr (Vec 2 Float) -> FragExpr (Vec 3 Float)) -> GLObj
 objFromImage image = obj where
@@ -88,6 +57,44 @@ objFromImage image = obj where
     fPos = frag quadPos
     color = app (image fPos) 1
     obj = triangleStrip { position = pos, color = color }
+
+-- verify that drawing the given objects produces a white image
+mkObjTest :: ObjTest -> Test
+mkObjTest (ObjTest label objs) = 
+    TestLabel (label ++ "_shader") $ TestCase $
+        runObjs label objs >>=
+            assertBool ("Failed to obtain a true value in shader: " ++ label)
+
+-- verify that drawing the given objects throws the expected exception
+mkObjExceptionTest :: ObjExceptionTest -> Test
+mkObjExceptionTest (ObjExceptionTest label ex objs) =
+    TestLabel label $ TestCase $ do
+        res <- try $ runObjs label objs
+        case res of
+            Left ex' | ex' == ex -> return ()
+            _ -> assertFailure $ "Expected exception: " ++ show ex
+
+runObjs :: String -> [GLObj] -> IO Bool
+runObjs label objs = do
+    mapM_ (dumpObj label) (zip [0..] objs)
+    let captureFile = "dist/test/test_" ++ label ++ ".ppm"
+    -- TODO: use the same GLUT window instead of creating a new one every time
+    GLUT.exit -- make sure GLUT has cleaned up, if a previous test errored
+    -- TODO: calling drawGlut directly is inefficient 
+    -- as it generates shader code a second time
+    drawGlutCustom (defaultGlutOptions { 
+        runMode = GlutCaptureAndExit captureFile }) objs
+    dat <- BS.readFile captureFile
+    let success = BS.all (== 0xff) . BS.drop 16 $ dat
+    when success $ removeFile captureFile
+    return success
+
+dumpObj label (i, obj) = do
+    let astDump = show (position obj) ++ "\n" ++ show (color obj)
+        glsl = dumpGlsl obj
+        objLabel = label ++ if i == 0 then "" else show i
+    writeFile ("dist/test/test_" ++ objLabel ++ ".dump") astDump
+    writeFile ("dist/test/test_" ++ objLabel ++ ".glsl") glsl
 
 -- TODO: make these definitions part of GLType & use a smarter error estimate
 almostEqual x y = abs (x - y) .<= 1e-5
@@ -248,7 +255,10 @@ shaderExceptionTests = [
 objTests :: [ObjTest]
 objTests = [
         trivialImageTest,
-        passAroundTest
+        passAroundTest,
+        multiObjOverlapTest,
+        multiObjComplementTest,
+        multiObjDiscardTest
     ]
 
 objExceptionTests :: [ObjExceptionTest]
@@ -1051,10 +1061,10 @@ interpTest = ExprTest "basic_interpolation_properties" $
 
 -- Object-level tests
 
-trivialImageTest = ObjTest "trivial_image" $ objFromImage $ \pos ->
+trivialImageTest = ObjTest "trivial_image" $ return $ objFromImage $ \pos ->
     max (app pos 1) 1
 
-passAroundTest = ObjTest "pass_around" obj where
+passAroundTest = ObjTest "pass_around" [obj] where
     ppos = vert 
         [vec2 (-1) (-1), 
          vec2 (-1) 1, 
@@ -1084,14 +1094,52 @@ passAroundTest = ObjTest "pass_around" obj where
         fppos'' + fnpos'' .== 0) .# 1
     obj = triangleStrip { position = vpos, color = color }
 
+multiObjOverlapTest = ObjTest "multi_obj_overlap" [obj1, obj2] where
+    vpos = vert 
+        [vec2 (-1) (-1), 
+         vec2 (-1) 1, 
+         vec2 1 (-1), 
+         vec2 1 1]
+    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = 0 }
+    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = 1 }
+
+multiObjComplementTest = ObjTest "multi_obj_complement" [obj1, obj2] where
+    vpos1 = vert 
+        [vec2 (-1) 0, 
+         vec2 (-1) 1, 
+         vec2 1 0, 
+         vec2 1 1]
+    vpos2 = vert 
+        [vec2 (-1) (-1), 
+         vec2 (-1) 0, 
+         vec2 1 (-1), 
+         vec2 1 0]
+    c1 = cast (y_ (frag vpos1) .>= 0) .# 1
+    c2 = cast (y_ (frag vpos2) .< 0) .# 1
+    obj1 = triangleStrip { position = vpos1 $- vec2 0 1, color = c1 }
+    obj2 = triangleStrip { position = vpos2 $- vec2 0 1, color = c2 }
+
+multiObjDiscardTest = ObjTest "multi_obj_discard" [obj1, obj2] where
+    vpos = vert 
+        [vec2 (-1) (-1), 
+         vec2 (-1) 1, 
+         vec2 1 (-1), 
+         vec2 1 1]
+    c1 = cast (y_ (frag vpos) .>= 0) .# 1
+    d1 = y_ (frag vpos) .< 0
+    c2 = cast (y_ (frag vpos) .< 0) .# 1
+    d2 = y_ (frag vpos) .>= 0
+    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c1, discardWhen = d1 }
+    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c2, discardWhen = d2 }
+
 noInputVarsTest = ObjExceptionTest "no_input_vars" NoInputVars $
-    triangleStrip
+    [triangleStrip]
 
 emptyInputVarTest = ObjExceptionTest "empty_input_var" EmptyInputVar $
-    triangleStrip { position = vert [] }
+    [triangleStrip { position = vert [] }]
 
 mismatchedInputVarsTest = ObjExceptionTest "mismatched_input_vars" MismatchedInputVars $
-    triangleStrip { position = vert [1, 1], color = frag (vert [1, 1, 1]) }
+    [triangleStrip { position = vert [1, 1], color = frag (vert [1, 1, 1]) }]
 
 
 -- Caching tests
@@ -1122,5 +1170,5 @@ main = do
     runTests $ TestList $ map mkShaderTest genericTests
     runTests $ TestList $ map mkShaderTest shaderTests
     runTests $ TestList $ map mkShaderExceptionTest shaderExceptionTests
-    runTests $ TestList $ map (mkObjTest True) objTests
+    runTests $ TestList $ map mkObjTest objTests
     runTests $ TestList $ map mkObjExceptionTest objExceptionTests

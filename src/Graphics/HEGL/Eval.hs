@@ -76,7 +76,8 @@ eval :: Monad a => GLExpr d t -> StateT (EvalState d a) a t
 
 eval (GLAtom _ (Const x)) = return x
 eval (GLAtom _ GenVar) = error "Attempted to evaluate an unknown variable"
-eval (GLAtom _ (Uniform _)) = error "Attempted to purely evaluate an expression in HostDomain"
+eval (GLAtom _ (Uniform _)) = error "Attempted to purely evaluate a uniform variable"
+eval (GLAtom _ (GenericUniform _)) = error "Attempted to purely evaluate a user-defined uniform variable"
 eval (GLAtom _ (Inp _)) = error "Attempted to evaluate an expression in VertexDomain"
 eval (GLAtom _ (Frag _ _)) = error "Attempted to evaluate an expression in FragmentDomain"
 eval (GLAtom _ (GLLift0 x0)) = return x0
@@ -92,13 +93,14 @@ eval (GLAtom _ (GLLift5 f x0 y0 z0 w0 u0)) = withEv5 x0 y0 z0 w0 u0 $ \x0 y0 z0 
     return $ f x0 y0 z0 w0 u0
 eval (GLAtom _ (GLLift6 f x0 y0 z0 w0 u0 v0)) = withEv6 x0 y0 z0 w0 u0 v0 $ \x0 y0 z0 w0 u0 v0 ->
     return $ f x0 y0 z0 w0 u0 v0
+eval (GLAtom _ _) = error "Attempted to purely evaluate an IO* variable"
 
-eval (GLFunc _ (GLFunc1 f _ x0)) = eval $ f x0
-eval (GLFunc _ (GLFunc2 f _ _ x0 y0)) = eval $ f x0 y0
-eval (GLFunc _ (GLFunc3 f _ _ _ x0 y0 z0)) = eval $ f x0 y0 z0
-eval (GLFunc _ (GLFunc4 f _ _ _ _ x0 y0 z0 w0)) = eval $ f x0 y0 z0 w0
-eval (GLFunc _ (GLFunc5 f _ _ _ _ _ x0 y0 z0 w0 u0)) = eval $ f x0 y0 z0 w0 u0
-eval (GLFunc _ (GLFunc6 f _ _ _ _ _ _ x0 y0 z0 w0 u0 v0)) = eval $ f x0 y0 z0 w0 u0 v0
+eval (GLFunc _ (GLFunc1 f _ x0)) = cachedEval $ f x0
+eval (GLFunc _ (GLFunc2 f _ _ x0 y0)) = cachedEval $ f x0 y0
+eval (GLFunc _ (GLFunc3 f _ _ _ x0 y0 z0)) = cachedEval $ f x0 y0 z0
+eval (GLFunc _ (GLFunc4 f _ _ _ _ x0 y0 z0 w0)) = cachedEval $ f x0 y0 z0 w0
+eval (GLFunc _ (GLFunc5 f _ _ _ _ _ x0 y0 z0 w0 u0)) = cachedEval $ f x0 y0 z0 w0 u0
+eval (GLFunc _ (GLFunc6 f _ _ _ _ _ _ x0 y0 z0 w0 u0 v0)) = cachedEval $ f x0 y0 z0 w0 u0 v0
 
 eval (GLGenExpr _ (GLVec2 x y)) = withEv2 x y $ \x y -> 
     return $ x %| m0 %- y %| m0
@@ -184,7 +186,7 @@ eval (GLGenExpr _ (OpNot x)) = withEv1 x $ \x ->
     return $ complement x
 eval (GLGenExpr _ (OpCond x y z)) =
     -- this is the only case where we have to be lazy
-    eval x >>= \x -> if x then eval y else eval z
+    cachedEval x >>= \x -> if x then cachedEval y else cachedEval z
 eval (GLGenExpr _ (OpCompl x)) = withEv1 x $ \x ->
     return $ glMap complement x
 eval (GLGenExpr _ (OpLshift x y)) = withEv2 x y $ \x y -> 

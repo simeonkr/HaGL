@@ -68,10 +68,14 @@ initWindow options = do
         (winPosition options)
     windowSize $= (\(x, y) -> Size x y) (winSize options)
     when (winFullscreen options) fullScreen
-    maybe (return ()) (windowTitle $=) (winTitle options) 
+    maybe (return ()) (windowTitle $=) (winTitle options)
+    actionOnWindowClose $= MainLoopReturns 
+    -- TODO: make settings like these customizable
     initialDisplayMode $= [RGBAMode, WithAlphaComponent]
     depthFunc $= Just Lequal
-    actionOnWindowClose $= MainLoopReturns
+    blend $= Enabled
+    blendEquation $= FuncAdd
+    blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
 
 -- I/O state
 
@@ -157,6 +161,10 @@ updatePrecMap ioState obj = do
     let updateVal ioState obj (GLAtom _ (IOPrec _ x) :: GLExpr HostDomain t) _ =
             Identity <$> hostEval (ioEval ioState obj) x
     pm <- readIORef $ precMap obj
+    _ <- DepMap.traverseWithKey (updateVal ioState obj) pm
+    -- pm might have new keys so we need to read it again
+    -- FIXME: find an alternative to this really ugly solution
+    pm <- readIORef $ precMap obj
     pm1 <- DepMap.traverseWithKey (updateVal ioState obj) pm
     writeIORef (precMap obj) pm1
 
@@ -216,7 +224,6 @@ ioEval ioState obj e@(GLAtom _ (IOPrec x0 x)) = do
         Nothing -> do
             val <- hostEval (ioEval ioState obj) x0
             writeIORef (precMap obj) $ DepMap.insert e (Identity val) pm
-            _ <- hostEval (ioEval ioState obj) x
             return val
 
 ioEval ioState _ (GLAtom _ (IOFloat "time")) = do

@@ -3,11 +3,11 @@
 module Graphics.HEGL.Util.DepMap (
     GenHashable(..),
     DepMap,
-    Graphics.HEGL.Util.DepMap.mapWithKey,
-    Graphics.HEGL.Util.DepMap.traverseWithKey,
     Graphics.HEGL.Util.DepMap.empty,
     Graphics.HEGL.Util.DepMap.insert,
-    Graphics.HEGL.Util.DepMap.lookup) 
+    Graphics.HEGL.Util.DepMap.lookup,
+    Graphics.HEGL.Util.DepMap.mapWithKey,
+    Graphics.HEGL.Util.DepMap.traverseWithKey) 
 where
 
 import Data.Word (Word64)

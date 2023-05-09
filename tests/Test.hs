@@ -228,7 +228,7 @@ shaderTests = [
         precTrivialTest,
         precNestedTest,
         precIntegrateTest,
-        --precTimeTest
+        --precTimeTest,
         precSequenceTest
     ]
 
@@ -981,8 +981,8 @@ precTimeTest = ExprTest "prec_time" $
 
 precSequenceTest = ExprTest "prec_sequence" $
     let t = prec (0 :: GLExpr d Int) (t + 1)
-        tp = uniform $ array $ take 20 $ iterate (prec t) t
-    in tp .! 19 .== uniform t - 19
+        tp = uniform $ array $ take 20 $ iterate (\t -> prec 0 t) t
+    in foldr (\i e -> e .&& tp .! i .== uniform t - i) true (map cnst [0..19])
 
 
 -- Shader-specific tests
@@ -1052,7 +1052,7 @@ interpTest = ExprTest "basic_interpolation_properties" $
 -- Object-level tests
 
 trivialImageTest = ObjTest "trivial_image" $ return $ fromImage $ \pos ->
-    max (app pos 1) 1
+    vec4 1 1 1 1
 
 passAroundTest = ObjTest "pass_around" [obj] where
     ppos = vert 
@@ -1153,7 +1153,15 @@ testExamples =
     [("hello_triangles", [helloTriangles]),
      ("color_grad", [colorGrad]),
      ("circle", [circle]),
-     ("vstrip", [vstrip])
+     ("vstrip", [vstrip]),
+     ("circle_plus_strip", [circlePlusStrip]),
+     ("circle_plus_strip2", circlePlusStrip'),
+     ("checkboard", [checkboard]),
+     ("rotating_checkboard", [rotatingCheckboard]),
+     ("inverted_checkboard", [invertedCheckboard]),
+     ("winding_path", [windingPath]),
+     ("interactive_winding_path", [interactiveWindingPath]),
+     ("frag_sphere", [fragSphere])
     ]
 
 

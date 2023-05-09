@@ -1,5 +1,6 @@
 module Graphics.HEGL.Lib.Image (
     ImagePos, ImageColor, Image, ImageTransform,
+    rgb1,
     fromImage,
     fromImageInteractive,
     liftToImage1,
@@ -10,12 +11,15 @@ module Graphics.HEGL.Lib.Image (
 import Graphics.HEGL
 
 type ImagePos = FragExpr (Vec 2 Float)
-type ImageColor = FragExpr (Vec 3 Float)
+type ImageColor = FragExpr (Vec 4 Float)
 type Image = ImagePos -> ImageColor
 type ImageTransform = ImagePos -> ImagePos
 
-hglQuad :: (VertExpr (Vec 4 Float), FragExpr (Vec 2 Float))
-hglQuad = let 
+rgb1 :: FragExpr (Vec 3 Float) -> ImageColor
+rgb1 c = app c 1
+
+quad :: (VertExpr (Vec 4 Float), FragExpr (Vec 2 Float))
+quad = let 
     quadPos = vert 
         [(vec2 (-1) (-1)), 
          (vec2 (-1) 1), 
@@ -25,19 +29,19 @@ hglQuad = let
 
 fromImage :: Image -> GLObj
 fromImage im = triangleStrip { position = vpos, color = color } where
-    (vpos, pos) = hglQuad
-    color = app (im pos) 1
+    (vpos, pos) = quad
+    color = im pos
 
 fromImageInteractive :: Image -> GLObj
 fromImageInteractive im = triangleStrip { position = vpos, color = color } where
-    (vpos, pos) = hglQuad
+    (vpos, pos) = quad
     dx = cond mouseLeft (mouseX - (prec mouseX mouseX)) 0
     dy = cond mouseLeft (mouseY - (prec mouseY mouseY)) 0
     zf = prec 1 (zf * (-0.5 * mouseWheel + 1))
     off = prec (vec2 0 0) (off - zf .# (vec2 dx dy))
     pos' = pos + uniform off
     pos'' = (uniform zf) .# (pos' - uniform off) + uniform off
-    color = app (im pos'') 1
+    color = im pos''
 
 liftToImage1 :: (ImageColor -> ImageColor) -> Image -> Image
 liftToImage1 f im x = f (im x)

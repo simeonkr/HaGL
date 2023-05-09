@@ -180,6 +180,7 @@ traverseGLAst _ (GLAstAtom id ti (Frag interpType x)) =
             OutDecl (show interpType) (idLabel id) (exprType ti)
         modifyShader FragmentDomain $ addDecl $
             InpDecl (show interpType) (idLabel id) (exprType ti)
+traverseGLAst _ (GLAstAtom _ _ _) = error "GLAst contains disallowed atomic variable"
 traverseGLAst _ (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [cond, ret, 
   GLAstFuncApp _ _ (GLAstFunc fnID' _ _ _) recArgs]) params) | fnID == fnID' =
     defFn fnID params $ \parentParamExprs paramExprs -> do

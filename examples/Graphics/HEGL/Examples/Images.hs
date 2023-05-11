@@ -9,12 +9,18 @@ module Graphics.HEGL.Examples.Images (
     invertedCheckboard,
     windingPath,
     interactiveWindingPath,
-    fragSphere
+    fragSphere,
+    randomGrid,
+    noiseGrid,
+    fractalNoiseGrid,
+    warpedNoiseGrid,
+    procgen2dWorld
 ) where
 
 import Prelude hiding (length, min, max, floor, mod, sin, cos, tan, atan)
 import Graphics.HEGL
 import Graphics.HEGL.Lib.Image
+import Graphics.HEGL.Lib.Random
 
 
 -- Simple images and their combinations
@@ -114,3 +120,30 @@ fragSphere = fromImage $ \pos@(decon -> (x, y)) ->
 
 
 -- Applications of randomness/noise
+
+randomGrid :: GLObj
+randomGrid = fromImage $ \pos ->
+    rgb1 $ randFloat21 pos .# 1
+
+noiseGrid :: GLObj
+noiseGrid = fromImageInteractive $ \pos ->
+    rgb1 $ perlinNoise 1 (32 .# app pos (uniform time / 200)) .# 0.5 + 0.5
+
+fractalNoiseGrid :: GLObj
+fractalNoiseGrid = fromImageInteractive $ \pos ->
+    rgb1 $ fbm 1 20 (app pos (uniform time / 10)) .# 0.5 + 0.5 
+
+warpedNoiseGrid :: GLObj
+warpedNoiseGrid = fromImageInteractive $ \pos ->
+    let off = vec2 
+            (fbm 1 2 (app pos (uniform time / 10 + 2))) 
+            (fbm 1 2 (app pos (uniform time / 10 + 3)))
+    in rgb1 $ fbm 1 2 (app (pos + off) (uniform time / 10)) .# 0.5 + 0.5 
+
+procgen2dWorld :: GLObj
+procgen2dWorld = fromImageInteractive $ \pos ->
+    let perlin amp freq = amp * perlinNoise2d 1 (freq .* pos)
+        tot = perlin 4 4 + perlin 2 8 + perlin 1 32
+    in rgb1 $ cond (tot .<= 0)  (vec3 0 0 1) $
+              cond (tot .< 0.5) (vec3 1 1 0) $
+                                (vec3 0 1 0)

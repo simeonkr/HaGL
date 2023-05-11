@@ -88,6 +88,7 @@ data IOState = IOState {
     curMouseY :: Int,
     -- for stats such as FPS
     totUpdates :: Int,
+    curNumUpdates :: Int,
     lastStatsUpdate :: Float
 }
 
@@ -100,6 +101,7 @@ defIOState = IOState {
     curMouseX = 0,
     curMouseY = 0,
     totUpdates = 0,
+    curNumUpdates = 0,
     lastStatsUpdate = 0
 }
 
@@ -128,18 +130,19 @@ update runMode ioState objs = do
 outputStatsAndCapture :: GlutRunMode -> IORef IOState -> IO ()
 outputStatsAndCapture runMode ioStateRef = do
     ioState <- readIORef ioStateRef
-    let numUpdates = totUpdates ioState
+    let numUpdates = curNumUpdates ioState
     epoch <- getCurrentTime
     let t = fromRational $ toRational $ utctDayTime epoch
         dt = t - lastStatsUpdate ioState
     if dt > 1 
         then do
             writeIORef ioStateRef $ ioState { 
-                lastStatsUpdate = t, totUpdates = 0 }
+                totUpdates = totUpdates ioState + 1, curNumUpdates = 0, lastStatsUpdate = t }
             putStrLn $ "FPS: " ++ show (floor $ fromIntegral numUpdates / dt :: Int)
         else 
-            writeIORef ioStateRef $ ioState { totUpdates = numUpdates + 1 }
-    -- TODO: implement own capturePPM/PNG to remove the unecessary dependancy
+            writeIORef ioStateRef $ ioState { 
+                totUpdates = totUpdates ioState + 1, curNumUpdates = numUpdates + 1 }
+    -- TODO: implement own capturePPM/PNG to remove the unecessary dependency
     let captureToFile file = capturePPM >>= BS.writeFile file
     case runMode of
         GlutNormal -> return ()

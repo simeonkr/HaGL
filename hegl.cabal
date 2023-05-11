@@ -22,7 +22,8 @@ library
     Graphics.HEGL,
     Graphics.HEGL.Internal,
     Graphics.HEGL.Lib.Image,
-    Graphics.HEGL.Lib.Math
+    Graphics.HEGL.Lib.Math,
+    Graphics.HEGL.Lib.Random,
     Graphics.HEGL.Examples
     Graphics.HEGL.Examples.Images
   other-modules:

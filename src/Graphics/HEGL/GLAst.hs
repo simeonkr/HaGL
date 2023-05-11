@@ -89,7 +89,7 @@ toGLAst e@(GLFunc fnID (GLFunc2 f x y x0 y0)) = mkGLFn fnID (getID e) (f x y) [t
 toGLAst e@(GLFunc fnID (GLFunc3 f x y z x0 y0 z0)) = mkGLFn fnID (getID e) (f x y z) [toGLAst x, toGLAst y, toGLAst z] [toGLAst x0, toGLAst y0, toGLAst z0]
 toGLAst e@(GLFunc fnID (GLFunc4 f x y z w x0 y0 z0 w0)) = mkGLFn fnID (getID e) (f x y z w) [toGLAst x, toGLAst y, toGLAst z, toGLAst w] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0]
 toGLAst e@(GLFunc fnID (GLFunc5 f x y z w u x0 y0 z0 w0 u0)) = mkGLFn fnID (getID e) (f x y z w u) [toGLAst x, toGLAst y, toGLAst z, toGLAst w, toGLAst u] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0, toGLAst u0]
-toGLAst e@(GLFunc fnID (GLFunc6 f x y z w u v x0 y0 z0 w0 u0 v0)) = mkGLFn fnID (getID e) (f x y z w u v) [toGLAst x, toGLAst y, toGLAst z, toGLAst u, toGLAst v] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0, toGLAst u0, toGLAst v0]
+toGLAst e@(GLFunc fnID (GLFunc6 f x y z w u v x0 y0 z0 w0 u0 v0)) = mkGLFn fnID (getID e) (f x y z w u v) [toGLAst x, toGLAst y, toGLAst z, toGLAst w, toGLAst u, toGLAst v] [toGLAst x0, toGLAst y0, toGLAst z0, toGLAst w0, toGLAst u0, toGLAst v0]
 
 toGLAst e@(GLGenExpr id (GLVec2 x y)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y]
 toGLAst e@(GLGenExpr id (GLVec3 x y z)) = mkGLExpr id e (showGlslType e) [toGLAst x, toGLAst y, toGLAst z]

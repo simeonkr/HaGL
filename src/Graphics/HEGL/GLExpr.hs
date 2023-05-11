@@ -402,11 +402,13 @@ instance DepMap.GenHashable (GLExpr d) where
 
 data GLExprException =
     UnsupportedRecCall |
+    UnsupportedNameCapture |
     UnknownArraySize
     deriving Eq
 
 instance Show GLExprException where
     show UnsupportedRecCall = "Unsupported recursive function call"
+    show UnsupportedNameCapture = "Unsupported name capture in nested glFunc"
     show UnknownArraySize = "GLLift*: Function may only return a fixed-size list"
 
 instance Exception GLExprException

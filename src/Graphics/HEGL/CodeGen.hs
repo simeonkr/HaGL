@@ -70,7 +70,7 @@ instance Show GLProgram where
 data CGDat = CGDat {
     globalDefs :: Set.Set ExprID, 
     scopes :: Map.Map ScopeID Scope,
-    funcStack :: [(ExprID, [ShaderParam])],
+    funcStack :: [(ExprID, [ExprID])],
     program :: GLProgram
 }
 
@@ -154,8 +154,12 @@ traverseGLExpr glExpr = let glAst = toGLAst glExpr in
 traverseGLAst :: ScopeID -> GLAst -> CGState ShaderExpr
 traverseGLAst _ (GLAstAtom _ _ (Const x)) = 
     return $ ShaderConst x
-traverseGLAst _ (GLAstAtom id _ GenVar) = 
-    return $ ShaderVarRef $ idLabel id
+traverseGLAst _ (GLAstAtom id _ GenVar) = do
+    boundParamIds <- snd . head <$> gets funcStack
+    if id `List.elem` boundParamIds
+        then return $ ShaderVarRef $ idLabel id
+    else
+        throw UnsupportedNameCapture
 traverseGLAst _ (GLAstAtom id ti (Uniform x)) = 
     ifUndef GlobalScope id $ do
         addUniformVar $ UniformVar id x
@@ -183,7 +187,8 @@ traverseGLAst _ (GLAstAtom id ti (Frag interpType x)) =
 traverseGLAst _ (GLAstAtom _ _ _) = error "GLAst contains disallowed atomic variable"
 traverseGLAst _ (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [cond, ret, 
   GLAstFuncApp _ _ (GLAstFunc fnID' _ _ _) recArgs]) params) | fnID == fnID' =
-    defFn fnID params $ \parentParamExprs paramExprs -> do
+    defFn fnID (map getID params) $ do
+        let paramExprs = map glastToParamExpr params
         ((condExpr, updateStmts, retExpr, retStmts), condStmts) <- localScope $ do
             condExpr <- traverseGLAst LocalScope cond
             (_, updateStmts) <- innerScope $ do
@@ -194,28 +199,27 @@ traverseGLAst _ (GLAstFunc fnID ti (GLAstExpr _ _ "?:" [cond, ret,
             return (condExpr, updateStmts, retExpr, retStmts)
         modifyShader (shaderType ti) $ addFn $
             ShaderLoopFn (idLabel fnID) (exprType ti) 
-                (parentParamExprs ++ paramExprs)
+                paramExprs
                 condExpr
                 retExpr
                 condStmts
                 retStmts
                 updateStmts
 traverseGLAst _ (GLAstFunc fnID ti r params) =
-    defFn fnID params $ \parentParamExprs paramExprs -> do
+    defFn fnID (map getID params) $ do
+        let paramExprs = map glastToParamExpr params
         (rExpr, scopeStmts) <- localScope $ traverseGLAst LocalScope r
         modifyShader (shaderType ti) $ addFn $
             ShaderFn (idLabel fnID) (exprType ti)
-                (parentParamExprs ++ paramExprs)
+                paramExprs
                 scopeStmts 
                 rExpr
-traverseGLAst scopeID (GLAstFuncApp callID ti fn args) = 
+traverseGLAst scopeID (GLAstFuncApp callID ti fn@(GLAstFunc _ _ _ params) args) = 
     ifUndef scopeID callID $ do
-        parentArgExprs <- map (\(ShaderParam name _) -> ShaderVarRef name) <$> 
-            concatMap snd <$> gets funcStack
         argExprs <- mapM (traverseGLAst scopeID) args
         _ <- traverseGLAst LocalScope fn
         scopedStmt scopeID $ VarDeclAsmt (idLabel callID) (exprType ti)
-            (ShaderExpr (idLabel $ getID fn) (parentArgExprs ++ argExprs))
+            (ShaderExpr (idLabel $ getID fn) argExprs)
 traverseGLAst scopeID (GLAstExpr id ti exprName subnodes) =
     ifUndef scopeID id $ do
         subexprs <- mapM (traverseGLAst scopeID) subnodes
@@ -248,9 +252,6 @@ modifyScope :: ScopeID -> (Scope -> Scope) -> CGState ()
 modifyScope scopeID f = do
     modify $ \s -> s { scopes = Map.adjust f scopeID $ scopes s }
 
-
--- Shader expression construction
-
 ifUndef :: ScopeID -> ExprID -> CGState () -> CGState ShaderExpr
 ifUndef scopeID id initFn = do
     locals <- scopeExprs <$> getScope scopeID
@@ -260,24 +261,27 @@ ifUndef scopeID id initFn = do
         initFn
     return $ ShaderVarRef $ idLabel id
 
-defFn :: ExprID -> [GLAst] -> ([ShaderParam] -> [ShaderParam] -> CGState ()) -> CGState ShaderExpr
-defFn id params initFn = do
+scopedStmt :: ScopeID -> ShaderStmt -> CGState ()
+scopedStmt scopeID stmt = modifyScope scopeID $ \scope -> 
+    scope { scopeStmts = scopeStmts scope ++ [stmt] }
+
+
+-- Function construction helpers
+
+defFn :: ExprID -> [ExprID] -> CGState () -> CGState ShaderExpr
+defFn id paramIds initFn = do
     fns <- gets funcStack
     if id `List.elem` map fst fns then
         throw UnsupportedRecCall
     else do
-        let parentParamExprs = concatMap snd fns
-            glastToParamExpr (GLAstAtom id ti GenVar) = 
-                ShaderParam (idLabel id) (exprType ti)
-            paramExprs = map glastToParamExpr params
-        modify $ \s -> s { funcStack = (id, paramExprs) : funcStack s }
-        res <- ifUndef GlobalScope id (initFn parentParamExprs paramExprs)
+        modify $ \s -> s { funcStack = (id, paramIds) : funcStack s }
+        res <- ifUndef GlobalScope id initFn
         modify $ \s -> s { funcStack = tail $ funcStack s }
         return res
 
-scopedStmt :: ScopeID -> ShaderStmt -> CGState ()
-scopedStmt scopeID stmt = modifyScope scopeID $ \scope -> 
-    scope { scopeStmts = scopeStmts scope ++ [stmt] }
+glastToParamExpr :: GLAst -> ShaderParam
+glastToParamExpr (GLAstAtom id ti GenVar) = 
+    ShaderParam (idLabel id) (exprType ti)
 
 
 -- Shader modification

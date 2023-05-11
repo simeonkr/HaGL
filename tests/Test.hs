@@ -3,7 +3,7 @@
 import Prelude hiding (all, min, max, length)
 import Test.HUnit
 import Control.Monad (when)
-import Control.Exception
+import Control.Exception (Exception, try)
 import System.Exit
 import System.Directory (removeFile)
 import qualified Data.ByteString as BS
@@ -159,7 +159,6 @@ genericTests = [
         glFuncCollatzTest,
         glFuncMandelbrotTest,
         glFuncNestedCondTest,
-        glFuncVarCaptureTest,
         uniformFloatTest,
         uniformIntTest,
         uniformUIntTest,
@@ -238,6 +237,7 @@ shaderExceptionTests = [
         glFuncFactIllegalTest,
         glFuncCollatzIllegalTest,
         glFuncNestedCondIllegalTest,
+        glFuncNameCaptureIllegalTest,
         glFuncRecIllegalTest,
         glFuncMutRecIllegalTest
     ]
@@ -766,7 +766,8 @@ glFuncNestedCondTest = ExprTest "glFunc_nested_cond" $
                 ) $ f' (n - 1) (a + 1)
     in f 1 .== 2 .&& f 2 .== 3 .&& f 3 .== 4 .&& f 4 .== 3 .&& f 10 .== 9
 
-glFuncVarCaptureTest = ExprTest "glFunc_var_capture" $
+-- currently unsupported
+glFuncNameCaptureIllegalTest = ExprExceptionTest "glFunc_name_capture_illegal" UnsupportedNameCapture $
     let f :: GLExpr d Int -> GLExpr d Int -> GLExpr d Int
         f = glFunc2 $ \x u -> 
             let g = glFunc2 $ \y v -> x + y + u + v
@@ -1149,6 +1150,9 @@ iteratedGlFuncTest = ExprTest "iterated_glFunc" $
 
 -- Examples (verify output manually)
 
+mkTestExample (label, objs) = TestLabel label $ TestCase $
+    runObjs True label objs >>= (const $ assert True)
+
 testExamples = 
     [("hello_triangles", [helloTriangles]),
      ("color_grad", [colorGrad]),
@@ -1161,7 +1165,12 @@ testExamples =
      ("inverted_checkboard", [invertedCheckboard]),
      ("winding_path", [windingPath]),
      ("interactive_winding_path", [interactiveWindingPath]),
-     ("frag_sphere", [fragSphere])
+     ("frag_sphere", [fragSphere]),
+     ("random_grid", [randomGrid]),
+     ("noise_grid", [noiseGrid]),
+     ("fractal_noise_grid", [fractalNoiseGrid]),
+     ("warped_noise_grid", [warpedNoiseGrid]),
+     ("procgen_2d_world", [procgen2dWorld])
     ]
 
 
@@ -1179,4 +1188,4 @@ main = do
     runTests $ TestList $ map mkShaderExceptionTest shaderExceptionTests
     runTests $ TestList $ map mkObjTest objTests
     runTests $ TestList $ map mkObjExceptionTest objExceptionTests
-    mapM_ (\(label, objs) -> runObjs True label objs) testExamples
+    runTests $ TestList $ map mkTestExample testExamples

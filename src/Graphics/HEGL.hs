@@ -416,8 +416,8 @@ glFunc5 f = ((((GLFunc (genID f) .) .) .) .) . GLFunc5 f x y z w v
 glFunc6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) => 
     (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t) -> 
      GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t 
-glFunc6 f = (((((GLFunc (genID f) .) .) .) .) .) . GLFunc6 f x y z w v u
-    where (x, y, z, w, v, u) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u", makeGenVar "v")
+glFunc6 f = (((((GLFunc (genID f) .) .) .) .) .) . GLFunc6 f x y z w u v
+    where (x, y, z, w, u, v) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u", makeGenVar "v")
 
 
 -- * Builtin operators and functions

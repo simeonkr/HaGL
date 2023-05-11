@@ -14,7 +14,8 @@ module Graphics.HEGL.Examples.Images (
     noiseGrid,
     fractalNoiseGrid,
     warpedNoiseGrid,
-    procgen2dWorld
+    procgen2dWorld,
+    mandelbrot
 ) where
 
 import Prelude hiding (length, min, max, floor, mod, sin, cos, tan, atan)
@@ -133,6 +134,7 @@ fractalNoiseGrid :: GLObj
 fractalNoiseGrid = fromImageInteractive $ \pos ->
     rgb1 $ fbm 1 20 (app pos (uniform time / 10)) .# 0.5 + 0.5 
 
+-- TODO: add pretty colors
 warpedNoiseGrid :: GLObj
 warpedNoiseGrid = fromImageInteractive $ \pos ->
     let off = vec2 
@@ -147,3 +149,13 @@ procgen2dWorld = fromImageInteractive $ \pos ->
     in rgb1 $ cond (tot .<= 0)  (vec3 0 0 1) $
               cond (tot .< 0.5) (vec3 1 1 0) $
                                 (vec3 0 1 0)
+
+
+-- Fractals
+
+mandelbrot :: GLObj
+mandelbrot = fromImageInteractive $ \pos ->
+    let mand = glFunc3 $ \pos0@(decon -> (x0, y0)) (decon -> (x, y)) i -> 
+            cond (i .> 50 .|| ((x * x + y * y) .> 4)) i $
+                mand pos0 (vec2 (x * x - y * y + x0) (2 * x * y + y0)) (i + 1)
+    in mand pos pos 0 .# 0.02  -- TODO: use better color map

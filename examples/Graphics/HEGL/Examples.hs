@@ -1,10 +1,14 @@
 module Graphics.HEGL.Examples (
     helloTriangles,
-    module Graphics.HEGL.Examples.Images
+    module Graphics.HEGL.Examples.Images,
+    module Graphics.HEGL.Examples.Particles,
+    module Graphics.HEGL.Examples.Simulations
 ) where
 
 import Graphics.HEGL
 import Graphics.HEGL.Examples.Images
+import Graphics.HEGL.Examples.Particles
+import Graphics.HEGL.Examples.Simulations
 
 
 helloTriangles :: GLObj

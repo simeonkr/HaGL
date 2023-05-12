@@ -1171,7 +1171,11 @@ testExamples =
      ("fractal_noise_grid", [fractalNoiseGrid]),
      ("warped_noise_grid", [warpedNoiseGrid]),
      ("procgen_2d_world", [procgen2dWorld]),
-     ("mandelbrot", [mandelbrot])
+     ("mandelbrot", [mandelbrot]),
+     ("particles", [particles]),
+     ("particles2", [particles2]),
+     ("pendulum", [pendulum]),
+     ("doublePendulum", doublePendulum)
     ]
 
 

@@ -81,6 +81,7 @@ toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift5 f _ _ _ _ _)))) = GLAstAtom i
     ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e (f vd vd vd vd vd))
 toGLAst e@(GLAtom id x@(Uniform (GLAtom _ (GLLift6 f _ _ _ _ _ _)))) = GLAstAtom id ti x where
     ti = GLTypeInfo (getShaderType e) (showPotentialArrayType e (f vd vd vd vd vd vd))
+-- FIXME: we never consider the case when arrays appear in precs
 
 toGLAst e@(GLAtom id x) = GLAstAtom id (getGLTypeInfo e) x
 

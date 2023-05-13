@@ -1,6 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 
-import Prelude hiding (all, min, max, length)
+import Prelude hiding (all, min, max, length, floor)
 import Test.HUnit
 import Control.Monad (when)
 import Control.Exception (Exception, try)
@@ -248,7 +248,10 @@ objTests = [
         passAroundTest,
         multiObjOverlapTest,
         multiObjComplementTest,
-        multiObjDiscardTest
+        multiObjDiscardTest,
+        multiObjSharedExprsTest
+        --multiObjSharedHostExprsTest,
+        --multiObjSharedPrecsTest
     ]
 
 objExceptionTests :: [ObjExceptionTest]
@@ -1055,17 +1058,16 @@ interpTest = ExprTest "basic_interpolation_properties" $
 trivialImageTest = ObjTest "trivial_image" $ return $ fromImage $ \pos ->
     vec4 1 1 1 1
 
+quad = 
+    [vec2 (-1) (-1), 
+     vec2 (-1) 1, 
+     vec2 1 (-1), 
+     vec2 1 1]
+
 passAroundTest = ObjTest "pass_around" [obj] where
-    ppos = vert 
-        [vec2 (-1) (-1), 
-         vec2 (-1) 1, 
-         vec2 1 (-1), 
-         vec2 1 1]
-    npos = vert
-        [vec2 1 1, 
-         vec2 1 (-1), 
-         vec2 (-1) 1, 
-         vec2 (-1) (-1)]
+    ppos = vert quad
+    npos = vert $ map negate quad
+
     vpos = ppos $- vec2 0 1
     fppos = frag ppos
     fppos' = frag (-npos)
@@ -1086,11 +1088,7 @@ passAroundTest = ObjTest "pass_around" [obj] where
     obj = triangleStrip { position = vpos, color = color }
 
 multiObjOverlapTest = ObjTest "multi_obj_overlap" [obj1, obj2] where
-    vpos = vert 
-        [vec2 (-1) (-1), 
-         vec2 (-1) 1, 
-         vec2 1 (-1), 
-         vec2 1 1]
+    vpos = vert quad
     obj1 = triangleStrip { position = vpos $- vec2 0 1, color = 0 }
     obj2 = triangleStrip { position = vpos $- vec2 0 1, color = 1 }
 
@@ -1111,16 +1109,46 @@ multiObjComplementTest = ObjTest "multi_obj_complement" [obj1, obj2] where
     obj2 = triangleStrip { position = vpos2 $- vec2 0 1, color = c2 }
 
 multiObjDiscardTest = ObjTest "multi_obj_discard" [obj1, obj2] where
-    vpos = vert 
-        [vec2 (-1) (-1), 
-         vec2 (-1) 1, 
-         vec2 1 (-1), 
-         vec2 1 1]
+    vpos = vert quad
     c1 = cast (y_ (frag vpos) .>= 0) .# 1
     d1 = y_ (frag vpos) .< 0
     c2 = cast (y_ (frag vpos) .< 0) .# 1
     d2 = y_ (frag vpos) .>= 0
     obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c1, discardWhen = d1 }
+    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c2, discardWhen = d2 }
+
+multiObjSharedExprsTest = ObjTest "multi_obj_shared_exprs" [obj1, obj2] where
+    vpos = vert quad
+    c = 0.5 .# 1 + 0.5 .# 1
+    d1 = y_ (frag vpos) .< 0
+    d2 = y_ (frag vpos) .>= 0
+    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c, discardWhen = d1 }
+    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c, discardWhen = d2 }
+
+-- TODO: the next two tests should be re-eningeered properly
+-- the first is expected to fail and the second should pass
+multiObjSharedHostExprsTest = ObjTest "multi_obj_shared_host_exprs" [obj1, obj2] where
+    vpos = vert quad
+    a = array [(cast . floor $ time * 100000000) 
+            .% cnst (i + 1) | i <- [0..99]] :: HostExpr [Int]
+    x = (uniform a .! ((cast $ 1000 * x_ (frag vpos)) .% 100)) .% 2 .== 0
+    -- if obj1 and obj2 compute x separately then it is unlikely that
+    -- c1 and c2 will agree
+    c1 = cast x .# 1
+    c2 = cast (nt x) .# 1
+    d2 = x
+    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c1 }
+    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c2, discardWhen = d2 }
+
+multiObjSharedPrecsTest = ObjTest "multi_obj_shared_precs" [obj1, obj2] where
+    vpos = vert quad
+    a = array [(cast . floor $ time * 100000000) 
+            .% cnst (i + 1) | i <- [0..99]] :: HostExpr [Int]
+    x = (uniform a .! ((cast $ 1000 * x_ (frag vpos)) .% 100)) .% 2 .== 0
+    c1 = cast x .# 1
+    c2 = cast (nt x) .# 1
+    d2 = x
+    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c1 }
     obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c2, discardWhen = d2 }
 
 noInputVarsTest = ObjExceptionTest "no_input_vars" NoInputVars $

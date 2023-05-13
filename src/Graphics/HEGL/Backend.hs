@@ -31,7 +31,6 @@ data RunObj = RunObj {
     primitiveMode :: PrimitiveMode,
     indices :: Maybe [ConstExpr UInt],
     uniformVars :: Set.Set UniformVar,
-    precMap :: IORef (DepMap.DepMap (GLExpr HostDomain) Identity),
     numVerts :: Int,
     vao :: VertexArrayObject,
     prog :: Program
@@ -60,10 +59,8 @@ progToRunObj (GLProgram primitiveMode indices
 
     bindIndices indices
 
-    precMap <- newIORef DepMap.empty
-
     return $ RunObj primitiveMode indices
-        uniformVars precMap numElts vao prog
+        uniformVars numElts vao prog
 
 loadShader :: ShaderType -> String -> IO Shader
 loadShader stype src = do

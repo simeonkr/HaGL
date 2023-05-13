@@ -81,6 +81,7 @@ initWindow options = do
 
 data IOState = IOState {
     initTime :: Float,
+    precMap :: IORef (DepMap.DepMap (GLExpr HostDomain) Identity),
     mouseLeftDown :: Bool,
     mouseRightDown :: Bool,
     mouseWheel :: Float,
@@ -109,7 +110,8 @@ initIOState :: IO (IORef IOState)
 initIOState = do
     epoch <- getCurrentTime
     let initTime = fromRational $ toRational $ utctDayTime epoch
-    newIORef defIOState { initTime = initTime, lastStatsUpdate = initTime } 
+    pm <- newIORef DepMap.empty
+    newIORef defIOState { initTime = initTime, lastStatsUpdate = initTime, precMap = pm  }
 
 
 -- Update logic
@@ -122,9 +124,9 @@ update runMode ioState objs = do
     let updateObj obj = do
             currentProgram $= Just (prog obj)
             mapM_ (setUniform ioState obj) (uniformVars obj)
-            -- prepare precMap for the next iteration
-            updatePrecMap ioState obj
     mapM_ updateObj objs
+    -- prepare precMap for the next iteration
+    updatePrecMap ioState
     postRedisplay Nothing
 
 outputStatsAndCapture :: GlutRunMode -> IORef IOState -> IO ()
@@ -153,23 +155,27 @@ outputStatsAndCapture runMode ioStateRef = do
                 captureToFile file
                 leaveMainLoop
 
+-- note that shared uniforms are evaluated separately for each object
+-- (except for any prec subexpressions)
+-- it's possible that this may cause unexpected behaviour, in
+-- which case a map of pre-computed shared values will be needed
 setUniform :: IOState -> RunObj -> UniformVar -> IO ()
 setUniform ioState obj (UniformVar id x) = do
     (UniformLocation ul) <- get (uniformLocation (prog obj) (idLabel id))
-    val <- hostEval (ioEval ioState obj) x
+    val <- hostEval (ioEval ioState) x
     uniformSet ul val
 
-updatePrecMap :: IOState -> RunObj -> IO ()
-updatePrecMap ioState obj = do
-    let updateVal ioState obj (GLAtom _ (IOPrec _ x) :: GLExpr HostDomain t) _ =
-            Identity <$> hostEval (ioEval ioState obj) x
-    pm <- readIORef $ precMap obj
-    _ <- DepMap.traverseWithKey (updateVal ioState obj) pm
+updatePrecMap :: IOState -> IO ()
+updatePrecMap ioState = do
+    let updateVal ioState (GLAtom _ (IOPrec _ x) :: GLExpr HostDomain t) _ =
+            Identity <$> hostEval (ioEval ioState) x
+    pm <- readIORef $ precMap ioState
+    _ <- DepMap.traverseWithKey (updateVal ioState) pm
     -- pm might have new keys so we need to read it again
     -- FIXME: find an alternative to this really ugly solution
-    pm <- readIORef $ precMap obj
-    pm1 <- DepMap.traverseWithKey (updateVal ioState obj) pm
-    writeIORef (precMap obj) pm1
+    pm <- readIORef $ precMap ioState
+    pm1 <- DepMap.traverseWithKey (updateVal ioState) pm
+    writeIORef (precMap ioState) pm1
 
 
 -- Draw logic
@@ -218,37 +224,37 @@ motion ioState (Position x y) =
     let updatePos ioState = ioState { curMouseX = fromIntegral x, curMouseY = fromIntegral y }
     in modifyIORef ioState updatePos
 
-ioEval :: IOState -> RunObj -> GLExpr HostDomain t -> IO t
+ioEval :: IOState -> GLExpr HostDomain t -> IO t
 
-ioEval ioState obj e@(GLAtom _ (IOPrec x0 x)) = do
-    pm <- readIORef $ precMap obj
+ioEval ioState e@(GLAtom _ (IOPrec x0 x)) = do
+    pm <- readIORef $ precMap ioState
     case DepMap.lookup e pm of
         Just val -> return $ runIdentity val
         Nothing -> do
-            val <- hostEval (ioEval ioState obj) x0
-            writeIORef (precMap obj) $ DepMap.insert e (Identity val) pm
+            val <- hostEval (ioEval ioState) x0
+            writeIORef (precMap ioState) $ DepMap.insert e (Identity val) pm
             return val
 
-ioEval ioState _ (GLAtom _ (IOFloat "time")) = do
+ioEval ioState (GLAtom _ (IOFloat "time")) = do
     let t0 = initTime ioState
     epoch <- getCurrentTime
     let t = fromRational $ toRational $ utctDayTime epoch
     return $ t - t0
 
-ioEval ioState _ (GLAtom _ (IOBool "mouseLeft")) =
+ioEval ioState (GLAtom _ (IOBool "mouseLeft")) =
     return $ (toEnum . fromEnum) $ mouseLeftDown ioState
 
-ioEval ioState _ (GLAtom _ (IOBool "mouseRight")) =
+ioEval ioState (GLAtom _ (IOBool "mouseRight")) =
     return $ (toEnum . fromEnum) $ mouseRightDown ioState
 
-ioEval ioState _ (GLAtom _ (IOFloat "mouseWheel")) =
+ioEval ioState (GLAtom _ (IOFloat "mouseWheel")) =
     return $ mouseWheel ioState
 
-ioEval ioState _ (GLAtom _ (IOFloat "mouseX")) = do
+ioEval ioState (GLAtom _ (IOFloat "mouseX")) = do
     (Size width _) <- get windowSize
     return $ fromIntegral (curMouseX ioState) / fromIntegral width
 
-ioEval ioState _ (GLAtom _ (IOFloat "mouseY")) = do
+ioEval ioState (GLAtom _ (IOFloat "mouseY")) = do
     (Size _ height) <- get windowSize
     return $ 1 - fromIntegral (curMouseY ioState) / fromIntegral height
 

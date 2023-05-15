@@ -45,7 +45,6 @@ module Graphics.HEGL (
     cnst,
     true,
     false,
-    uint,
     uniform,
     prec,
     vert,
@@ -207,6 +206,7 @@ module Graphics.HEGL (
     defaultGlutOptions,
 ) where
 
+import GHC.TypeNats (KnownNat)
 import qualified Graphics.Rendering.OpenGL as OpenGL
 
 import Graphics.HEGL.TH.HEGL (gen2DCoordDecls, gen3DCoordDecls)
@@ -236,6 +236,36 @@ instance {-# OVERLAPPING #-} (GLSigned (GLElt t), GLPrimOrVec t, Num t) => Num (
     negate x = mkExpr GLGenExpr $ OpNeg x
     abs x = mkExpr GLGenExpr $ Abs x
     signum x = mkExpr GLGenExpr $ Sign x
+    fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
+
+-- Unsigned integers need to be handled separately as glsl does not
+-- support all the operations corresponding to those required for Num
+
+instance {-# OVERLAPPING #-} Num (GLExpr d UInt) where
+    x + y = mkExpr GLGenExpr $ OpAdd x y
+    x - y = mkExpr GLGenExpr $ OpSubt x y
+    x * y = mkExpr GLGenExpr $ OpMult x y
+    negate x = 
+        mkExpr GLGenExpr $ Cast $ 
+            mkExpr GLGenExpr $ OpNeg
+                (mkExpr GLGenExpr $ Cast x :: GLExpr _ Int)
+    abs x = x
+    signum x = mkExpr GLGenExpr $ Cast 
+        (mkExpr GLGenExpr $ Cast x :: GLExpr _ Bool)
+    fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
+
+instance {-# OVERLAPPING #-} (GLType (Vec n UInt), GLType (Vec n Int), GLType (Vec n Bool), KnownNat n) => Num (GLExpr d (Vec n UInt)) where
+    x + y = mkExpr GLGenExpr $ OpAdd x y
+    x - y = mkExpr GLGenExpr $ OpSubt x y
+    x * y = mkExpr GLGenExpr $ OpMult x y
+    negate x =
+        mkExpr GLGenExpr $ MatCast $ 
+            mkExpr GLGenExpr $ OpNeg
+                (mkExpr GLGenExpr $ MatCast x :: GLExpr _ (Vec _ Int))
+    abs x = x
+    signum x = 
+        mkExpr GLGenExpr $ MatCast 
+            (mkExpr GLGenExpr $ MatCast x :: GLExpr _ (Vec _ Bool))
     fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
 
 instance (GLFloating (GLElt t), GLPrimOrVec t, Fractional t) => Fractional (GLExpr d t) where
@@ -281,9 +311,6 @@ cnst x = mkExpr GLAtom $ Const (constEval x)
 true, false :: GLExpr d Bool
 true = cnst $ toEnum 1
 false = cnst $ toEnum 0
-
-uint :: UInt -> GLExpr d UInt
-uint x = mkExpr GLAtom $ Const x
 
 uniform :: GLType t => HostExpr t -> GLExpr d t
 uniform x = mkExpr GLAtom $ Uniform x

@@ -26,13 +26,13 @@ randDir seed =
 hash :: GLExpr d Int -> GLExpr d Int
 hash = glFunc1 hash' where
     hash' a = cast a6 where
-        a0 = cast a
-        a1 = (a0 .+ uint 0x7ed55d16) .+ (a0 .<< uint 12)
-        a2 = (a1 .^ uint 0xc761c23c) .^ (a1 .>> uint 19)
-        a3 = (a2 .+ uint 0x165667b1) .+ (a2 .<< uint 5)
-        a4 = (a3 .+ uint 0xd3a2646c) .^ (a3 .<< uint 9)
-        a5 = (a4 .+ uint 0xfd7046c5) .+ (a4 .<< uint 3)
-        a6 = (a5 .^ uint 0xb55a4f09) .^ (a5 .>> uint 16)
+        a0 = cast a :: GLExpr _ UInt
+        a1 = (a0 + 0x7ed55d16) + (a0 .<< 12)
+        a2 = (a1 .^ 0xc761c23c) .^ (a1 .>> 19)
+        a3 = (a2 + 0x165667b1) + (a2 .<< 5)
+        a4 = (a3 + 0xd3a2646c) .^ (a3 .<< 9)
+        a5 = (a4 + 0xfd7046c5) + (a4 .<< 3)
+        a6 = (a5 .^ 0xb55a4f09) .^ (a5 .>> 16)
 
 perlinNoise :: GLExpr d Int -> GLExpr d (Vec 3 Float) -> GLExpr d Float
 perlinNoise = glFunc2 perlinNoise' where

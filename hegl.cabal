@@ -29,9 +29,12 @@ library
     Graphics.HEGL.Lib.Objects3D
     Graphics.HEGL.Lib.Shading
     Graphics.HEGL.Examples
+    Graphics.HEGL.Examples.Common
     Graphics.HEGL.Examples.Images
     Graphics.HEGL.Examples.Particles
     Graphics.HEGL.Examples.Simulations
+    Graphics.HEGL.Examples.Manifolds
+    Graphics.HEGL.Examples.Spheres
   other-modules:
     Graphics.HEGL.TH.HEGL
     Graphics.HEGL.Util

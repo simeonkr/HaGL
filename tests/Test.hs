@@ -1205,7 +1205,13 @@ testExamples =
      ("particles", [particles]),
      ("particles2", [particles2]),
      ("pendulum", [pendulum]),
-     ("doublePendulum", doublePendulum)
+     ("double_pendulum", doublePendulum),
+     ("interactive_cube", [interactiveCube]),
+     ("param_sphere", [paramSphere]),
+     ("param_torus", [paramTorus 1.5 1]),
+     ("loxodrome", [loxodrome]),
+     ("checkered_sphere", [checkeredSphere]),
+     ("earth-like", [earthlike])
     ]
 
 

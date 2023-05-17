@@ -10,10 +10,10 @@ import qualified Data.ByteString as BS
 import qualified Data.List as List
 import qualified Graphics.UI.GLUT as GLUT
 
-import Graphics.HEGL hiding (not, sin, cos, sqrt)
-import Graphics.HEGL.Internal (dumpGlsl, hostEval, GLExprException(..), GLObjException(..))
-import Graphics.HEGL.Lib.Image (fromImage)
-import Graphics.HEGL.Examples
+import Graphics.HaGL hiding (not, sin, cos, sqrt)
+import Graphics.HaGL.Internal (dumpGlsl, hostEval, GLExprException(..), GLObjException(..))
+import Graphics.HaGL.Lib.Image (fromImage)
+import Graphics.HaGL.Examples
 
 
 -- Test setup

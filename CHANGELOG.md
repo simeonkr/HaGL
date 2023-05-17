@@ -1,4 +1,4 @@
-# Revision history for hegl
+# Revision history for HaGL
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

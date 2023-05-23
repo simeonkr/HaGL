@@ -2,12 +2,12 @@ module Graphics.HaGL.Lib.Random (
     randFloat21,
     randDir,
     perlinNoise,
-    perlinNoise2d,
+    perlinNoise2D,
     fbm,
     turbulence
 ) where
 
-import Prelude hiding (sin, cos, min, max, const, floor)
+import Prelude hiding (sin, cos, min, max, const, floor, abs)
 
 import Graphics.HaGL
 
@@ -82,8 +82,8 @@ perlinNoise = glFunc2 perlinNoise' where
                 cond ((h .& 15) .== 14) (-dy + dz) $
                 cond ((h .& 15) .== 15) (-dy - dz) 0
 
-perlinNoise2d :: GLExpr d Int -> GLExpr d (Vec 2 Float) -> GLExpr d Float
-perlinNoise2d seed xy = perlinNoise seed (app xy 0)
+perlinNoise2D :: GLExpr d Int -> GLExpr d (Vec 2 Float) -> GLExpr d Float
+perlinNoise2D seed xy = perlinNoise seed (app xy 0)
 
 fbm :: GLExpr d Int -> GLExpr d Int -> GLExpr d (Vec 3 Float) -> GLExpr d Float
 fbm seed numOctaves xy = f 0 0 1 1 where

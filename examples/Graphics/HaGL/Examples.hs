@@ -35,7 +35,16 @@ helloTriangles = let
 
 interactiveCube :: GLObj
 interactiveCube = let
-    pos = uniform (defaultProj .@ interactiveView (vec3 0 0 7)) .@ box
+    verts = vert 
+        [vec4 1 1 1 1,
+         vec4 (-1) 1 1 1,
+         vec4 (-1) (-1) 1 1, 
+         vec4 1 (-1) 1 1,
+         vec4 1 (-1) (-1) 1, 
+         vec4 1 1 (-1) 1, 
+         vec4 (-1) 1 (-1) 1, 
+         vec4 (-1) (-1) (-1) 1]
+    pos = uniform (defaultProj .@ interactiveView (vec3 0 0 7)) .@ verts
     color = vec4 1 0 0 1
     inds = [0,1,2, 0,2,3, 0,3,4, 0,4,5, 0,5,6, 0,6,1,
             1,6,7, 1,7,2, 7,4,3, 7,3,2, 4,7,6, 4,6,5]

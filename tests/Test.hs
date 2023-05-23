@@ -10,8 +10,8 @@ import qualified Data.ByteString as BS
 import qualified Data.List as List
 import qualified Graphics.UI.GLUT as GLUT
 
-import Graphics.HaGL hiding (not, sin, cos, sqrt)
-import Graphics.HaGL.Internal (dumpGlsl, hostEval, GLExprException(..), GLObjException(..))
+import Graphics.HaGL hiding (not, abs, sin, cos, sqrt)
+import Graphics.HaGL.Internal
 import Graphics.HaGL.Lib.Image (fromImage)
 import Graphics.HaGL.Examples
 
@@ -80,7 +80,7 @@ runObjs alwaysSave label objs = do
     return success
 
 dumpObj label (i, obj) = do
-    let astDump = show (position obj) ++ "\n" ++ show (color obj)
+    let astDump = printGLExpr (position obj) ++ "\n" ++ printGLExpr (color obj)
         glsl = dumpGlsl obj
         objLabel = label ++ if i == 0 then "" else show i
     writeFile ("dist/test/test_" ++ objLabel ++ ".dump") astDump
@@ -797,7 +797,7 @@ glFuncMutRecIllegalTest = ExprExceptionTest "glFunc_mut_rec_call_illegal" Unsupp
     in f 0 .== 0
 
 
--- uniform, prec, & builtin I/O variables
+-- uniform, prec, & built-in I/O variables
 
 -- TODO: test double-precision once supported
 
@@ -1200,7 +1200,7 @@ testExamples =
      ("noise_grid", [noiseGrid]),
      ("fractal_noise_grid", [fractalNoiseGrid]),
      ("warped_noise_grid", [warpedNoiseGrid]),
-     ("procgen_2d_world", [procgen2dWorld]),
+     ("procgen_2d_world", [procgen2DWorld]),
      ("mandelbrot", [mandelbrot]),
      ("particles", [particles]),
      ("particles2", [particles2]),

@@ -14,11 +14,11 @@ module Graphics.HaGL.Examples.Images (
     noiseGrid,
     fractalNoiseGrid,
     warpedNoiseGrid,
-    procgen2dWorld,
+    procgen2DWorld,
     mandelbrot
 ) where
 
-import Prelude hiding (length, min, max, floor, mod, sin, cos, tan, atan)
+import Prelude hiding (length, min, max, abs, floor, mod, sin, cos, tan, atan)
 import Graphics.HaGL
 import Graphics.HaGL.Lib.Image
 import Graphics.HaGL.Lib.Random
@@ -115,7 +115,7 @@ fragSphere = fromImage $ \pos@(decon -> (x, y)) ->
         norm = normalize $ vec3 x y (r - length pos)
         dir = normalize $ vec3 1 1 1
         diffuse = max 0 (dot dir norm)
-        specular = pow diffuse 50
+        specular = diffuse ** 50
         int = max (diffuse .# color) (specular .# (vec3 1 1 1))
     in rgb1 $ cond disc int 0
 
@@ -142,9 +142,9 @@ warpedNoiseGrid = fromImageInteractive $ \pos ->
             (fbm 1 2 (app pos (uniform time / 10 + 3)))
     in rgb1 $ fbm 1 2 (app (pos + off) (uniform time / 10)) .# 0.5 + 0.5 
 
-procgen2dWorld :: GLObj
-procgen2dWorld = fromImageInteractive $ \pos ->
-    let perlin amp freq = amp * perlinNoise2d 1 (freq .* pos)
+procgen2DWorld :: GLObj
+procgen2DWorld = fromImageInteractive $ \pos ->
+    let perlin amp freq = amp * perlinNoise2D 1 (freq .* pos)
         tot = perlin 4 4 + perlin 2 8 + perlin 1 32
     in rgb1 $ cond (tot .<= 0)  (vec3 0 0 1) $
               cond (tot .< 0.5) (vec3 1 1 0) $

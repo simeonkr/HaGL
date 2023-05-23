@@ -15,7 +15,7 @@ import Graphics.HaGL.Lib.Objects3D
 import Graphics.HaGL.Examples.Common
 
 
--- TODO: represent ParamSurface as a Mesh
+-- TODO: create a Mesh from a ParamSurface
 
 paramSurface :: ParamSurface -> GLObj
 paramSurface (ParamSurface uRange@(decon -> (ul, ur)) vRange@(decon -> (vl, vr)) f) = let

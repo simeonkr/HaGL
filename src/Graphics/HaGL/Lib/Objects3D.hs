@@ -1,7 +1,6 @@
 module Graphics.HaGL.Lib.Objects3D (
     paramRange2D,
     paramInds2D,
-    box,
     uvSphere
 ) where
 
@@ -10,17 +9,6 @@ import Prelude hiding (sin, cos)
 import Graphics.HaGL
 import Graphics.HaGL.Lib.Mesh (Mesh(..))
 
-
-box :: VertExpr (Vec 4 Float)
-box = vert 
-        [vec4 1 1 1 1,
-         vec4 (-1) 1 1 1,
-         vec4 (-1) (-1) 1 1, 
-         vec4 1 (-1) 1 1,
-         vec4 1 (-1) (-1) 1, 
-         vec4 1 1 (-1) 1, 
-         vec4 (-1) 1 (-1) 1, 
-         vec4 (-1) (-1) (-1) 1]
 
 paramRange2D :: ConstExpr (Vec 2 Float) -> ConstExpr (Vec 2 Float) -> 
     ConstExpr Float -> [ConstExpr (Vec 2 Float)]

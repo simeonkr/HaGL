@@ -1,7 +1,15 @@
 name:                HaGL
 version:             0.1.0.0
-synopsis:            The Haskell-embedded Graphics Language
--- description:
+synopsis:            Haskell-embedded OpenGL
+description:         A simple, functional approach to 
+                     OpenGL programming in Haskell.
+                     .
+                     All primitives and functions that comprise HaGL 
+                     are contained in the top-level "Graphics.HaGL" module.
+                     .
+                     A small library of useful HaGL constructions is provided 
+                     by "Graphics.HaGL.Lib". Examples demonstrating
+                     usage can be found under "Graphics.HaGL.Examples".
 homepage:            https://github.com/simeonkr/HaGL
 license:             MIT
 license-file:        LICENSE
@@ -10,7 +18,7 @@ maintainer:          skrastnikov@gmail.com
 -- copyright:
 category:            Graphics
 build-type:          Simple
-extra-source-files: README.md, CHANGELOG.md
+extra-source-files:  README.md, CHANGELOG.md
 cabal-version:       >=1.10
 
 source-repository head

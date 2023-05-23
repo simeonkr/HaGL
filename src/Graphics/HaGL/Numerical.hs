@@ -32,10 +32,13 @@ import qualified Data.Matrix as Mat (fromList, toList, inverse, detLU)
 import Graphics.HaGL.Util.Types (FinList, flToList)
 import Graphics.HaGL.Util (warn)
 
-data Mat :: Nat -> Nat -> * -> * where
+-- | A matrix with @p@ rows, @q@ columns, and element type @t@
+data Mat (p :: Nat) (q :: Nat) (t :: *) where
     Mat :: Array (Int, Int) t -> Mat p q t
-
+    
+-- | A column vector with @n@ elements and element type @t@
 type Vec n t = Mat n 1 t
+
 type RowVec n t = Mat 1 n t
 
 m0 :: Mat 1 0 t

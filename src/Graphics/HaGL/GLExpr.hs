@@ -29,7 +29,8 @@ import qualified Graphics.HaGL.Util.DepMap as DepMap
 
 -- * Expression definitions
 
-data GLExpr :: GLDomain -> * -> * where
+-- | A generic HaGL expression with domain of computation @d@ and underlying type @t@
+data GLExpr (d :: GLDomain) (t :: *) where
     GLAtom :: GLType t => ExprID -> GLAtom d t -> GLExpr d t
     GLFunc :: GLType t => ExprID -> GLFunc d t -> GLExpr d t
     GLGenExpr :: GLType t => ExprID -> GLGenExpr d t -> GLExpr d t
@@ -37,7 +38,7 @@ data GLExpr :: GLDomain -> * -> * where
 
 -- Irreducible variables and placeholders
 
-data GLAtom :: GLDomain -> * -> * where
+data GLAtom (d :: GLDomain) (t :: *) where
 
     Const :: GLType t => 
         t -> GLAtom d t
@@ -77,7 +78,7 @@ data GLAtom :: GLDomain -> * -> * where
 
 -- User-defined functions
 
-data GLFunc :: GLDomain -> * -> * where
+data GLFunc (d :: GLDomain) (t :: *) where
 
     GLFunc1 :: (GLType t, GLType t1) =>
         (GLExpr d t1 -> GLExpr d t) ->
@@ -106,7 +107,7 @@ data GLFunc :: GLDomain -> * -> * where
 
 -- Compound expressions corresponding to built-in functions and operators
 
-data GLGenExpr :: GLDomain -> * -> * where
+data GLGenExpr (d :: GLDomain) (t :: *) where
 
     GLVec2 :: (GLType (Vec 2 t)) =>
         GLExpr d t -> GLExpr d t -> GLGenExpr d (Vec 2 t)
@@ -324,8 +325,16 @@ data GLGenExpr :: GLDomain -> * -> * where
     Not :: GLType (Vec n Bool) =>
         GLExpr d (Vec n Bool) -> GLGenExpr d (Vec n Bool)
 
-
-data GLDomain = ConstDomain | HostDomain | VertexDomain | FragmentDomain
+-- | A label for the domain where a given computation make take place
+data GLDomain = 
+    -- | Labels a constant value computed on the CPU host
+    ConstDomain | 
+    -- | Labels a potentially I/O-dependent value computed on the CPU host
+    HostDomain | 
+    -- | Labels a vertex shader variable
+    VertexDomain | 
+    -- | Labels a fragment shader variable
+    FragmentDomain
     deriving (Eq, Ord)
 
 shaderDomains :: [GLDomain]

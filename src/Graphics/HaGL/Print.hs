@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Graphics.HaGL.Print () where
+module Graphics.HaGL.Print (printGLExpr) where
 
 import Prelude hiding (id)
 import Control.Monad.State.Lazy (State, execState, gets, modify)
@@ -15,8 +15,8 @@ import Graphics.HaGL.Eval
 
 -- GLAst printers for debugging purposes
 
-instance (IsGLDomain d, GLType t) => Show (GLExpr d t) where
-    show = show . toGLAst
+printGLExpr :: IsGLDomain d => GLExpr d t -> String
+printGLExpr = show . toGLAst
 
 instance Show GLAst where
     show = runPrinter . printGLAst

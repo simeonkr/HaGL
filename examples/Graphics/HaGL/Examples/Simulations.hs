@@ -4,7 +4,7 @@ module Graphics.HaGL.Examples.Simulations (
     --sphericalPendulum
 ) where
 
-import Prelude hiding (sin, cos, atan, sqrt, mod, max, const, length, floor)
+import Prelude hiding (sin, cos, atan, sqrt, mod, max, length, floor)
 
 import Graphics.HaGL
 import Graphics.HaGL.Lib.Image

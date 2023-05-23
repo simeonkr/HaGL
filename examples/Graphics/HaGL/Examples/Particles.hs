@@ -3,7 +3,7 @@ module Graphics.HaGL.Examples.Particles (
     particles2
 ) where
 
-import Prelude hiding (sin, cos, sqrt, max, const)
+import Prelude hiding (sin, cos, sqrt, max)
 
 import Graphics.HaGL
 import Graphics.HaGL.Lib.Camera
@@ -20,7 +20,7 @@ particles =
 particles2 :: GLObj
 particles2 = 
     let s = vert [vec2 i j | i <- [-30..30], j <- [-30..30]]
-        speed = pow (randFloat21 s) 2
+        speed = randFloat21 s ** 2
         p = (uniform time * speed / 10) .# randDir s
         pos = uniform (rotatingView $ vec3 0 0 1) .@ app p 1
     in points { position = pos, color = 1 }

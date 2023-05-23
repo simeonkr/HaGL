@@ -35,8 +35,11 @@ import Graphics.HaGL.Numerical
 
 -- * Raw types
 
+-- | An unsigned integer 
 type UInt = Word32
 
+-- | The class of base raw types. Users should not and
+-- need not implement any instances of this class.
 class (Eq t, Show t) => GLType t where
     showGlslType :: a t -> String
     showGlslVal :: t -> String
@@ -841,6 +844,7 @@ instance GLSupportsBitwiseOps (Vec 3 UInt)
 instance GLSupportsBitwiseOps (Vec 4 UInt)
 
 
+-- | The type of the elements of @t@ or @t@ itself if @t@ is primitive
 type family GLElt t where
     GLElt (Mat r c t) = t
     GLElt [t] = t

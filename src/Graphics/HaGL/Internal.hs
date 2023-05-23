@@ -1,6 +1,7 @@
 module Graphics.HaGL.Internal (
     constEval,
     hostEval,
+    printGLExpr,
     dumpGlsl,
     genericUniform,
     GLExprException(..),

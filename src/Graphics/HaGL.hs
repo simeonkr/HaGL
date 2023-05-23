@@ -1,9 +1,146 @@
 {-|
 Module      : HaGL
-Copyright   : (c) Simeon Krastnikov, 2022
+Copyright   : (c) Simeon Krastnikov, 2022-2023
 License     : MIT
-Maintainer  : skrastnikov@gmail.com
+Maintainer  : Simeon Krastnikov <skrastnikov@gmail.com>
 Stability   : experimental
+
+This module exports everything that comprises the core language.
+
+It is best used with the following extensions enabled: 
+@GADTs@, @DataKinds@, @ViewPatterns@.
+
+Note that quite a few of the exported functions clash with unrelated
+ones from Prelude ('max', 'length', 'mod', 'any', etc.) or class methods
+with identical behaviour ('abs', 'sin', etc.), in an effort to prioritize
+consistency with GLSL function naming.
+
+In summary, this module can be imported as follows:
+
+@
+    &#x7b;-\# LANGUAGE GADTs \#-&#x7d;
+    &#x7b;-\# LANGUAGE DataKinds \#-&#x7d;
+    &#x7b;-\# LANGUAGE ViewPatterns \#-&#x7d;
+
+    import Prelude hiding (max, sin, cos, ...)
+
+    import Graphics.HaGL
+@
+
+HaGL expressions have the type 'GLExpr' (d ::  'GLDomain') t,
+where @d@ is the domain of computation and @t@ is the underlying numeric type, 
+which is always an instance of 'GLType'. Here are some example expressions:
+
+@
+    -- A variable representing an individual vertex, initialized from four points
+    x :: GLExpr VertexDomain Float
+    x = vert [-1, 0, 1]
+
+    -- Numeric operators and functions like (+) and sin can handle generic
+    -- expressions. Note that in this example the domain of the inputs to
+    -- these functions is VertexDomain, so we know that these functions will 
+    -- be computed in a vertex shader.
+    y :: GLExpr VertexDomain Float
+    y = sin (2 * x + 1)
+
+    -- 'frag x' has type 'GLExpr FragmentDomain Float' so the addition will be
+    -- computed in a fragment shader.
+    z :: GLExpr FragmentDomain Float
+    z = frag x + 3
+
+    -- \'time\' is a built-in I/O variable and as such it is computed on the CPU
+    time :: GLExpr HostDomain Float
+
+    -- We can use \'uniform\' to lift a host variable to an arbitrary domain
+    -- Here 'uniform time' is inferred to have type 'GLExpr VertexDomain Float':
+    yPlusTime :: GLExpr VertexDomain Float
+    yPlusTime = y + uniform time
+
+    -- Here 'uniform time' is inferred to have type 'GLExpr FragmentDomain Float'
+    zPlusTime :: GLExpr FragmentDomain Float
+    zPlusTime = z + uniform time
+
+    -- A generic floating-point vector of length 4
+    v :: GLExpr d (Vec 4 Float)
+    v = vec4 1 1 1 1
+
+    -- A vector can be initialized from a numeric literal, so long as its
+    -- underlying type 'Vec n t' is specified or can be inferred.
+    -- Here is another way to define the same vector v:
+    v :: GLExpr d (Vec 4 Float)
+    v = 1
+
+    -- Matrices are constructed from their columns:
+    m :: GLExpr d (Mat 2 3 Float)
+    m = mat2x3 (vec2 1 2) (vec2 3 4) (vec2 5 6)
+
+    -- Operators like (.+) and (.*) act component-wise on vectors and matrices:
+    mat2x2 1 1 .+ mat2x2 1 1 .== mat2x2 2 2
+
+    -- Non-boolean primitives and vectors over such types are instances of Num;
+    -- in such cases operators like (+) can be used instead.
+    vec2 1 1 + 1 .== vec2 2 2
+
+    -- The operator (.#) performs scalar multiplication:
+    _ = 3 .# v
+    _ = 3 .# m
+
+    -- The operator (.\@) performs matrix multiplication
+    -- (including matrix-vector multiplication):
+    m1 :: GLExpr d (Mat 2 3 Float)
+    m1 = ...
+    m2 :: GLExpr d (Mat 3 4 Float)
+    m2 = ...
+    m1m2 :: GLExpr d (Mat 2 4 Float)
+    m1m2 = m1 .\@ m2
+
+    -- All multiplications here will take place in a vertex shader:
+    m1m2v :: GLExpr VertexDomain (Vec 2 Float)
+    m1m2v = m1m2 .\@ v
+
+    -- The inferred type of m1m2 is 'GLExpr HostDomain (Mat 2 4 Float)' so
+    -- the multiplication of m1 and m2 will take place on the CPU.
+    -- The inferred type of uniform m1m2 is 'GLExpr VertexDomain (Mat 2 4 Float)'
+    -- and that of v is 'GLExpr VertexDomain (Vec 2 Float)' so their
+    -- multiplication will take place in a vertex shader.
+    m1m2v' :: GLExpr VertexDomain (Vec 2 Float)
+    m1m2v' = uniform m1m2 .\@ v
+
+@
+
+`GLExpr`'s can be used to construct `GLObj`'s, which being instances
+of 'Drawable' can be interpreted by a given 'Backend' using 'draw'.
+For example:
+
+@
+-- initialize pos from the vertices of some 3D object
+pos :: GLExpr VertexDomain (Vec 4 Float)
+pos = vert [vec4 1 0 0 1, ...]
+
+red :: GLExpr FragmentDomain (Vec 4 Float)
+red = vec4 1 0 0 1
+
+redObj :: GLObj
+redObj = GLObj {
+    primitiveMode = TriangleStrip,
+    indices = Nothing,
+    position = pos,
+    color = red,
+    discardWhen = False
+}
+
+-- or equivalently,
+redObj' :: GLObj
+redObj' = triangleStrip { position = pos, color = red }
+
+-- we are now ready to draw the object
+main :: IO ()
+main = draw GlutBackend redObj
+@
+
+A complete set of examples can be found in 
+the [Getting started](https://github.com/simeonkr/HaGL/Tutorial.md) guide.
+
 -}
 
 {-# LANGUAGE TypeFamilies #-}
@@ -14,34 +151,51 @@ Stability   : experimental
 {-# OPTIONS_GHC -fno-full-laziness #-}
 
 module Graphics.HaGL (
-    -- * Raw types
-    UInt,
-    Mat,
-    Vec,
+    -- * @GLType@
+    -- | Any instance of 'GLType' can be the underlying type @t@ of a 'GLExpr'
+    -- These types are:
+    --
+    --  * Primitive types: 'Float', 'Double', 'Int', 'UInt', 'Bool'
+    --
+    --  * Vectors: 'Vec' @n@ @Float@, 'Vec' @n@ @Double@, 'Vec' @n@ @Int@,
+    --   'Vec' @n@ @UInt@, 'Vec' @n@ @Bool@
+    --
+    --  * Matrices: 'Mat' @p@ @q@ @Float@, 'Mat' @p@ @q@ @Double@
+    --
+    --  * Arrays: Represented as [t], where @t@ is a primitive type or a vector
+    GLType,
+    Float, Double, Int, UInt, Bool,
+    Mat, Vec,
+    GLElt,
     -- ** Raw vector/matrix constructors
-    -- | Usually only useful for loading data from externally computed arrays via lifts.
+    -- | Though raw types are not usually constructed directly, the following
+    -- functions can be used for loading data from externally computed arrays 
+    -- via [lifts](#lifts).
     fromMapping,
     fromList,
-    -- ** Classes
-    GLType, GLPrimOrVec, GLInputType, GLElt,
+    -- ** Subclasses of @GLType@
     GLPrim, GLSingle, GLNumeric, GLSigned, GLFloating, GLSingleNumeric, GLInteger,
+    GLPrimOrVec, GLInputType,
     GLSupportsSmoothInterp, GLSupportsBitwiseOps,
-    -- * Expressions: Main definitions
+    -- * @GLExpr@
+    -- | A HaGL expression can be created in one of the following ways:
+    --
+    --   * Using one of the HaGL-specific [constructors](#constructors)
+    --
+    --   * Directly from a numeric literal, if its underlying type @t@ is one of
+    --    'Int', 'UInt', 'Float', 'Double', or a 'Vec' of one of these types. 
+    --    (A vector initialized from a value @c@ is the vector with all elements 
+    --    equal to c.)
+    --
+    --   * Through the application of [built-in operators and functions](#builtins)
+    --
     GLExpr,
     GLDomain(..),
     ConstExpr,
     HostExpr,
     VertExpr,
     FragExpr,
-    -- * Expressions: Lifts from raw types
-    glLift0, 
-    glLift1, 
-    glLift2,
-    glLift3,
-    glLift4,
-    glLift5,
-    glLift6,
-    -- * Generic constructors
+    -- * Constructors #constructors#
     cnst,
     true,
     false,
@@ -51,7 +205,10 @@ module Graphics.HaGL (
     frag,
     noperspFrag,
     flatFrag,
-    -- * Vector, matrix, and array constructors
+    -- ** Vector, matrix, and array constructors
+    -- | A constructor of the form vec/n/ creates a column vector with 
+    -- /n/ components; a constructor of the form mat/p/x/q/ creates a matrix 
+    -- with /p/ rows and /q/ columns (mat/p/ is an alias for mat/p/x/p/).  
     vec2, vec3, vec4,
     mat2, mat3, mat4,
     mat2x2, mat2x3, mat2x4,
@@ -62,6 +219,22 @@ module Graphics.HaGL (
     ($-),
     array,
     -- * Deconstruction and indexing
+    -- | To deconstruct a vector into a tuple of primitive elements or to
+    -- deconstruct a matrix into a tuple of column vectors use 'decon'. This
+    -- approach pairs particularly well with view patterns:
+    --
+    -- @
+    -- vec2Flip :: GLExpr d (Vec 2 t) -> GLExpr d (Vec 2 t)
+    -- vec2Flip (decon v2 -> (v1, v2)) = vec2 v2 v1
+    -- @ 
+    --
+    -- Alternatively, with the synonyms @x@, @y@, @z@, @w@, referring to the 
+    -- components of a vector in that order, projection functions consisting of 
+    -- an ordered selection of such names followed by an underscore (e.g., 'xyz_'), 
+    -- can be used to extract the corresponding components. For matrices, the 
+    -- projection functions are of the form col/n/. Note that the types of these
+    -- functions constrains the length of their input so that the operation is
+    -- well-defined.
     Deconstructible(..),
     x_, y_, z_, w_,
     xy_, xz_, xw_,
@@ -77,15 +250,37 @@ module Graphics.HaGL (
     -- * Type conversion
     cast,
     matCast,
-    -- * Custom function support
-    glFunc1,
-    glFunc2,
-    glFunc3,
-    glFunc4,
-    glFunc5,
-    glFunc6,
-    -- * Builtin operators and functions
-    -- ** Numeric operators
+    -- * Built-in operators and functions #builtins#
+    -- | Most definitions here strive to be consistent with the corresponding
+    -- built-in functions provided by GLSL
+    -- (cf. The OpenGL Shading Language, Version 4.60.7), in terms of semantics 
+    -- and typing constraints. The most notable exceptions to this rule are:
+    --
+    --  * Typing restrictions may be stricter to prevent what would otherwise be
+    --    runtime errors; for example, matrix multiplication is only defined on
+    --    matrices with the correct dimensions.
+    --
+    --  * The operators @(+)@, @(-)@, @(*)@, being methods of @Num@, are only 
+    --    supported on expressions where the underlying type is one of:
+    --    'Int', 'UInt', 'Float', 'Double', or a vector of one of these types.
+    --    To perform these operations component-wise on matrices use the operators
+    --    @(.+)@, @(.-)@, @(.*)@, respectively.
+    --
+    --  * The operator @(/)@ is only supported when the underlying type is
+    --    'Float' or 'Double'. The more general operator @(./)@ additionally 
+    --     supports integer and component-wise division.
+    --
+    --  * The operator @(.%)@ is the modulo operation on integers or
+    --    integer-valued vectors.
+    --
+    --  * The operator @(.#)@ is used for scalar multiplication.
+    --
+    --  * The operator @(.\@)@ is used for matrix (including matrix-vector) multiplication.
+    --
+    --  * All boolean and bitwise operators are also prefixed with a single dot:
+    --    @(.==)@, @(.<)@, @(.&&)@, @(.&)@, etc.
+
+    -- ** Arithmetic operators
     (.+),
     (.-),
     (.*),
@@ -137,6 +332,8 @@ module Graphics.HaGL (
     Graphics.HaGL.sqrt,
     inversesqrt,
     -- ** Common functions
+    Graphics.HaGL.abs,
+    sign,
     Graphics.HaGL.floor,
     trunc,
     Graphics.HaGL.round,
@@ -175,7 +372,64 @@ module Graphics.HaGL (
     Graphics.HaGL.any,
     Graphics.HaGL.all,
     Graphics.HaGL.not,
-    -- * Builtin I/O variables
+    -- * Custom function support
+    -- | An n-ary @f@ function on @GLExpr@'s can be transported to an arbitrary
+    -- domain using @glFunc/n/@. That is, @glFunc/n/ f@ will take in the same 
+    -- arguments as f but will be evaluated in the domain of its return type 
+    -- (in contrast to @f@, which being a native Haskell function, will always 
+    -- be evaluated on the CPU).
+    --
+    -- However, due to the fact that GLSL does not allow recursion, attempting
+    -- to call @glFunc/n/ f@, where @f@ is defined recursively (or mutually
+    -- recursively in terms of other functions) will generally result in an
+    -- exception being thrown. The one case where this is permissible is that of
+    -- /tail-recursive/ functions of the form
+    --
+    -- @
+    -- f x1 x2 ... = cond u (f y1 y2 ...)
+    -- @
+    --
+    -- where none of the expressions @u@, @y1@, @y2@, ... depend on @f@. Where
+    -- applicable, such functions will be synthesized as GLSL loops. For example,
+    -- the factorial function can be computed within a vertex shader as follows:
+    --
+    -- @
+    -- fact = glFunc1 $ \n -> fact' n 1 where
+    --   fact' :: GLExpr VertexDomain Int -> GLExpr VertexDomain Int -> GLExpr VertexDomain Int
+    --   fact' = glFunc2 $ \n a -> cond (n .== 0) a (fact' (n - 1) (a * n))
+    -- 
+    -- x :: GLExpr VertexDomain Int
+    -- x = fact 5
+    -- @
+    glFunc1,
+    glFunc2,
+    glFunc3,
+    glFunc4,
+    glFunc5,
+    glFunc6,
+    -- * Lifts from raw types #lifts#
+    -- | If the need arises to use an n-ary native function @f@ that is not defined
+    -- over @GLExpr@'s (for instance, to dynamically update array contents using
+    -- functions defined on lists), such a function can be lifted to the
+    -- @HostDomain@ using @glLift/n/@. @glLift/n/ f@ will then be defined over
+    -- `HostExpr`'s that agree with respective argument types of @f@. For example,
+    -- the two expressions below compute the same array:
+    --
+    -- @
+    -- a1 :: GLExpr HostDomain [Float]
+    -- a1 = (glLift2 $ \x y -> [x, y, x + y]) time time
+    -- a2 :: GLExpr HostDomain [Float]
+    -- a2 = array [time, 2 * time, 3 * time]
+    -- @
+    -- 
+    glLift0, 
+    glLift1, 
+    glLift2,
+    glLift3,
+    glLift4,
+    glLift5,
+    glLift6,
+    -- * Built-in I/O variables
     time,
     mouseLeft,
     mouseRight,
@@ -292,18 +546,7 @@ instance (GLElt t ~ Float, GLPrimOrVec t, Fractional t) => Floating (GLExpr d t)
     log x = mkExpr GLGenExpr $ Log x
 
 
--- * Expressions: Lifts from raw types
-
-glLift0 x = mkExpr GLAtom $ GLLift0 x
-glLift1 f x = mkExpr GLAtom $ GLLift1 f x
-glLift2 f x y = mkExpr GLAtom $ GLLift2 f x y
-glLift3 f x y z = mkExpr GLAtom $ GLLift3 f x y z
-glLift4 f x y z w = mkExpr GLAtom $ GLLift4 f x y z w
-glLift5 f x y z w u = mkExpr GLAtom $ GLLift5 f x y z w u
-glLift6 f x y z w u v = mkExpr GLAtom $ GLLift6 f x y z w u v
-
-
--- * Generic expression constructors
+-- * Constructors
 
 cnst :: GLType t => ConstExpr t -> GLExpr d t
 cnst x = mkExpr GLAtom $ Const (constEval x)
@@ -405,49 +648,7 @@ cast x = mkExpr GLGenExpr $ Cast x
 matCast m = mkExpr GLGenExpr $ MatCast m
 
 
--- * Custom function support
-
-makeGenVar _ = mkExpr GLAtom GenVar
-
-{-# NOINLINE glFunc1 #-}
-glFunc1 :: (GLType t, GLType t1) => 
-    (GLExpr d t1 -> GLExpr d t) -> 
-     GLExpr d t1 -> GLExpr d t 
-glFunc1 f = (GLFunc (genID f)) . GLFunc1 f x
-    where x = makeGenVar "x"
-{-# NOINLINE glFunc2 #-}
-glFunc2 :: (GLType t, GLType t1, GLType t2) => 
-    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) -> 
-     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t 
-glFunc2 f = (GLFunc (genID f) .) . GLFunc2 f x y
-    where (x, y) = (makeGenVar "x", makeGenVar "y")
-{-# NOINLINE glFunc3 #-}
-glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) => 
-    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) -> 
-     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
-glFunc3 f = ((GLFunc (genID f) .) .) . GLFunc3 f x y z
-    where (x, y, z) = (makeGenVar "x", makeGenVar "y", makeGenVar "z")
-{-# NOINLINE glFunc4 #-}
-glFunc4 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4) => 
-    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t) -> 
-     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t 
-glFunc4 f = (((GLFunc (genID f) .) .) .) . GLFunc4 f x y z w
-    where (x, y, z, w) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w")
-{-# NOINLINE glFunc5 #-}
-glFunc5 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5) => 
-    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t) -> 
-     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5-> GLExpr d t 
-glFunc5 f = ((((GLFunc (genID f) .) .) .) .) . GLFunc5 f x y z w v
-    where (x, y, z, w, v) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u")
-{-# NOINLINE glFunc6 #-}
-glFunc6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) => 
-    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t) -> 
-     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t 
-glFunc6 f = (((((GLFunc (genID f) .) .) .) .) .) . GLFunc6 f x y z w u v
-    where (x, y, z, w, u, v) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u", makeGenVar "v")
-
-
--- * Builtin operators and functions
+-- * Built-in operators and functions
 
 infixl 6  .+, .-
 infixl 7  .*, ./, .%
@@ -511,6 +712,8 @@ log2 x = mkExpr GLGenExpr $ Log2 x
 sqrt x = mkExpr GLGenExpr $ Sqrt x
 inversesqrt x = mkExpr GLGenExpr $ Inversesqrt x
 
+abs x = mkExpr GLGenExpr $ Abs x
+sign x = mkExpr GLGenExpr $ Sign x
 floor x = mkExpr GLGenExpr $ Floor x
 trunc x = mkExpr GLGenExpr $ Trunc x
 round x = mkExpr GLGenExpr $ Round x
@@ -551,7 +754,60 @@ all x = mkExpr GLGenExpr $ All x
 not x = mkExpr GLGenExpr $ Not x
 
 
--- * Builtin I/O variables
+-- * Custom function support
+
+makeGenVar _ = mkExpr GLAtom GenVar
+
+{-# NOINLINE glFunc1 #-}
+glFunc1 :: (GLType t, GLType t1) => 
+    (GLExpr d t1 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t 
+glFunc1 f = (GLFunc (genID f)) . GLFunc1 f x
+    where x = makeGenVar "x"
+{-# NOINLINE glFunc2 #-}
+glFunc2 :: (GLType t, GLType t1, GLType t2) => 
+    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t 
+glFunc2 f = (GLFunc (genID f) .) . GLFunc2 f x y
+    where (x, y) = (makeGenVar "x", makeGenVar "y")
+{-# NOINLINE glFunc3 #-}
+glFunc3 :: (GLType t, GLType t1, GLType t2, GLType t3) => 
+    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t 
+glFunc3 f = ((GLFunc (genID f) .) .) . GLFunc3 f x y z
+    where (x, y, z) = (makeGenVar "x", makeGenVar "y", makeGenVar "z")
+{-# NOINLINE glFunc4 #-}
+glFunc4 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4) => 
+    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t 
+glFunc4 f = (((GLFunc (genID f) .) .) .) . GLFunc4 f x y z w
+    where (x, y, z, w) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w")
+{-# NOINLINE glFunc5 #-}
+glFunc5 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5) => 
+    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5-> GLExpr d t 
+glFunc5 f = ((((GLFunc (genID f) .) .) .) .) . GLFunc5 f x y z w v
+    where (x, y, z, w, v) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u")
+{-# NOINLINE glFunc6 #-}
+glFunc6 :: (GLType t, GLType t1, GLType t2, GLType t3, GLType t4, GLType t5, GLType t6) => 
+    (GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t) -> 
+     GLExpr d t1 -> GLExpr d t2 -> GLExpr d t3 -> GLExpr d t4 -> GLExpr d t5 -> GLExpr d t6 -> GLExpr d t 
+glFunc6 f = (((((GLFunc (genID f) .) .) .) .) .) . GLFunc6 f x y z w u v
+    where (x, y, z, w, u, v) = (makeGenVar "x", makeGenVar "y", makeGenVar "z", makeGenVar "w", makeGenVar "u", makeGenVar "v")
+
+
+-- Lifts from raw types
+
+glLift0 x = mkExpr GLAtom $ GLLift0 x
+glLift1 f x = mkExpr GLAtom $ GLLift1 f x
+glLift2 f x y = mkExpr GLAtom $ GLLift2 f x y
+glLift3 f x y z = mkExpr GLAtom $ GLLift3 f x y z
+glLift4 f x y z w = mkExpr GLAtom $ GLLift4 f x y z w
+glLift5 f x y z w u = mkExpr GLAtom $ GLLift5 f x y z w u
+glLift6 f x y z w u v = mkExpr GLAtom $ GLLift6 f x y z w u v
+
+
+-- * Built-in I/O variables
 
 time :: HostExpr Float
 time = mkExpr GLAtom $ IOFloat "time"

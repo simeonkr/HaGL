@@ -1183,37 +1183,6 @@ iteratedGlFuncTest = ExprTest "iterated_glFunc" $
 mkTestExample (label, objs) = TestLabel label $ TestCase $
     runObjs True label objs >>= (const $ assert True)
 
-testExamples = 
-    [("hello_triangles", [helloTriangles]),
-     ("color_grad", [colorGrad]),
-     ("circle", [circle]),
-     ("vstrip", [vstrip]),
-     ("circle_plus_strip", [circlePlusStrip]),
-     ("circle_plus_strip2", circlePlusStrip'),
-     ("checkboard", [checkboard]),
-     ("rotating_checkboard", [rotatingCheckboard]),
-     ("inverted_checkboard", [invertedCheckboard]),
-     ("winding_path", [windingPath]),
-     ("interactive_winding_path", [interactiveWindingPath]),
-     ("frag_sphere", [fragSphere]),
-     ("random_grid", [randomGrid]),
-     ("noise_grid", [noiseGrid]),
-     ("fractal_noise_grid", [fractalNoiseGrid]),
-     ("warped_noise_grid", [warpedNoiseGrid]),
-     ("procgen_2d_world", [procgen2DWorld]),
-     ("mandelbrot", [mandelbrot]),
-     ("particles", [particles]),
-     ("particles2", [particles2]),
-     ("pendulum", [pendulum]),
-     ("double_pendulum", doublePendulum),
-     ("interactive_cube", [interactiveCube]),
-     ("param_sphere", [paramSphere]),
-     ("param_torus", [paramTorus 1.5 1]),
-     ("loxodrome", [loxodrome]),
-     ("checkered_sphere", [checkeredSphere]),
-     ("earth-like", [earthlike])
-    ]
-
 
 runTests :: Test -> IO ()
 runTests tests = do
@@ -1229,4 +1198,4 @@ main = do
     runTests $ TestList $ map mkShaderExceptionTest shaderExceptionTests
     runTests $ TestList $ map mkObjTest objTests
     runTests $ TestList $ map mkObjExceptionTest objExceptionTests
-    runTests $ TestList $ map mkTestExample testExamples
+    runTests $ TestList $ map mkTestExample exampleList

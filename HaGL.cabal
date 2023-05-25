@@ -29,6 +29,7 @@ library
   exposed-modules:
     Graphics.HaGL
     Graphics.HaGL.Internal
+    Graphics.HaGL.Lib
     Graphics.HaGL.Lib.Image
     Graphics.HaGL.Lib.Math
     Graphics.HaGL.Lib.Camera
@@ -120,3 +121,10 @@ Test-Suite HaGL-test
   hs-source-dirs: tests
   main-is: Test.hs
   default-language:    Haskell2010
+
+executable run-example
+  build-depends:
+    base,
+    directory,
+    HaGL
+  main-is: examples/Run.hs

@@ -6,8 +6,11 @@ module Graphics.HaGL.Examples (
     module Graphics.HaGL.Examples.Particles,
     module Graphics.HaGL.Examples.Simulations,
     module Graphics.HaGL.Examples.Manifolds,
-    module Graphics.HaGL.Examples.Spheres
+    module Graphics.HaGL.Examples.Spheres,
+    exampleList
 ) where
+
+import Data.Map
 
 import Graphics.HaGL
 import Graphics.HaGL.Lib.Camera
@@ -66,3 +69,36 @@ interactiveMesh mesh = let
                               (normalize $ frag eyePos - frag pos0) 
 
     in triangles { indices = Just $ meshFaces mesh, position = pos, color = color }
+
+
+exampleList :: [(String, [GLObj])]
+exampleList =
+    [("hello_triangles", [helloTriangles]),
+     ("color_grad", [colorGrad]),
+     ("circle", [circle]),
+     ("vstrip", [vstrip]),
+     ("circle_plus_strip", [circlePlusStrip]),
+     ("circle_plus_strip'", circlePlusStrip'),
+     ("checkboard", [checkboard]),
+     ("rotating_checkboard", [rotatingCheckboard]),
+     ("inverted_checkboard", [invertedCheckboard]),
+     ("winding_path", [windingPath]),
+     ("interactive_winding_path", [interactiveWindingPath]),
+     ("frag_sphere", [fragSphere]),
+     ("random_grid", [randomGrid]),
+     ("noise_grid", [noiseGrid]),
+     ("fractal_noise_grid", [fractalNoiseGrid]),
+     ("warped_noise_grid", [warpedNoiseGrid]),
+     ("procgen_2d_world", [procgen2DWorld]),
+     ("mandelbrot", [mandelbrot]),
+     ("particles", [particles]),
+     ("particles2", [particles2]),
+     ("pendulum", [pendulum]),
+     ("double_pendulum", doublePendulum),
+     ("interactive_cube", [interactiveCube]),
+     ("param_sphere", [paramSphere]),
+     ("param_torus", [paramTorus 1.5 1]),
+     ("loxodrome", [loxodrome]),
+     ("checkered_sphere", [checkeredSphere]),
+     ("earth-like", [earthlike])
+    ]

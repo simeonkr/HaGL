@@ -32,6 +32,7 @@ data GlutOptions = GlutOptions {
     winSize :: (GLsizei, GLsizei),
     winFullscreen :: Bool,
     winTitle :: Maybe String,
+    glClearColor :: (GLfloat, GLfloat, GLfloat, GLfloat),
     glLineWidth :: GLfloat,
     runMode :: GlutRunMode
 }
@@ -56,6 +57,8 @@ runGlut options glObjs = do
     motionCallback $= Just (motion ioState)
     passiveMotionCallback $= Just (motion ioState)
 
+    let (r, g, b, a) = glClearColor options
+    clearColor $= Color4 r g b a
     lineWidth $= glLineWidth options
 
     mainLoop

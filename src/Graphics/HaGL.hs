@@ -837,7 +837,7 @@ class Drawable a where
     draw :: Backend -> a -> IO ()
 
 instance Drawable GLObj where
-    draw (GlutBackend userInit) obj = runGlut userInit [obj]
+    draw backend obj = draw backend [obj]
 
 instance Drawable [GLObj] where
     draw (GlutBackend userInit) objs = runGlut userInit objs
@@ -879,6 +879,7 @@ defaultGlutOptions = GlutOptions {
     winSize = (768, 768),
     winFullscreen = False,
     winTitle = Nothing,
+    glClearColor = (0, 0, 0, 0),
     glLineWidth = 3,
     runMode = GlutNormal
 }

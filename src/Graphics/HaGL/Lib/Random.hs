@@ -86,11 +86,11 @@ perlinNoise2D :: GLExpr d Int -> GLExpr d (Vec 2 Float) -> GLExpr d Float
 perlinNoise2D seed xy = perlinNoise seed (app xy 0)
 
 fbm :: GLExpr d Int -> GLExpr d Int -> GLExpr d (Vec 3 Float) -> GLExpr d Float
-fbm seed numOctaves xy = f 0 0 1 1 where
+fbm seed numOctaves xyz = f 0 0 1 1 where
     f = glFunc4 $ \i t a k -> cond (i .== numOctaves) t $
-        f (i + 1) (t + a * perlinNoise seed (k .# xy)) (0.5 * a) (2 * k)
+        f (i + 1) (t + a * perlinNoise seed (k .# xyz)) (0.5 * a) (2 * k)
 
 turbulence :: GLExpr d Int -> GLExpr d Int -> GLExpr d (Vec 3 Float) -> GLExpr d Float
-turbulence seed numOctaves xy = f 0 0 1 1 where
+turbulence seed numOctaves xyz = f 0 0 1 1 where
     f = glFunc4 $ \i t a k -> cond (i .== numOctaves) t $
-        f (i + 1) (t + a * abs (perlinNoise seed (k .# xy))) (0.5 * a) (2 * k)
+        f (i + 1) (t + a * abs (perlinNoise seed (k .# xyz))) (0.5 * a) (2 * k)

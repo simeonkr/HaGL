@@ -15,7 +15,7 @@ particles =
     let vel = vert [vec3 i j k | i <- [-20..20], j <- [-20..20], k <- [-20..20]]
         p = (uniform time / 10) .# normalize vel
         pos = uniform (rotatingView $ vec3 0 0 1) .@ app p 1
-    in points { position = pos, color = 1 }
+    in points { position = pos, color = vec4 0 0 1 1 }
 
 particles2 :: GLObj
 particles2 = 
@@ -23,4 +23,4 @@ particles2 =
         speed = randFloat21 s ** 2
         p = (uniform time * speed / 10) .# randDir s
         pos = uniform (rotatingView $ vec3 0 0 1) .@ app p 1
-    in points { position = pos, color = 1 }
+    in points { position = pos, color = vec4 0 0 1 1 }

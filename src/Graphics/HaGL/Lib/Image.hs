@@ -21,10 +21,10 @@ rgb1 c = app c 1
 quad :: (VertExpr (Vec 4 Float), FragExpr (Vec 2 Float))
 quad = let 
     quadPos = vert 
-        [(vec2 (-1) (-1)), 
-         (vec2 (-1) 1), 
-         (vec2 1 (-1)), 
-         (vec2 1 1)]
+        [vec2 (-1) (-1), 
+         vec2 (-1) 1, 
+         vec2 1 (-1), 
+         vec2 1 1]
     in (quadPos $- vec2 0 1, frag quadPos)
 
 fromImage :: Image -> GLObj

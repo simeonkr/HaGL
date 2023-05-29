@@ -1,5 +1,6 @@
 module Graphics.HaGL.Examples (
-    helloTriangles,
+    blueTriangles,
+    redBlueTriangles,
     interactiveCube,
     interactiveMesh,
     module Graphics.HaGL.Examples.Images,
@@ -24,8 +25,8 @@ import Graphics.HaGL.Examples.Manifolds
 import Graphics.HaGL.Examples.Spheres
 
 
-helloTriangles :: GLObj
-helloTriangles = let 
+blueTriangles :: GLObj
+blueTriangles = let 
     pos = vert 
         [(vec4 (-0.9) (-0.9) 0 1), 
          (vec4 0.85 (-0.9) 0 1), 
@@ -33,7 +34,22 @@ helloTriangles = let
          (vec4 0.9 (-0.85) 0 1), 
          (vec4 0.9 0.9 0 1), 
          (vec4 (-0.85) 0.9 0 1)]
-    color = vec4 0 0 1 1
+    blue = vec4 0 0 1 1
+    in triangles { position = pos, color = blue }
+
+redBlueTriangles :: GLObj
+redBlueTriangles = let 
+    pos = vert 
+        [(vec4 (-0.9) (-0.9) 0 1), 
+         (vec4 0.85 (-0.9) 0 1), 
+         (vec4 (-0.9) 0.85 0 1), 
+         (vec4 0.9 (-0.85) 0 1), 
+         (vec4 0.9 0.9 0 1), 
+         (vec4 (-0.85) 0.9 0 1)]
+    red = vec4 1 0 0 1
+    blue = vec4 0 0 1 1
+    s = 0.5 * (x_ (frag pos) + 1)
+    color = mix red blue (s .# 1)
     in triangles { position = pos, color = color }
 
 interactiveCube :: GLObj
@@ -73,17 +89,17 @@ interactiveMesh mesh = let
 
 exampleList :: [(String, [GLObj])]
 exampleList =
-    [("hello_triangles", [helloTriangles]),
+    [("blue_triangle", [blueTriangles]),
+     ("red_blue_triangle", [redBlueTriangles]),
      ("color_grad", [colorGrad]),
-     ("circle", [circle]),
-     ("vstrip", [vstrip]),
-     ("circle_plus_strip", [circlePlusStrip]),
-     ("circle_plus_strip'", circlePlusStrip'),
-     ("checkboard", [checkboard]),
-     ("rotating_checkboard", [rotatingCheckboard]),
+     ("blue_circle", [blueCircle]),
+     ("blue_plus_red_circle", [bluePlusRedCircle]),
+     ("blue_over_red_circle", blueOverRedCircle),
+     ("rotated_checkboard", [rotatedCheckboard (pi / 4)]),
+     ("rotating_checkboard", [rotatedCheckboard (uniform time)]),
      ("inverted_checkboard", [invertedCheckboard]),
-     ("winding_path", [windingPath]),
-     ("interactive_winding_path", [interactiveWindingPath]),
+     ("winding_paths", [windingPaths]),
+     ("interactive_winding_paths", [interactiveWindingPaths]),
      ("frag_sphere", [fragSphere]),
      ("random_grid", [randomGrid]),
      ("noise_grid", [noiseGrid]),

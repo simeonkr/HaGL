@@ -1,14 +1,13 @@
 module Graphics.HaGL.Examples.Images (
     colorGrad,
-    circle,
-    vstrip,
-    circlePlusStrip,
-    circlePlusStrip',
+    blueCircle,
+    bluePlusRedCircle,
+    blueOverRedCircle,
     checkboard,
-    rotatingCheckboard,
+    rotatedCheckboard,
     invertedCheckboard,
-    windingPath,
-    interactiveWindingPath,
+    windingPaths,
+    interactiveWindingPaths,
     fragSphere,
     randomGrid,
     noiseGrid,
@@ -29,58 +28,51 @@ import Graphics.HaGL.Lib.Random
 colorGrad :: GLObj
 colorGrad = fromImage $ \pos -> pos $- vec2 0 1
 
-circle :: GLObj
-circle = fromImage $ \pos ->
-    cast (length pos .<= 0.5) .# vec4 1 1 1 1
+blueCircle :: GLObj
+blueCircle = fromImage $ \pos ->
+    cast (length pos .<= 0.5) .# vec4 0 0 1 1
 
-vstrip :: GLObj
-vstrip = fromImage $ \(decon -> (x, _)) ->
-    cast (abs x .<= 0.3) .# vec4 1 1 1 1
+bluePlusRedCircle :: GLObj
+bluePlusRedCircle = fromImage $ liftToImage2 (+) blueCircIm redCircIm where
+    blueCircIm pos = cast (length (pos + vec2 0.25 0) .<= 0.5) .# vec4 0 0 1 1
+    redCircIm pos = cast (length (pos - vec2 0.25 0) .<= 0.5) .# vec4 1 0 0 1
 
--- images can be combined by lifting operators on them
-circlePlusStrip :: GLObj
-circlePlusStrip = fromImage $ liftToImage2 (+) circImage stripImage where
-    circImage pos = cast (length pos .<= 0.5) .# vec4 1 1 1 1
-    stripImage (decon -> (x, _)) = cast (abs x .<= 0.3) .# vec4 1 1 1 1
-
--- alternatively, we can draw two separate objects and blend them
-circlePlusStrip' :: [GLObj]
-circlePlusStrip' = [vstrip, cutCircle] where
-    cutCircle = fromImage $ \pos ->
-        let c = cast (length pos .<= 0.5)
-        in c .# vec4 1 1 1 1 -- note the alpha component
+blueOverRedCircle :: [GLObj]
+blueOverRedCircle = [redCircle, blueCircle] where
+    blueCircle = circle (vec2 (-0.25) 0) (vec4 0 0 1 1)
+    redCircle = circle (vec2 0.25 0) (vec4 1 0 0 1)
+    circle center color = fromImage $ \pos ->
+        cast (length (pos - center) .<= 0.5) .# color
 
 
 -- Image transformations
 
 rotate :: FragExpr Float -> ImageTransform
-rotate ang pos = r .# vec2 (cos $ theta + ang) (sin $ theta + ang) where
-    r = length pos
-    theta = atan (y_ pos / x_ pos)
-
-toPolar :: ImageTransform
-toPolar xy@(decon -> (x, y)) = vec2 r theta where
-    r = length xy
-    theta = atan (y / x)
-
-fromPolar :: ImageTransform
-fromPolar (decon -> (r, theta)) = vec2 x y where
-    x = r * cos theta
-    y = r * sin theta
+rotate ang pos@(decon -> (x, y)) = 
+    let r = length pos
+        theta = atan (y / x)
+    in r .# vec2 (cos $ theta + ang) (sin $ theta + ang)
 
 invert :: ImageTransform
 invert = fromPolar . (\(decon -> (r, theta)) -> vec2 (1 / r) theta) . toPolar where
-
+    toPolar :: ImageTransform
+    toPolar xy@(decon -> (x, y)) = vec2 r theta where
+        r = length xy
+        theta = atan (y / x)
+    fromPolar :: ImageTransform
+    fromPolar (decon -> (r, theta)) = vec2 x y where
+        x = r * cos theta
+        y = r * sin theta
 
 checkboardImage :: Image
-checkboardImage (decon -> (x, y)) = c .# vec4 1 1 1 1 where
+checkboardImage (decon -> (x, y)) = c .# vec4 0 0 0 1 where
     c = cast $ (floor (10 * x) + floor (10 * y)) `mod` 2 .== 0
 
 checkboard :: GLObj
 checkboard = fromImage checkboardImage
 
-rotatingCheckboard :: GLObj
-rotatingCheckboard = fromImage $ checkboardImage . rotate (uniform time)
+rotatedCheckboard :: FragExpr Float -> GLObj
+rotatedCheckboard angle = fromImage $ checkboardImage . (rotate angle)
 
 invertedCheckboard :: GLObj
 invertedCheckboard = fromImage $ checkboardImage . invert
@@ -88,21 +80,27 @@ invertedCheckboard = fromImage $ checkboardImage . invert
 
 -- Use of uniforms
 
-windingPath :: GLObj
-windingPath = fromImage $ \pos ->
-    let (decon -> (u, v)) = 2 * pos - 1
-        t = uniform time
-        c = abs (1 / (25 * sin (u + 0.2 * sin (v + 4 * t) + 1)))
-    in c .# (vec4 0.2 0.7 0.5 1)
+mkWindingPaths :: FragExpr Float -> GLObj
+mkWindingPaths t = fromImage $ \(decon -> (x, y)) ->
+    let curve x t = 0.2 * sin (x + 4 * t)
+        distPlot scale y' = 
+            smoothstep (y' - 0.05) y' y -
+            smoothstep y' (y' + 0.05) y
+        greenish = vec4 0.1 0.7 0.3 1 
+        redish = vec4 0.7 0.1 0.1 1 
+        bluish = vec4 0.1 0.1 0.7 1
+    in distPlot 150 (curve x t) .# greenish +
+       distPlot 250 (curve x (2 * t + 0.5)) .# redish +
+       distPlot 600 (curve x (0.5 * t - 0.5)) .# bluish
 
-interactiveWindingPath :: GLObj
-interactiveWindingPath = fromImage $ \pos ->
-    let (decon -> (u, v)) = 2 * pos - 1
-        dt = time - prec 0 time
-        t' = prec 0 $ cond mouseLeft (t' + 10 * (mouseY - 0.5) * dt) t'
-        t = uniform t'
-        c = abs (1 / (25 * sin (u + 0.2 * sin (v + 4 * t) + 1)))
-    in c .# (vec4 0.2 0.7 0.5 1)
+windingPaths :: GLObj
+windingPaths = mkWindingPaths $ uniform time
+
+interactiveWindingPaths :: GLObj
+interactiveWindingPaths = 
+    let dt = time - prec 0 time
+        t = prec 0 $ cond mouseLeft (t + 10 * (-mouseX + 0.5) * dt) t
+    in mkWindingPaths $ uniform t
 
 
 -- Simulating 3D objects
@@ -117,7 +115,7 @@ fragSphere = fromImage $ \pos@(decon -> (x, y)) ->
         diffuse = max 0 (dot dir norm)
         specular = diffuse ** 50
         int = max (diffuse .# color) (specular .# (vec3 1 1 1))
-    in rgb1 $ cond disc int 0
+    in rgb1 $ cond disc int 1
 
 
 -- Applications of randomness/noise
@@ -128,19 +126,21 @@ randomGrid = fromImage $ \pos ->
 
 noiseGrid :: GLObj
 noiseGrid = fromImageInteractive $ \pos ->
-    rgb1 $ perlinNoise 1 (32 .# app pos (uniform time / 200)) .# 0.5 + 0.5
+    let xyz = app pos (uniform time / 200)
+        nv = perlinNoise 1 (32 .# xyz) .# 0.5 + 0.5
+    in rgb1 nv
 
 fractalNoiseGrid :: GLObj
 fractalNoiseGrid = fromImageInteractive $ \pos ->
     rgb1 $ fbm 1 20 (app pos (uniform time / 10)) .# 0.5 + 0.5 
 
--- TODO: add pretty colors
 warpedNoiseGrid :: GLObj
 warpedNoiseGrid = fromImageInteractive $ \pos ->
     let off = vec2 
             (fbm 1 2 (app pos (uniform time / 10 + 2))) 
             (fbm 1 2 (app pos (uniform time / 10 + 3)))
-    in rgb1 $ fbm 1 2 (app (pos + off) (uniform time / 10)) .# 0.5 + 0.5 
+        c = rgb1 $ fbm 1 2 (app (pos + off) (uniform time / 10)) .# 0.5 + 0.5
+    in mix (vec4 0.1 0.3 0.3 1) (vec4 1 1 1 1) c
 
 procgen2DWorld :: GLObj
 procgen2DWorld = fromImageInteractive $ \pos ->

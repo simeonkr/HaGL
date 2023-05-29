@@ -67,7 +67,7 @@ mkObjExceptionTest (ObjExceptionTest label ex objs) =
 runObjs :: Bool -> String -> [GLObj] -> IO Bool
 runObjs alwaysSave label objs = do
     mapM_ (dumpObj label) (zip [0..] objs)
-    let captureFile = "dist/test/test_" ++ label ++ ".ppm"
+    let captureFile = "dist/test/test_" ++ label
     -- TODO: use the same GLUT window instead of creating a new one every time
     GLUT.exit -- make sure GLUT has cleaned up, if a previous test errored
     -- TODO: calling drawGlut directly is inefficient 

@@ -40,6 +40,7 @@ data GlutOptions = GlutOptions {
 data GlutRunMode =
     GlutNormal |
     GlutCaptureLatest String |
+    GlutCaptureFrames String |
     GlutCaptureAndExit String
 
 
@@ -148,14 +149,16 @@ outputStatsAndCapture runMode ioStateRef = do
             writeIORef ioStateRef $ ioState { 
                 totUpdates = totUpdates ioState + 1, curNumUpdates = numUpdates + 1 }
     -- TODO: implement own capturePPM/PNG to remove the unecessary dependency
-    let captureToFile file = capturePPM >>= BS.writeFile file
+    let captureToFile fname = capturePPM >>= BS.writeFile (fname ++ ".ppm")
     case runMode of
         GlutNormal -> return ()
-        GlutCaptureLatest file -> 
-            when (dt > 0.1) (captureToFile file)
-        GlutCaptureAndExit file ->
+        GlutCaptureLatest fname -> 
+            when (dt > 0.1) (captureToFile fname)
+        GlutCaptureFrames fname ->
+            captureToFile $ fname ++ "/frame" ++ show (totUpdates ioState)
+        GlutCaptureAndExit fname ->
             when (totUpdates ioState > 30) $ do
-                captureToFile file
+                captureToFile fname
                 leaveMainLoop
 
 -- note that shared uniforms are evaluated separately for each object

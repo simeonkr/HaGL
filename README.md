@@ -26,7 +26,7 @@ cabal install HaGL
 
 ## Usage
 
-To learn how to use HaGL please refer to the [Getting started guide](Tutorial.md), 
+To learn how to use HaGL please refer to the [Getting started guide](Overview.md), 
 as well as the the [demo examples](examples/Graphics/HaGL/Examples) making use of 
 the [demo library](src/Graphics/HaGL/Lib). The complete documentation can be found 
 on [Hackage](https://hackage.haskell.org/package/HaGL).

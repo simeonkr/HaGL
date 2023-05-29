@@ -7,7 +7,7 @@ from parse import parse
 
 
 INPUT_DIR = "output"
-OUTPUT_DIR = "images"
+OUTPUT_DIR = "doc/images"
 MAX_FRAMES = 200
 DELETE_INPUTS = False
 

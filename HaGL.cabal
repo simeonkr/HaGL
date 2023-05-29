@@ -98,7 +98,7 @@ library
     -Wno-partial-type-signatures
     -Wno-name-shadowing
 
-Test-Suite HaGL-test
+test-suite HaGL-test
   type: exitcode-stdio-1.0
   default-extensions:
     GADTs,

@@ -17,8 +17,9 @@ randFloat21 :: GLExpr d (Vec 2 Float) -> GLExpr d Float
 randFloat21 seed = fract $ (sin $ dot seed (vec2 12.9898 78.233)) * 43758.5453123
 
 randDir :: GLExpr d (Vec 2 Float) -> GLExpr d (Vec 3 Float)
-randDir seed =
-    let s = 2 * 3.14 * randFloat21 seed
+randDir seed' =
+    let seed = seed' + vec2 7.6543 2.1234  -- decorrelate from randFloat21 seed'
+        s = 2 * 3.14 * randFloat21 seed
         t = 2 * 3.14 * randFloat21 (vec2 1 (randFloat21 seed))
     in vec3 (cos s * sin t) (sin s * sin t) (cos t)
 

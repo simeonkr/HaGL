@@ -441,7 +441,8 @@ vpos = uniform view .@ pos
 
 Finally, we need to project `vpos` to the *clip coordinates* suitable for
 specifying the `position` field of a `GLObj`. `Graphics.HaGL.Lib.Math` provides 
-the functions `perspective`, `perspective'`, and `orthogonal` for creating projection matrices. For instance, we can define `proj` in terms of some chosen
+the functions `perspective`, `perspective'`, and `orthogonal` for creating 
+projection matrices. For instance, we can define `proj` in terms of some chosen
 field of view angle (in the y direction), aspect, and near and far values:
 ```
 proj :: HostExpr (Mat 4 4 Float)
@@ -480,4 +481,28 @@ The function `interactiveView` defined in `Graphics.HaGL.Lib.Camera` creates a
 view that can be panned and zoomed by the user. So to convert the above example
 to an interactive one, all need to do is modify our definition of `view` to be
 `interactiveView initialEye` for some chosen position of `initialEye`.
+
+### Drawing Particles
+
+The `GLObj` `points` corresponds to the `Points` primitive mode, where each
+input position specifies that of a single point. With the help of a few library
+functions for pseudorandom number generation, we can use it to create simple
+particle systems:
+
+```
+explosion :: GLObj
+explosion = 
+    let s = vert [vec2 i j | i <- [-30..30], j <- [-30..30]]
+        speed = randFloat21 s ** 2
+        pos = (uniform time * speed / 10) .# randDir s
+        cpos = uniform (interactiveView $ vec3 0 0 1) .@ app pos 1
+        col = mix (vec4 1 0 0 1) (vec4 1 1 0 1) (frag speed)
+    in points { position = cpos, color = col }
+```
+
+<img src="images/explosion.png" alt="explosion" width=50% height=50% />
+
+### Drawing Curves and Surfaces
+
+### Shading
 

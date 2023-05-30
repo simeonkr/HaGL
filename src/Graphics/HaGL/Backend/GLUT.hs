@@ -32,9 +32,8 @@ data GlutOptions = GlutOptions {
     winSize :: (GLsizei, GLsizei),
     winFullscreen :: Bool,
     winTitle :: Maybe String,
-    glClearColor :: (GLfloat, GLfloat, GLfloat, GLfloat),
-    glLineWidth :: GLfloat,
-    runMode :: GlutRunMode
+    runMode :: GlutRunMode,
+    openGLSetup :: IO ()
 }
 
 data GlutRunMode =
@@ -58,9 +57,13 @@ runGlut options glObjs = do
     motionCallback $= Just (motion ioState)
     passiveMotionCallback $= Just (motion ioState)
 
-    let (r, g, b, a) = glClearColor options
-    clearColor $= Color4 r g b a
-    lineWidth $= glLineWidth options
+    -- override default OpenGL values
+    -- TODO: should access to values like these be provided
+    -- directly, in the form of additional GlutOptions?
+    lineWidth $= 3
+    pointSize $= 3
+
+    openGLSetup options
 
     mainLoop
 

@@ -2,6 +2,7 @@ import Control.Monad (when)
 import Data.List (find)
 import System.Directory (createDirectoryIfMissing)
 import System.Environment (getArgs)
+import Graphics.Rendering.OpenGL (($=), clearColor, Color4(..))
 import Graphics.HaGL
 import Graphics.HaGL.Examples
 
@@ -28,6 +29,8 @@ main = do
             case find ((== exampleName) . fst) exampleList of
                 Just (_, example) ->
                     drawGlutCustom (defaultGlutOptions { 
-                        glClearColor = (1, 1, 1, 1),
+                        openGLSetup = do {
+                            clearColor $= Color4 1 1 1 1;
+                        },
                         runMode = runMode }) example
                 Nothing -> fail "Example not found"

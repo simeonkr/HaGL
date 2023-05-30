@@ -548,13 +548,18 @@ instance (GLElt t ~ Float, GLPrimOrVec t, Fractional t) => Floating (GLExpr d t)
 
 -- * Constructors
 
+-- | Construct a @GLExpr@ from a raw type. Rarely useful as this can
+-- be done implicitly; e.g., from a numeric literal.
 cnst :: GLType t => ConstExpr t -> GLExpr d t
 cnst x = mkExpr GLAtom $ Const (constEval x)
 
 true, false :: GLExpr d Bool
+-- | The boolean value @true@
 true = cnst $ toEnum 1
+-- | The boolean value @false@
 false = cnst $ toEnum 0
 
+-- | Lift a `HostExpr` to an arbitrary `GLExpr`.
 uniform :: GLType t => HostExpr t -> GLExpr d t
 uniform x = mkExpr GLAtom $ Uniform x
 
@@ -879,7 +884,6 @@ defaultGlutOptions = GlutOptions {
     winSize = (768, 768),
     winFullscreen = False,
     winTitle = Nothing,
-    glClearColor = (0, 0, 0, 0),
-    glLineWidth = 3,
-    runMode = GlutNormal
+    runMode = GlutNormal,
+    openGLSetup = return ()
 }

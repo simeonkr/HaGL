@@ -139,8 +139,8 @@ redBlueTriangles = triangles { position = pos, color = redBlue }
 
 <img src="images/red_blue_triangles.png" alt="red_blue_triangles" width=50% height=50% />
 
-Note that all examples on this page are drawn on a white background (by setting
-the `clear` field of `GlutOptions` passed to `draw`, which is black by default).
+Note that all examples on this page are drawn on a non-default white background 
+(by setting the `openGLSetup` field of `GlutOptions` passed to `draw`).
 
 ## Drawing Images
 

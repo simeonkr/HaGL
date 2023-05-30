@@ -116,6 +116,8 @@ test-suite HaGL-test
     HUnit,
     bytestring,
     directory,
+    -- due to use of openGLSetup
+    OpenGL,
     GLUT
   other-modules:
   hs-source-dirs: tests
@@ -126,5 +128,7 @@ executable run-example
   build-depends:
     base,
     directory,
-    HaGL
+    HaGL,
+     -- due to use of openGLSetup
+    OpenGL
   main-is: examples/Run.hs

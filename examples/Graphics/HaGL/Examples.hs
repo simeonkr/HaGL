@@ -52,9 +52,9 @@ redBlueTriangles = let
     color = mix red blue (s .# 1)
     in triangles { position = pos, color = color }
 
-interactiveCube :: GLObj
-interactiveCube = let
-    verts = vert 
+cube :: (GLExpr HostDomain (Mat 4 4 Float)) -> GLObj
+cube view = let
+    vpos = vert 
         [vec4 1 1 1 1,
          vec4 (-1) 1 1 1,
          vec4 (-1) (-1) 1 1, 
@@ -63,11 +63,17 @@ interactiveCube = let
          vec4 1 1 (-1) 1, 
          vec4 (-1) 1 (-1) 1, 
          vec4 (-1) (-1) (-1) 1]
-    pos = uniform (defaultProj .@ interactiveView (vec3 0 0 7)) .@ verts
+    pos = uniform (defaultProj .@ view) .@ vpos
     color = vec4 1 0 0 1
-    inds = [0,1,2, 0,2,3, 0,3,4, 0,4,5, 0,5,6, 0,6,1,
-            1,6,7, 1,7,2, 7,4,3, 7,3,2, 4,7,6, 4,6,5]
-    in triangles { indices = Just inds, position = pos, color = color }
+    faces = [0,1,2, 0,2,3, 0,3,4, 0,4,5, 0,5,6, 0,6,1,
+             1,6,7, 1,7,2, 7,4,3, 7,3,2, 4,7,6, 4,6,5]
+    in triangles { indices = Just faces, position = pos, color = color }
+
+rotatingCube :: GLObj
+rotatingCube = cube (rotatingView (vec3 1 1 1) (vec3 0 0 5))
+
+interactiveCube :: GLObj
+interactiveCube = cube (interactiveView (vec3 0 0 5))
 
 interactiveMesh :: Mesh -> GLObj
 interactiveMesh mesh = let
@@ -111,6 +117,7 @@ exampleList =
      ("particles2", [particles2]),
      ("pendulum", [pendulum]),
      ("double_pendulum", doublePendulum),
+     ("rotating_cube", [rotatingCube]),
      ("interactive_cube", [interactiveCube]),
      ("param_sphere", [paramSphere]),
      ("param_torus", [paramTorus 1.5 1]),

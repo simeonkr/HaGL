@@ -27,7 +27,7 @@ types and at the same time allows them to be manipulated polymorphically through
 the use of generic functions. 
 
 For example, the following specifies a vertex corresponding to four input 
-points, each represented as a vector `vec4 x y z w` of homogeneous coordinates:
+points:
 
 ```
 x :: VertExpr (Vec 4 Float)
@@ -57,6 +57,7 @@ and hence computed on the CPU. So we see that types, often implicitly inferred,
 play a very important role in determining how a HaGL expression is computed (and
 may in many situations also influence its semantics, as we shall see).
 
+
 ## First Example
 
 First, we import the module and enable some useful extensions:
@@ -81,10 +82,11 @@ triangles :: GLObj
 triangles { position = ..., color = ... }
 ```
 Let us draw two blue triangles, as in the opening example in Ch. 1 of the 
-*OpenGL Programming Guide*. To do so, we need to specify the coordinates of two
-triangles; in the `Triangles` primitive mode, this means that the first three
-inputs to `position` will specify the first triangle and the next three -- the
-second:
+*OpenGL Programming Guide*. To do so, we need to specify the 
+[homogenous coordinates](https://en.wikipedia.org/wiki/Homogeneous_coordinates)
+`vec4 x y z w` of two triangles; in the `Triangles` primitive mode, this means 
+that the first three inputs to `position` will specify the first triangle and 
+the next three -- the second:
 ```
 pos :: VertExpr (Vec 4 Float) 
 pos = vert 
@@ -95,6 +97,8 @@ pos = vert
      vec4 0.9 0.9 0 1, 
      vec4 (-0.85) 0.9 0 1]
 ```
+Here we are working in a clip coordinate system where all positions
+satisfy $-1 \leq x/w, y/w, z/w \leq 1$ or are otherwise clipped.
 Each of the two triangles will be colored in the same way, using the color blue:
 ```
 blue :: FragExpr (Vec 4 Float)
@@ -157,13 +161,13 @@ Given an `Image` we can create a `GLObj` as follows:
 ```
 fromImage :: Image -> GLObj
 fromImage im = 
-    let vpos = vert 
+    let pos = vert 
             [vec4 (-1) (-1) 0 1, 
              vec4 (-1) 1 0 1, 
              vec4 1 (-1) 0 1, 
              vec4 1 1 0 1]
         fpos = frag quadPos
-    in triangleStrip { position = vpos, color = im fpos }
+    in triangleStrip { position = pos, color = im fpos }
 ```
 In the `TriangleStrip` primitive mode every sliding window of three vertices 
 defines a triangle; in this case we use two triangles to draw a quad which we 
@@ -336,6 +340,9 @@ noiseGrid = fromImageInteractive $ \pos ->
 
 <img src="images/noise_grid.png" alt="noise_grid" width=50% height=50% />
 
+(The library provides `fromImageInteractive` as an alternative to `fromImage`,
+ which additionally supports interactive panning and zooming of the image.)
+
 By combining appropriately scaled noise in various ways, we can create
 procedurally generated content such as this terrain map:
 
@@ -352,5 +359,125 @@ procgen2DWorld = fromImageInteractive $ \pos ->
 
 <img src="images/procgen_2d_world.png" alt="procgen_2d_world" width=50% height=50% />
 
+
 ## Vertex Processing
+
+So far we have shown how HaGL can be used to draw objects by operations at the 
+`FragmentDomain` level that define colors at individual points of an image. 
+In this section, we show how operations at the `VertexDomain` level can be used
+to manipulate the underlying geometry in interesting ways.
+
+### Three-dimensional Drawing
+
+If we think of a 3D object as a mesh consisting of vertices and triangle faces, 
+then one way to draw it is to use the `Triangles` primitive mode, where the we
+specify the positions of all the triangles vertices via the `position` field
+of the `GLObj` and specify the faces of each triangle via the `indices` field.
+Every three consecutive indices determines the position of a triangle primitive.
+Note that when we omitted the indices before, we were implicitly defining them as
+```
+    [0,1,2, 3,4,5, 6,7,8, ...]
+```
+but this is inadequate when vertices have to be shared.
+
+To draw something like a cube we can therefore start by defining the vertices
+and faces of the twelve triangles it's comprised of (two triangles for every 
+face of the cube):
+
+```
+vertices :: [ConstExpr (Vec 4 Float)]
+vertices =
+    [vec4 1 1 1 1,
+     vec4 (-1) 1 1 1,
+     vec4 (-1) (-1) 1 1, 
+     vec4 1 (-1) 1 1,
+     vec4 1 (-1) (-1) 1, 
+     vec4 1 1 (-1) 1, 
+     vec4 (-1) 1 (-1) 1, 
+     vec4 (-1) (-1) (-1) 1]
+
+faces :: [ConstExpr UInt]
+faces = [0,1,2, 0,2,3, 0,3,4, 0,4,5, 0,5,6, 0,6,1,
+         1,6,7, 1,7,2, 7,4,3, 7,3,2, 4,7,6, 4,6,5]
+```
+
+The position of a vertex is then the expression
+
+```
+pos :: VertExpr (Vec 4 Float)
+pos = vert vertices
+```
+
+Note that we defined `vertices` and hence also `pos` in terms of *world space*
+coordinates; that is, our intention is to draw a cube with side length equal to 
+two, centered at the origin of our world's coordinate system.
+
+To transform `pos` to *view space* (or eye space), we need to define a
+transformation matrix `view :: HostExpr` (assumed to lie in `HostDomain` since 
+we normally expect it to be updated in some interactive manner). We can use
+convenience functions defined in `Graphics.HaGL.Lib.Math` to create affine
+transformation matrices, for instance `rotate`, which creates a rotation matrix
+from a given axis and angle, and `translate`, which creates a translation matrix
+from a given translation vector:
+```
+rotate :: _ => GLExpr d (Vec 3 t) -> GLExpr d t -> GLExpr d (Mat 4 4 t)
+translate :: _ => GLExpr d (Vec 3 t) -> GLExpr d (Mat 4 4 t)
+```
+Let us define `view` to simulate a camera orbiting the cube around the line $x=y=z$
+(with an orbital radius of five units):
+```
+view :: HostExpr (Mat 4 4 Float)
+view = 
+    let initialEye = vec3 0 0 5
+        axis = normalize $ vec3 1 1 1
+        angle = time
+    in translate (-initialEye) .@ rotate axis angle
+```
+Transforming `pos` to view space, we obtain:
+```
+vpos :: VerteExpr (Vec 4 Float)
+vpos = uniform view .@ pos
+```
+
+Finally, we need to project `vpos` to the *clip coordinates* suitable for
+specifying the `position` field of a `GLObj`. `Graphics.HaGL.Lib.Math` provides 
+the functions `perspective`, `perspective'`, and `orthogonal` for creating projection matrices. For instance, we can define `proj` in terms of some chosen
+field of view angle (in the y direction), aspect, and near and far values:
+```
+proj :: HostExpr (Mat 4 4 Float)
+proj = perspective (pi / 6) 1 1 10
+```
+
+Transforming `vpos` to clip space, we obtain
+```
+cpos :: VertExpr (Vec 4 Float)
+cpos = uniform proj .@ vpos
+```
+
+Note that `cpos` is equivalent to the expression
+```
+(uniform proj .@ uniform view) .@ pos
+```
+where `unform proj` and `uniform view` are both of type `VertExpr (Mat 4 4 Float)`.
+This means that the two matrices will be multiplied in the vertex shader, which
+is not quite what we want since they do not depend on any vertex
+and can thus be pre-computed on the CPU. We can instead define `cpos` in terms
+of the equivalent but more efficient expression
+```
+uniform (proj .@ view) .@ pos
+```
+
+We are now ready to draw an animation of an orbit around a cube:
+```
+cube = triangles { indices = Just faces, position = pos, color = color }
+drawGlut cube
+```
+<img src="images/rotating_cube.png" alt="rotating_cube" width=50% height=50% />
+
+### Adding Interactivity
+
+The function `interactiveView` defined in `Graphics.HaGL.Lib.Camera` creates a 
+view that can be panned and zoomed by the user. So to convert the above example
+to an interactive one, all need to do is modify our definition of `view` to be
+`interactiveView initialEye` for some chosen position of `initialEye`.
 

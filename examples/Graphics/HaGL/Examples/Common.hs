@@ -1,4 +1,5 @@
 module Graphics.HaGL.Examples.Common (
+    rotatingView,
     defaultProj,
     defaultBlinnPhong
 ) where
@@ -9,6 +10,11 @@ import Graphics.HaGL
 import Graphics.HaGL.Lib.Math
 import Graphics.HaGL.Lib.Shading (blinnPhong)
 
+
+rotatingView :: _ => HostExpr (Vec 3 Float) -> HostExpr (Vec 3 Float) -> 
+    HostExpr (Mat 4 4 Float)
+rotatingView axis initialEye = 
+    translate (-initialEye) .@ rotate (normalize axis) time
 
 defaultProj :: GLExpr d (Mat 4 4 Float)
 defaultProj = perspective (pi / 6) 1 1 10

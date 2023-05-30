@@ -54,7 +54,7 @@ redBlueTriangles = let
 
 cube :: (GLExpr HostDomain (Mat 4 4 Float)) -> GLObj
 cube view = let
-    vpos = vert 
+    pos = vert 
         [vec4 1 1 1 1,
          vec4 (-1) 1 1 1,
          vec4 (-1) (-1) 1 1, 
@@ -63,11 +63,11 @@ cube view = let
          vec4 1 1 (-1) 1, 
          vec4 (-1) 1 (-1) 1, 
          vec4 (-1) (-1) (-1) 1]
-    pos = uniform (defaultProj .@ view) .@ vpos
+    cpos = uniform (defaultProj .@ view) .@ pos
     color = vec4 1 0 0 1
     faces = [0,1,2, 0,2,3, 0,3,4, 0,4,5, 0,5,6, 0,6,1,
              1,6,7, 1,7,2, 7,4,3, 7,3,2, 4,7,6, 4,6,5]
-    in triangles { indices = Just faces, position = pos, color = color }
+    in triangles { indices = Just faces, position = cpos, color = color }
 
 rotatingCube :: GLObj
 rotatingCube = cube (rotatingView (vec3 1 1 1) (vec3 0 0 5))
@@ -77,20 +77,20 @@ interactiveCube = cube (interactiveView (vec3 0 0 5))
 
 interactiveMesh :: Mesh -> GLObj
 interactiveMesh mesh = let
-    pos0 = vert $ meshVertices mesh
+    pos = vert $ meshVertices mesh
     norm = vert $ meshNormals mesh
 
     -- Apply camera transformation
     initialEye = vec3 0 0 10
     view = interactiveView initialEye
-    pos = uniform (defaultProj .@ view) .@ app pos0 1
+    cpos = uniform (defaultProj .@ view) .@ app pos 1
     
     -- Apply lighting shader of choice
     eyePos = uniform $ xyz_ $ col2 $ inverse view
-    color = defaultBlinnPhong (frag pos0) (normalize $ frag norm)
-                              (normalize $ frag eyePos - frag pos0) 
+    color = defaultBlinnPhong (frag pos) (normalize $ frag norm)
+                              (normalize $ frag eyePos - frag pos) 
 
-    in triangles { indices = Just $ meshFaces mesh, position = pos, color = color }
+    in triangles { indices = Just $ meshFaces mesh, position = cpos, color = color }
 
 
 exampleList :: [(String, [GLObj])]

@@ -24,24 +24,24 @@ paramSurface (ParamSurface uRange@(decon -> (ul, ur)) vRange@(decon -> (vl, vr))
     uv@(decon -> (u, v)) = vert $ paramRange2D uRange vRange res
 
     -- Transform vertices according to parametric equation
-    vpos = f uv
+    pos = f uv
 
     -- Compute normal
     du = cnst $ (ur - ul) / res
     dv = cnst $ (vr - vl) / res
-    dfdu = f (vec2 (u + du) v) - vpos
-    dfdv = f (vec2 u (v + dv)) - vpos
+    dfdu = f (vec2 (u + du) v) - pos
+    dfdv = f (vec2 u (v + dv)) - pos
     norm = normalize $ cross dfdv dfdu
 
     -- Apply camera transformation
     eyePos = vec3 0 0.5 5
-    pos = uniform (defaultProj .@ interactiveView eyePos) .@ app vpos 1
+    cpos = uniform (defaultProj .@ interactiveView eyePos) .@ app pos 1
 
     -- Apply lighting shader of choice
-    color = defaultBlinnPhong (frag vpos) (normalize $ frag norm)
-                (normalize $ frag (uniform eyePos) - frag vpos) 
+    color = defaultBlinnPhong (frag pos) (normalize $ frag norm)
+                (normalize $ frag (uniform eyePos) - frag pos) 
 
-    in triangles { indices = Just $ paramInds2D (cast res), position = pos, color = color }
+    in triangles { indices = Just $ paramInds2D (cast res), position = cpos, color = color }
 
 data ParamSurface = ParamSurface {
     uRange :: ConstExpr (Vec 2 Float),
@@ -65,21 +65,21 @@ paramPlot uRange@(decon -> (ul, ur)) vRange@(decon -> (vl, vr)) f = let
     res = 100
     uv@(decon -> (u, v)) = vert $ paramRange2D uRange vRange res
 
-    vpos = vec3 u (f u v) v 
+    pos = vec3 u (f u v) v 
 
     eyePos = vec3 0 0.5 5
-    pos = uniform (defaultProj .@ translate (-eyePos)) .@ app vpos 1
+    cpos = uniform (defaultProj .@ translate (-eyePos)) .@ app pos 1
 
     du = cnst $ (ur - ul) / res
     dv = cnst $ (vr - vl) / res
-    dfdu = (vec3 (u + du) (f (u + du) v) v) - vpos
-    dfdv = (vec3 u (f u (v + dv)) (v + dv)) - vpos
+    dfdu = (vec3 (u + du) (f (u + du) v) v) - pos
+    dfdv = (vec3 u (f u (v + dv)) (v + dv)) - pos
     norm = normalize $ cross dfdv dfdu
 
     c = (normalize (frag norm) + 1) / 2
     color = app c 1
 
-    in triangles { indices = Just $ paramInds2D (cast res), position = pos, color = color }
+    in triangles { indices = Just $ paramInds2D (cast res), position = cpos, color = color }
     
 loxodrome :: GLObj
 loxodrome = let
@@ -94,7 +94,7 @@ loxodrome = let
 
     -- Apply camera transformation
     eyePos = vec3 0 0.5 5
-    pos = uniform (defaultProj .@ interactiveView eyePos) .@ app x 1
+    cpos = uniform (defaultProj .@ interactiveView eyePos) .@ app x 1
 
     -- Use fancy colors
     r = frag t
@@ -105,4 +105,4 @@ loxodrome = let
     -- Animate time variable of the equation
     color = app (step r (uniform time / 5) .# c) 1
 
-    in lineStrip { position = pos, color = color }
+    in lineStrip { position = cpos, color = color }

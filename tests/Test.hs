@@ -1070,7 +1070,7 @@ passAroundTest = ObjTest "pass_around" [obj] where
     ppos = vert quad
     npos = vert $ map negate quad
 
-    vpos = ppos $- vec2 0 1
+    pos = ppos $- vec2 0 1
     fppos = frag ppos
     fppos' = frag (-npos)
     fppos'' = -(frag npos)
@@ -1087,71 +1087,71 @@ passAroundTest = ObjTest "pass_around" [obj] where
         fppos'' + fnpos   .== 0 .&& 
         fppos'' + fnpos'  .== 0 .&&
         fppos'' + fnpos'' .== 0) .# 1
-    obj = triangleStrip { position = vpos, color = color }
+    obj = triangleStrip { position = pos, color = color }
 
 multiObjOverlapTest = ObjTest "multi_obj_overlap" [obj1, obj2] where
-    vpos = vert quad
-    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = 0 }
-    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = 1 }
+    pos = vert quad
+    obj1 = triangleStrip { position = pos $- vec2 0 1, color = 0 }
+    obj2 = triangleStrip { position = pos $- vec2 0 1, color = 1 }
 
 multiObjComplementTest = ObjTest "multi_obj_complement" [obj1, obj2] where
-    vpos1 = vert 
+    pos1 = vert 
         [vec2 (-1) 0, 
          vec2 (-1) 1, 
          vec2 1 0, 
          vec2 1 1]
-    vpos2 = vert 
+    pos2 = vert 
         [vec2 (-1) (-1), 
          vec2 (-1) 0, 
          vec2 1 (-1), 
          vec2 1 0]
-    c1 = cast (y_ (frag vpos1) .>= 0) .# 1
-    c2 = cast (y_ (frag vpos2) .< 0) .# 1
-    obj1 = triangleStrip { position = vpos1 $- vec2 0 1, color = c1 }
-    obj2 = triangleStrip { position = vpos2 $- vec2 0 1, color = c2 }
+    c1 = cast (y_ (frag pos1) .>= 0) .# 1
+    c2 = cast (y_ (frag pos2) .< 0) .# 1
+    obj1 = triangleStrip { position = pos1 $- vec2 0 1, color = c1 }
+    obj2 = triangleStrip { position = pos2 $- vec2 0 1, color = c2 }
 
 multiObjDiscardTest = ObjTest "multi_obj_discard" [obj1, obj2] where
-    vpos = vert quad
-    c1 = cast (y_ (frag vpos) .>= 0) .# 1
-    d1 = y_ (frag vpos) .< 0
-    c2 = cast (y_ (frag vpos) .< 0) .# 1
-    d2 = y_ (frag vpos) .>= 0
-    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c1, discardWhen = d1 }
-    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c2, discardWhen = d2 }
+    pos = vert quad
+    c1 = cast (y_ (frag pos) .>= 0) .# 1
+    d1 = y_ (frag pos) .< 0
+    c2 = cast (y_ (frag pos) .< 0) .# 1
+    d2 = y_ (frag pos) .>= 0
+    obj1 = triangleStrip { position = pos $- vec2 0 1, color = c1, discardWhen = d1 }
+    obj2 = triangleStrip { position = pos $- vec2 0 1, color = c2, discardWhen = d2 }
 
 multiObjSharedExprsTest = ObjTest "multi_obj_shared_exprs" [obj1, obj2] where
-    vpos = vert quad
+    pos = vert quad
     c = 0.5 .# 1 + 0.5 .# 1
-    d1 = y_ (frag vpos) .< 0
-    d2 = y_ (frag vpos) .>= 0
-    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c, discardWhen = d1 }
-    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c, discardWhen = d2 }
+    d1 = y_ (frag pos) .< 0
+    d2 = y_ (frag pos) .>= 0
+    obj1 = triangleStrip { position = pos $- vec2 0 1, color = c, discardWhen = d1 }
+    obj2 = triangleStrip { position = pos $- vec2 0 1, color = c, discardWhen = d2 }
 
 -- TODO: the next two tests should be re-eningeered properly
 -- the first is expected to fail and the second should pass
 multiObjSharedHostExprsTest = ObjTest "multi_obj_shared_host_exprs" [obj1, obj2] where
-    vpos = vert quad
+    pos = vert quad
     a = array [(cast . floor $ time * 100000000) 
             .% cnst (i + 1) | i <- [0..99]] :: HostExpr [Int]
-    x = (uniform a .! ((cast $ 1000 * x_ (frag vpos)) .% 100)) .% 2 .== 0
+    x = (uniform a .! ((cast $ 1000 * x_ (frag pos)) .% 100)) .% 2 .== 0
     -- if obj1 and obj2 compute x separately then it is unlikely that
     -- c1 and c2 will agree
     c1 = cast x .# 1
     c2 = cast (nt x) .# 1
     d2 = x
-    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c1 }
-    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c2, discardWhen = d2 }
+    obj1 = triangleStrip { position = pos $- vec2 0 1, color = c1 }
+    obj2 = triangleStrip { position = pos $- vec2 0 1, color = c2, discardWhen = d2 }
 
 multiObjSharedPrecsTest = ObjTest "multi_obj_shared_precs" [obj1, obj2] where
-    vpos = vert quad
+    pos = vert quad
     a = array [(cast . floor $ time * 100000000) 
             .% cnst (i + 1) | i <- [0..99]] :: HostExpr [Int]
-    x = (uniform a .! ((cast $ 1000 * x_ (frag vpos)) .% 100)) .% 2 .== 0
+    x = (uniform a .! ((cast $ 1000 * x_ (frag pos)) .% 100)) .% 2 .== 0
     c1 = cast x .# 1
     c2 = cast (nt x) .# 1
     d2 = x
-    obj1 = triangleStrip { position = vpos $- vec2 0 1, color = c1 }
-    obj2 = triangleStrip { position = vpos $- vec2 0 1, color = c2, discardWhen = d2 }
+    obj1 = triangleStrip { position = pos $- vec2 0 1, color = c1 }
+    obj2 = triangleStrip { position = pos $- vec2 0 1, color = c2, discardWhen = d2 }
 
 noInputVarsTest = ObjExceptionTest "no_input_vars" NoInputVars $
     [triangleStrip]

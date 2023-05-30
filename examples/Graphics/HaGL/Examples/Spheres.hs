@@ -18,24 +18,24 @@ import Graphics.HaGL.Examples.Common
 checkeredSphere :: GLObj
 checkeredSphere = let
     ((Mesh verts norms inds), uvGrid) = uvSphere 1
-    vpos = vert verts
+    pos = vert verts
     (decon -> (u,v)) = frag $ vert uvGrid
-    pos = uniform (defaultProj .@ interactiveView (vec3 0 0 7)) .@ app vpos 1
+    cpos = uniform (defaultProj .@ interactiveView (vec3 0 0 7)) .@ app pos 1
     c = cast $ (floor u + floor v) `mod` 2 .== 0
-    in triangles { indices = Just inds, position = pos, color = app (c .# 1) 1 }
+    in triangles { indices = Just inds, position = cpos, color = app (c .# 1) 1 }
 
 -- TODO: realistic water
 earthlike :: GLObj
 earthlike = let
     ((Mesh verts norms inds), _) = uvSphere 1
-    vpos = vert verts
-    vnorm = vert norms
+    pos = vert verts
+    norm = vert norms
 
     view = interactiveView (vec3 0 0 7)
-    pos = uniform (defaultProj .@ view) .@ app vpos 1
+    cpos = uniform (defaultProj .@ view) .@ app pos 1
 
-    fpos = frag vpos
-    fnorm@(decon -> (nx, ny, nz)) = normalize $ frag vnorm
+    fpos = frag pos
+    fnorm@(decon -> (nx, ny, nz)) = normalize $ frag norm
 
     dispFactor p = smoothstep 0 1 (fbm 1 6 (2 .* p) - 0.1)
     dispPos p = p + 0.1 * dispFactor p .# normalize p
@@ -58,5 +58,5 @@ earthlike = let
 
     color = blinnPhong ka kd ks dispNorm eyeDir l pp
 
-    in triangles { indices = Just inds, position = pos, color = color }
+    in triangles { indices = Just inds, position = cpos, color = color }
 

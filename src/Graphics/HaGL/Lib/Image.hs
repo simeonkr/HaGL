@@ -28,20 +28,20 @@ quad = let
     in (quadPos $- vec2 0 1, frag quadPos)
 
 fromImage :: Image -> GLObj
-fromImage im = triangleStrip { position = vpos, color = color } where
-    (vpos, pos) = quad
-    color = im pos
+fromImage im = triangleStrip { position = pos, color = color } where
+    (pos, fpos) = quad
+    color = im fpos
 
 fromImageInteractive :: Image -> GLObj
-fromImageInteractive im = triangleStrip { position = vpos, color = color } where
-    (vpos, pos) = quad
+fromImageInteractive im = triangleStrip { position = pos, color = color } where
+    (pos, fpos) = quad
     dx = cond mouseLeft (mouseX - (prec mouseX mouseX)) 0
     dy = cond mouseLeft (mouseY - (prec mouseY mouseY)) 0
     zf = prec 1 (zf * (-0.5 * mouseWheel + 1))
     off = prec (vec2 0 0) (off - zf .# (vec2 dx dy))
-    pos' = pos + uniform off
-    pos'' = (uniform zf) .# (pos' - uniform off) + uniform off
-    color = im pos''
+    fpos' = fpos + uniform off
+    fpos'' = (uniform zf) .# (fpos' - uniform off) + uniform off
+    color = im fpos''
 
 liftToImage1 :: (ImageColor -> ImageColor) -> Image -> Image
 liftToImage1 f im x = f (im x)

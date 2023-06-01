@@ -3,7 +3,7 @@
 HaGL consists of expressions having the parameterized type `GLExpr d t`,
 where `d` is a label which specifies where the expression will be computed
 (its computational "domain") and `t` specifies the raw, underlying type that the
-expression wraps. The following table categorizes `GLExpr`'s based on their domain:
+expression wraps. The following table categorizes `GLExpr`s based on their domain:
 
 | `GLExpr d t`              | Synonym       | Semantics                                                              |
 | ------------------------- | ------------- | ---------------------------------------------------------------------- |
@@ -70,7 +70,7 @@ import Graphics.HaGL
 ```
 
 To draw an object, all we need to is specify a `GLObj` that bundles all the
-`GLExpr`'s that specify its properties. A `GLObj` also includes a choice for
+`GLExpr`s that specify its properties. A `GLObj` also includes a choice for
 a `PrimitiveMode`, which specifies how the input vertices in its `position` field
 are to be interpreted. For example, in the primitive mode `Triangles` every
 three consecutive position vertices are the points of a triangle primitive. The
@@ -86,7 +86,7 @@ Let us draw two blue triangles, as in the opening example in Ch. 1 of the
 [homogenous coordinates](https://en.wikipedia.org/wiki/Homogeneous_coordinates)
 `vec4 x y z w` of two triangles; in the `Triangles` primitive mode, this means 
 that the first three inputs to `position` will specify the first triangle and 
-the next three -- the second:
+the next three — the second:
 ```
 pos :: VertExpr (Vec 4 Float) 
 pos = vert 
@@ -147,7 +147,7 @@ Note that all examples on this page are drawn on a non-default white background
 Fragment shaders are interesting in their own right, and producing interesting 
 visual and animations by coloring a 2D image is an art in itself.
 
-One approach we can take is similar to the ideas outlined in Ch. 7 of 
+One approach we can take is one following the ideas in Ch. 7 of 
 *The Fun of Programming* ("Functional images" by Conal Elliott), where an image 
 is defined as a mapping from 2D points in the plane to a color (in RGBA space):
 
@@ -281,7 +281,7 @@ x :: VertExpr Float
 x = uniform (2 * 5) * vert [1, 2, 3] 
 ```
 
-HaGL provides a few built-in `HostExpr`'s for accessing the I/O state of the
+HaGL provides a few built-in `HostExpr`s for accessing the I/O state of the
 current window being drawn such as `time`, `mouseX`, `mouseY`. This makes it
 fairly simple to define interactive behaviour and animation. We can animate our
 previous example by passing in `uniform time` as the input angle to `rotatedCheckboard`
@@ -299,16 +299,15 @@ Here is a slightly more interesting example:
 windingsPaths GLObj
 windingsPaths = fromImage $ \(decon -> (x, y)) ->
     let curve x t = 0.2 * sin (x + 4 * t)
-        distPlot scale y' = 
-            smoothstep (y' - 0.05) y' y -
-            smoothstep y' (y' + 0.05) y
+        distPlot y' = 
+            step (y' - 0.03) y -
+            step (y' + 0.03) y
         greenish = vec4 0.1 0.7 0.3 1 
         redish = vec4 0.7 0.1 0.1 1 
         bluish = vec4 0.1 0.1 0.7 1
-        t = uniform time
-    in distPlot 150 (curve x t) .# greenish +
-       distPlot 250 (curve x (2 * t + 0.5)) .# redish +
-       distPlot 600 (curve x (0.5 * t - 0.5)) .# bluish
+    in distPlot (curve x t) .# greenish +
+       distPlot (curve x (2 * t + 0.5)) .# redish +
+       distPlot (curve x (0.5 * t - 0.5)) .# bluish
 ```
 
 <img src="images/winding_paths.png" alt="winding_paths" width=50% height=50% />
@@ -316,9 +315,7 @@ windingsPaths = fromImage $ \(decon -> (x, y)) ->
 ### More Fragment Shading
 
 There are many interesting directions to explore with fragment shaders. 
-With the right equations, we can even draw 3D objects:
-
-*[fragSphere](examples/Graphics/HaGL/Examples/Images.hs)*
+With the right equations, we can even draw 3D objects, as in the [the `fragSphere` example](../examples/Graphics/HaGL/Examples/Images.hs):
 
 <img src="images/frag_sphere.png" alt="frag_sphere" width=50% height=50% />
 
@@ -341,7 +338,10 @@ noiseGrid = fromImageInteractive $ \pos ->
 <img src="images/noise_grid.png" alt="noise_grid" width=50% height=50% />
 
 (The library provides `fromImageInteractive` as an alternative to `fromImage`,
- which additionally supports interactive panning and zooming of the image.)
+ which additionally supports interactive panning and zooming of the 
+ image. Also note the use of the expression `nv .# 0.5` as short for 
+ `nv .# vec3 0.5 0.5 0.5` since vectors can be initialized from numeric
+ literals in this manner.)
 
 By combining appropriately scaled noise in various ways, we can create
 procedurally generated content such as this terrain map:
@@ -506,3 +506,280 @@ explosion =
 
 ### Shading
 
+## Time-evolving State Using `prec`
+
+<!-- TODO: this may be too formal for this guide,
+     consider moving parts of it to documentation !-->
+
+Though we have seen how to create animations by making expressions depend
+on `time`, this approach will not suffice if we want to keep track of a
+state that evolves as a function of itself, for example, to
+simulate and visualize a physical process. For this reason, HaGL provides the
+operator
+```
+prec ::  GLType t => HostExpr t -> HostExpr t -> HostExpr t
+```
+which loosely corresponds to the function $prec$ defined as follows:
+
+If $x_0, x_1, \ldots, x_t$ represent the values of expression $x$
+at discrete moments of time, then
+$$prec(x_0, x)_t = \begin{cases} x_0, & t = 0 \\ x_{t-1}, & t > 0 \end{cases}$$
+
+In other words, `prec x0 x` holds the value of `x` as it was a moment of time
+ago or $x_0$ if this is first such moment of time. In the case of a backend like GLUT, the discrete points of time correspond to updates in the main loop.
+For example, `prec 0 time` corresponds to the value of `time` one time-step ago.
+
+The main usefulness of `prec` lies in its ability to build self-referential
+expressions and thereby define sequences in terms of recurrence relations. For
+example, the expression
+```
+x :: HostExpr Int
+x = prec 0 (x + 1)
+```
+corresponds to the sequence $x_0 = 0$, $x_t = x_{t-1} + 1$, equal 
+to $x_t = t$.
+
+Likewise the following are two equivalent ways to define the Fibonacci sequence:
+```
+fibSeq, fibSeq' :: HostExpr Int
+fibSeq = prec 0 (fibSeq + prec 1 fibSeq)
+fibSeq' = prec 0 fibSeq' + prec 0 (prec 1 fibSeq')
+```
+
+### Drawing Numerical Simulations
+
+Let us bring the `prec` operator into a more concrete perspective by showing
+how it can be used to simulate the motion of a pendulum on the CPU (using the
+Euler method for numerical integration).
+
+Given a damping factor $\alpha$, mass $m$ and gravitational constant $g$, 
+the angle $\theta$ of the pendulum relative to its pivot follows the 
+following Euler equations
+
+$$ 
+\begin{aligned} 
+\theta'_{t+1} &= \alpha \theta'_t - mg \sin \theta_t dt \\
+\theta_{t+1} &= \theta_{t} + \theta'_{t-1} dt,
+\end{aligned}
+$$
+
+and its position equals
+
+$$ \frac{1}{2}\left(\sin \theta, - \cos \theta\right).$$
+
+With arbitrary choices for the constants, this translates to the following
+HaGL expression
+```
+pendPos :: HostExpr Float
+pendPos = 
+    let damping = 0.9999
+        dt = time - prec 0 time
+        theta' = prec 0 (damping * theta' - 10 * sin theta * dt)
+        theta = prec (pi / 3) (theta + theta' * dt)
+    in vec2 (sin theta / 2) (- cos theta / 2)
+```
+
+The visualization itself can then be produced by drawing circles at positions
+relative to `pendPos`:
+```
+pendulum :: GLObj
+pendulum = fromImage $ \pos ->
+    let circleAt pos off r col = cast (length (pos - off) .<= r) .# col
+    in circleAt pos (vec2 0 0) 0.01 (vec4 1 1 1 1) 
+        + circleAt pos (0.25 * x) 0.01 (vec4 0 0 1 1) 
+        + circleAt pos (0.50 * x) 0.01 (vec4 0 0 1 1) 
+        + circleAt pos (0.75 * x) 0.01 (vec4 0 0 1 1)
+        + circleAt pos x 0.04 (vec4 1 0 0 1) 
+```
+
+<img src="images/pendulum.png" alt="pendulum" width=50% height=50% />
+
+### Saving History
+
+By plugging in the right equations, we can even simulate a double pendulum,
+defining expressions for the positions of the inner and outer pendulum:
+```
+doublePendPos :: (HostExpr (Vec 2 Float), HostExpr (Vec 2 Float))
+```
+In this case, it would also be interesting to visualize its path through time.
+We can draw the list of objects
+```
+doublePendulum :: GLObj
+doublePendulum = [path doublePendPos, circles doublePendPos]
+``` 
+
+where `circles` is defined in terms of `doublePendPos` a similar way to how we defined `pendulum` in terms of `pendPos`. As for `path`, we can define it as a
+`lines` primitive, but we somehow need to keep track of the past positions of
+the outer pendulum throughout time. One possible solution is to (ab)use the 
+`prec` operator.
+
+Note that a consequence of the definition of $prec$ is that
+
+$$prec^{(n)}(x_0, x)_t = \begin{cases} x_0, & t < n \\ x_{t-n}, & t \geq n \end{cases}$$
+where $prec^{(n)}$ corresponds to the Haskell function
+```
+\x0 x -> iterate (prec x0) x !! n
+```
+
+So if `x2` is the position of the outer pendulum, the array `x2Seq` storing the 
+values
+```
+    x2, prec x2 x2, prec x2 (prec x2 x2), ...
+```
+and defined as
+```
+    x2Seq = array $ take pathLength $ iterate (prec x2) x2
+```
+captures the values of `x2` throughout the past `pathLength` points of time, from
+most to least recent (with the least recent value filling up any undefined
+portion of the array).
+We can now define `path` as follows:
+```
+path :: (HostExpr (Vec 2 Float), HostExpr (Vec 2 Float)) -> GLObj
+path (_, x2) = 
+    let pathLength :: Num a => a
+        pathLength = 1500
+
+        x2Seq = array $ take pathLength $ iterate (prec x2) x2
+        i = vert [0..(pathLength - 1)]
+        xy = uniform x2Seq .! i
+        pos = xy $- vec2 0 1
+
+        fade = frag $ cast i / pathLength
+        color = vec4 0 0 0 (1 - fade)
+    in lineStrip { position = pos, color = color }
+```
+
+<img src="images/double_pendulum.png" alt="double_pendulum" width=50% height=50% />
+
+The full source of the simulation can be found in the definition of `doublePendulum` in
+[Graphics.HaGL.Examples.Simulations](../examples/Graphics/HaGL/Examples/Images.hs).
+
+## Lifting Functions to Shaders
+
+We have defined several functions acting on `GLExpr`s throughout this overview.
+Here is a simple example of such a function:
+```
+double :: GLExpr d Float -> GLExpr d Float
+double x = 2 * x
+```
+
+Every function call `double x` will be expanded to
+to the expression `2 * x`, should its value ever be needed. In most cases this
+is not an issue because GLSL inlines functions anyways. 
+
+Suppose however, that
+we would like to carry out an arbitrary computation that depends on the value
+of a shader variable and cannot easily be expressed as a composition of 
+built-in functions. For example, to draw the Mandelbrot set, we need to
+iterate a function a certain number of times on the value of a `FragExpr`
+representing a given pixel. In GLSL, we could write a loop; the Haskell
+equivalent would be to write a tail-recursive function of the form
+
+```
+f x1 x2 ... = cond c b (f y1 y2 ...)
+```
+where none of the expressions `c`, `b` `y1`, `y2`, ... depend on `f`. In general, `c`
+is the condition that checks for the base case, `b` is the expression for
+the base case, and the `y1`, `y2`, ..., are state updates expressed in terms
+of `x1`, `x2`, ... .
+
+For instance, the function `mand'` defined as
+```
+mand' :: FragExpr (Vec 2 Float) -> FragExpr (Vec 2 Float) -> FragExpr Float -> FragExpr Float
+mand' pos0@(decon -> (x0, y0)) (decon -> (x, y)) n =
+    cond (n .== 0 .|| ((x * x + y * y) .> 4)) n $
+        mand pos0 (vec2 (x * x - y * y + x0) (2 * x * y + y0)) (n - 1)
+```
+is such that 
+```
+mand (vec x0 y0) (vec2 0 0) 50
+```
+counts the number of iterations $n$, up to a maximum of 50, it takes for
+$$ 
+\begin{aligned} 
+z_0 &= 0 \\
+z_{n+1} &= z_n + (x + iy)
+\end{aligned}
+$$
+to exceed a magnitude of 2, thus calculating an escape time that can be used to
+color the pixel $(x_0,y_0)$ in a way that visualizes the Mandelbrot set.
+
+However if we were to call `mand` directly, the
+evaluation of such call would produce an infinite expression tree, which would lead to a crash or space leak. Instead we lift the 3-argument Haskell function 
+`mand'` to a shader-level function `mand` using the higher-order function
+`glFunc3`:
+```
+mand :: FragExpr (Vec 2 Float) -> FragExpr (Vec 2 Float) -> FragExpr Int -> FragExpr Int
+mand = glFunc3 mand'
+```
+
+Note that `mand` has the same type signature as `mand'`. However, by using
+`glFunc3`, we have explicitly declared that it is to be synthesized into a
+shader function at the domain of its return type (`FragmentDomain`).
+
+With `mand` now defined, drawing the Mandelbrot set is simple:
+```
+mandelbrot :: GLObj
+mandelbrot = fromImageInteractive $ \pos ->
+    rgb1 $ mand pos pos 50 .# 0.02
+```
+
+<img src="images/mandelbrot.png" alt="mandelbrot" width=50% height=50% />
+
+Non-recursive $n$-ary functions as well as tail-recursive ones of the form 
+above can be lifted to shader-level functions using the family of higher-order 
+functions `glFunc`*n*. Unfortunately, because GLSL does not support
+recursive functions, tail-recursion of the form defined above is the only type
+of recursion allowable in functions passed to `glFunc`*n*, as this corresponds 
+to the class of functions which can be synthesized into a loop. Attempting
+to use more general types of recursion will result in an exception being 
+thrown.
+
+### More Noise
+
+We can use HaGL to generate noise in creative ways, following the ideas in
+[Chapter 13 of *The Book of Shaders*](https://thebookofshaders.com/13/).
+
+The implementation of the  library function `perlinNoise` that we 
+used earlier is also implemented in terms of `glFunc`*n*, as is the
+function `fbm` for generating [fractal Brownian motion](https://en.wikipedia.org/wiki/Fractional_Brownian_motion):
+```
+fbm :: GLExpr d Int -> GLExpr d Int -> GLExpr d (Vec 3 Float) -> GLExpr d Float
+fbm seed n xyz = f 0 0 1 1 where
+    f = glFunc4 $ \i t a k -> cond (i .== n) t $
+        f (i + 1) (t + a * perlinNoise seed (k .# xyz)) (0.5 * a) (2 * k)
+```
+`fbm` caclulates the sum
+
+$$\sum_{i=0}^{n} \frac{1}{2^i} \texttt{perlinNoise}(seed, 2^i (x,y,z))$$
+which combines suitably scaled amounts of continuous noise in a 
+fractal-like fashion:
+
+```
+fractalNoiseGrid :: GLObj
+fractalNoiseGrid = fromImageInteractive $ \pos ->
+    let xyz = app pos (uniform time / 10)
+        nv = fbm 1 20 xyz .# 0.5 + 0.5 
+    in rgb1 nv
+```
+
+<img src="images/fractal_noise_grid.png" alt="fractal_noise_grid" width=50% height=50% />
+
+If we use `fbm` not only to generate noisy variations of colour but also to
+randomly vary the underlying 2D domain, we can produce visualizations like:
+```
+warpedNoiseGrid :: GLObj
+warpedNoiseGrid = fromImageInteractive $ \pos ->
+    let t = uniform time
+        off = vec2 
+            (fbm 1 2 (app pos (t / 10 + 2))) 
+            (fbm 1 2 (app pos (t / 10 + 3)))
+        xyz = app (pos + off) (uniform time / 10)
+        nv = fbm 1 2 xyz .# 0.5 + 0.5
+    in mix (vec4 0.1 0.3 0.3 1) (vec4 1 1 1 1) (rgb1 nv)
+```
+
+<img src="images/warped_noise_grid.png" alt="warped_noise_grid" width=50% height=50% />
+
+<!-- TODO: using glLift to lift functions that act on raw types --!>

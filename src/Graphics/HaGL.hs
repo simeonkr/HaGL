@@ -108,7 +108,7 @@ which is always an instance of 'GLType'. Here are some example expressions:
 
 @
 
-`GLExpr`'s can be used to construct `GLObj`'s, which being instances
+`GLExpr`s can be used to construct `GLObj`s, which being instances
 of 'Drawable' can be interpreted by a given 'Backend' using 'draw'.
 For example:
 
@@ -386,10 +386,10 @@ module Graphics.HaGL (
     -- /tail-recursive/ functions of the form
     --
     -- @
-    -- f x1 x2 ... = cond u (f y1 y2 ...)
+    -- f x1 x2 ... = cond c b (f y1 y2 ...)
     -- @
     --
-    -- where none of the expressions @u@, @y1@, @y2@, ... depend on @f@. Where
+    -- where none of the expressions @c@, @b@, @y1@, @y2@, ... depend on @f@. Where
     -- applicable, such functions will be synthesized as GLSL loops. For example,
     -- the factorial function can be computed within a vertex shader as follows:
     --
@@ -412,7 +412,7 @@ module Graphics.HaGL (
     -- over @GLExpr@'s (for instance, to dynamically update array contents using
     -- functions defined on lists), such a function can be lifted to the
     -- @HostDomain@ using @glLift/n/@. @glLift/n/ f@ will then be defined over
-    -- `HostExpr`'s that agree with respective argument types of @f@. For example,
+    -- `HostExpr`s that agree with respective argument types of @f@. For example,
     -- the two expressions below compute the same array:
     --
     -- @

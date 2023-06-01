@@ -20,11 +20,11 @@ pendulum = fromImage $ \pos ->
         theta = prec (pi / 3) $ theta + theta' * dt
         x = uniform $ vec2 (sin theta / 2) (- cos theta / 2)
         circleAt pos off r col = cast (length (pos - off) .<= r) .# col
-    in rgb1 $ circleAt pos (vec2 0 0) 0.01 (vec3 1 1 1) 
-        + circleAt pos (0.25 * x) 0.01 (vec3 0 1 1) 
-        + circleAt pos (0.50 * x) 0.01 (vec3 0 1 1) 
-        + circleAt pos (0.75 * x) 0.01 (vec3 0 1 1)
-        + circleAt pos x 0.04 (vec3 1 0 0) 
+    in circleAt pos (vec2 0 0) 0.01 (vec4 1 1 1 1) 
+        + circleAt pos (0.25 * x) 0.01 (vec4 1 0 0 1) 
+        + circleAt pos (0.50 * x) 0.01 (vec4 0 0 1 1) 
+        + circleAt pos (0.75 * x) 0.01 (vec4 0 0 1 1)
+        + circleAt pos x 0.04 (vec4 1 0 0 1) 
 
 doublePendSim :: (GLExpr d (Vec 2 Float), GLExpr d (Vec 2 Float))
 doublePendSim = (x1, x2) where
@@ -50,22 +50,22 @@ doublePendulum = [path, circles] where
     (x1, x2) = doublePendSim
     circles = fromImage $ \pos ->
         let circleAt pos off r col = cast (length (pos - off) .<= r) .# col
-        in circleAt pos (vec2 0 0) 0.01 (vec4 1 1 1 1)
+        in circleAt pos (vec2 0 0) 0.01 (vec4 1 0 0 1)
             + circleAt pos x1 0.04 (vec4 1 0 0 1)
             + circleAt pos (0.5 * x1) 0.01 (vec4 0 1 1 1) 
             + circleAt pos x2 0.04 (vec4 1 0 0 1)
             + circleAt pos (x1 + 0.5 * (x2 - x1)) 0.01 (vec4 0 1 1 1)
     path = 
-        let pathLength = 5000
-            pathLength' = (fromInteger . toInteger) pathLength
+        let pathLength :: Num a => a
+            pathLength = 1500
 
-            a = uniform $ array $ take 5000 $ iterate (prec x2) x2
-            ind = vert [0..(cnst pathLength' - 1)]
-            x = a .! ind
+            x2Seq = array $ take pathLength $ iterate (prec x2) x2
+            i = vert [0..(pathLength - 1)]
+            xy = uniform x2Seq .! i
+            pos = xy $- vec2 0 1
 
-            fade = cast ind / cast (cnst pathLength')
-            pos = x $- vec2 0 1
-            color = (1 - frag fade) .# vec4 1 1 1 1
+            fade = frag $ cast i / pathLength
+            color = vec4 0 0 0 (1 - fade)
         in lineStrip { position = pos, color = color }
 
 sphericalPendulum :: GLObj

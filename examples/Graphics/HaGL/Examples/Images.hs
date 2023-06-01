@@ -65,7 +65,7 @@ invert = fromPolar . (\(decon -> (r, theta)) -> vec2 (1 / r) theta) . toPolar wh
         y = r * sin theta
 
 checkboardImage :: Image
-checkboardImage (decon -> (x, y)) = c .# vec4 0 0 0 1 where
+checkboardImage (decon -> (x, y)) = c .# vec4 0 0 1 1 where
     c = cast $ (floor (10 * x) + floor (10 * y)) `mod` 2 .== 0
 
 checkboard :: GLObj
@@ -83,15 +83,15 @@ invertedCheckboard = fromImage $ checkboardImage . invert
 mkWindingPaths :: FragExpr Float -> GLObj
 mkWindingPaths t = fromImage $ \(decon -> (x, y)) ->
     let curve x t = 0.2 * sin (x + 4 * t)
-        distPlot scale y' = 
-            smoothstep (y' - 0.05) y' y -
-            smoothstep y' (y' + 0.05) y
+        distPlot y' = 
+            step (y' - 0.03) y -
+            step (y' + 0.03) y
         greenish = vec4 0.1 0.7 0.3 1 
         redish = vec4 0.7 0.1 0.1 1 
         bluish = vec4 0.1 0.1 0.7 1
-    in distPlot 150 (curve x t) .# greenish +
-       distPlot 250 (curve x (2 * t + 0.5)) .# redish +
-       distPlot 600 (curve x (0.5 * t - 0.5)) .# bluish
+    in distPlot (curve x t) .# greenish +
+       distPlot (curve x (2 * t + 0.5)) .# redish +
+       distPlot (curve x (0.5 * t - 0.5)) .# bluish
 
 windingPaths :: GLObj
 windingPaths = mkWindingPaths $ uniform time
@@ -132,15 +132,19 @@ noiseGrid = fromImageInteractive $ \pos ->
 
 fractalNoiseGrid :: GLObj
 fractalNoiseGrid = fromImageInteractive $ \pos ->
-    rgb1 $ fbm 1 20 (app pos (uniform time / 10)) .# 0.5 + 0.5 
+    let xyz = app pos (uniform time / 10)
+        nv = fbm 1 20 xyz .# 0.5 + 0.5 
+    in rgb1 nv
 
 warpedNoiseGrid :: GLObj
 warpedNoiseGrid = fromImageInteractive $ \pos ->
-    let off = vec2 
-            (fbm 1 2 (app pos (uniform time / 10 + 2))) 
-            (fbm 1 2 (app pos (uniform time / 10 + 3)))
-        c = rgb1 $ fbm 1 2 (app (pos + off) (uniform time / 10)) .# 0.5 + 0.5
-    in mix (vec4 0.1 0.3 0.3 1) (vec4 1 1 1 1) c
+    let t = uniform time
+        off = vec2 
+            (fbm 1 2 (app pos (t / 10 + 2))) 
+            (fbm 1 2 (app pos (t / 10 + 3)))
+        xyz = app (pos + off) (uniform time / 10)
+        nv = fbm 1 2 xyz .# 0.5 + 0.5
+    in mix (vec4 0.1 0.3 0.3 1) (vec4 1 1 1 1) (rgb1 nv)
 
 procgen2DWorld :: GLObj
 procgen2DWorld = fromImageInteractive $ \pos ->
@@ -155,7 +159,7 @@ procgen2DWorld = fromImageInteractive $ \pos ->
 
 mandelbrot :: GLObj
 mandelbrot = fromImageInteractive $ \pos ->
-    let mand = glFunc3 $ \pos0@(decon -> (x0, y0)) (decon -> (x, y)) i -> 
-            cond (i .> 50 .|| ((x * x + y * y) .> 4)) i $
-                mand pos0 (vec2 (x * x - y * y + x0) (2 * x * y + y0)) (i + 1)
-    in mand pos pos 0 .# 0.02  -- TODO: use better color map
+    let mand = glFunc3 $ \pos0@(decon -> (x0, y0)) (decon -> (x, y)) n -> 
+            cond (n .== 0 .|| x * x + y * y .> 4) n $
+                mand pos0 (vec2 (x * x - y * y + x0) (2 * x * y + y0)) (n - 1)
+    in rgb1 $ mand pos 0 50 .# 0.02  -- TODO: use better color map

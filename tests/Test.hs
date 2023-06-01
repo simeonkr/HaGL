@@ -230,7 +230,8 @@ shaderTests = [
         precNestedTest,
         precIntegrateTest,
         --precTimeTest,
-        precSequenceTest
+        precSequenceTest,
+        precFiboTest
     ]
 
 shaderExceptionTests :: [ExprExceptionTest]
@@ -990,6 +991,10 @@ precSequenceTest = ExprTest "prec_sequence" $
         tp = uniform $ array $ take 20 $ iterate (\t -> prec 0 t) t
     in foldr (\i e -> e .&& tp .! i .== uniform t - i) true (map cnst [0..19])
 
+precFiboTest = ExprTest "prec_fibonacci" $
+    let fibSeq = prec (0 :: GLExpr d Int) (fibSeq + prec 1 fibSeq)
+        fibSeq' = prec 0 fibSeq' + prec 0 (prec 1 fibSeq')
+    in uniform fibSeq .== uniform fibSeq'
 
 -- Shader-specific tests
 

@@ -1,5 +1,6 @@
 module Graphics.HaGL.Examples.Spheres (
     checkeredSphere,
+    shadedSphere,
     earthlike,
 ) where
 
@@ -17,17 +18,31 @@ import Graphics.HaGL.Examples.Common
 
 checkeredSphere :: GLObj
 checkeredSphere = let
-    ((Mesh verts norms inds), uvGrid) = uvSphere 1
+    ((Mesh verts norms inds), (decon -> (u,v))) = uvSphere 32 1
+
     pos = vert verts
-    (decon -> (u,v)) = frag $ vert uvGrid
-    cpos = uniform (defaultProj .@ interactiveView (vec3 0 0 7)) .@ app pos 1
+    cpos = uniform (defaultProj .@ interactiveView (vec3 0 0 5)) .@ app pos 1
+
     c = cast $ (floor u + floor v) `mod` 2 .== 0
+
     in triangles { indices = Just inds, position = cpos, color = app (c .# 1) 1 }
+
+shadedSphere :: GLObj
+shadedSphere = let
+    (mesh, _) = uvSphere 32 1
+
+    view = interactiveView (vec3 0 0 5)
+    eyePos = uniform $ eyeFromView view
+
+    colorMap fpos fnorm = 
+        defaultBlinnPhong fpos fnorm (normalize $ frag eyePos - fpos) 
+    
+    in meshDrawable defaultProj view colorMap mesh
 
 -- TODO: realistic water
 earthlike :: GLObj
 earthlike = let
-    ((Mesh verts norms inds), _) = uvSphere 1
+    ((Mesh verts norms inds), _) = uvSphere 32 1
     pos = vert verts
     norm = vert norms
 
@@ -53,7 +68,7 @@ earthlike = let
     l = normalize $ xyRotLight 5 - dispPos fpos
     xyRotLight off = let t = uniform time in vec3 (off * cos t) 0 (off * sin t)
 
-    eyePos = uniform $ xyz_ $ col2 $ inverse view
+    eyePos = uniform $ eyeFromView view
     eyeDir = normalize $ frag eyePos - dispPos fpos
 
     color = blinnPhong ka kd ks dispNorm eyeDir l pp

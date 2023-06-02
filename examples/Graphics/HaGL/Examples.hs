@@ -2,7 +2,7 @@ module Graphics.HaGL.Examples (
     blueTriangles,
     redBlueTriangles,
     interactiveCube,
-    interactiveMesh,
+    shadedInteractiveMesh,
     module Graphics.HaGL.Examples.Images,
     module Graphics.HaGL.Examples.Particles,
     module Graphics.HaGL.Examples.Simulations,
@@ -75,22 +75,16 @@ rotatingCube = cube (rotatingView (vec3 1 1 1) (vec3 0 0 5))
 interactiveCube :: GLObj
 interactiveCube = cube (interactiveView (vec3 0 0 5))
 
-interactiveMesh :: Mesh -> GLObj
-interactiveMesh mesh = let
-    pos = vert $ meshVertices mesh
-    norm = vert $ meshNormals mesh
-
-    -- Apply camera transformation
-    initialEye = vec3 0 0 10
+shadedInteractiveMesh :: Mesh -> GLObj
+shadedInteractiveMesh mesh = let
+    initialEye = vec3 0 0 5
     view = interactiveView initialEye
-    cpos = uniform (defaultProj .@ view) .@ app pos 1
-    
-    -- Apply lighting shader of choice
-    eyePos = uniform $ xyz_ $ col2 $ inverse view
-    color = defaultBlinnPhong (frag pos) (normalize $ frag norm)
-                              (normalize $ frag eyePos - frag pos) 
+    eyePos = uniform $ eyeFromView view
 
-    in triangles { indices = Just $ meshFaces mesh, position = cpos, color = color }
+    colorMap fpos fnorm = 
+        defaultBlinnPhong fpos fnorm (normalize $ frag eyePos - fpos) 
+
+    in meshDrawable defaultProj view colorMap mesh
 
 
 exampleList :: [(String, [GLObj])]
@@ -118,9 +112,10 @@ exampleList =
      ("double_pendulum", doublePendulum),
      ("rotating_cube", [rotatingCube]),
      ("interactive_cube", [interactiveCube]),
-     ("param_sphere", [paramSphere]),
-     ("param_torus", [paramTorus 1.5 1]),
      ("loxodrome", [loxodrome]),
      ("checkered_sphere", [checkeredSphere]),
-     ("earth-like", [earthlike])
+     ("shaded_sphere", [shadedSphere]),
+     ("earth-like", [earthlike]),
+     ("param_sphere", [paramSphere]),
+     ("param_torus", [paramTorus 1.5 1])
     ]

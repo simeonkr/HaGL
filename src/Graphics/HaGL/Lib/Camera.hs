@@ -1,9 +1,20 @@
 module Graphics.HaGL.Lib.Camera (
+    eyeFromView,
+    rotatingView,
     interactiveView
 ) where
 
 import Graphics.HaGL
 import Graphics.HaGL.Lib.Math (idMat, rotate, translate, scale)
+
+
+eyeFromView :: HostExpr (Mat 4 4 Float) -> HostExpr (Vec 3 Float)
+eyeFromView = xyz_ . col3 . inverse
+
+rotatingView :: _ => HostExpr (Vec 3 Float) -> HostExpr (Vec 3 Float) -> 
+    HostExpr (Mat 4 4 Float)
+rotatingView axis initialEye = 
+    translate (-initialEye) .@ rotate (normalize axis) time
 
 interactiveView :: _ => HostExpr (Vec 3 Float) -> HostExpr (Mat 4 4 Float)
 interactiveView initialEye = inverse curCam where

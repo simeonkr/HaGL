@@ -40,12 +40,14 @@ paramSurface (ParamSurface uRange@(decon -> (ul, ur)) vRange@(decon -> (vl, vr))
     norm = normalize $ cross dfdv dfdu
 
     -- apply camera transformation
-    eyePos = vec3 0 0.5 5
-    cpos = uniform (defaultProj .@ interactiveView eyePos) .@ app pos 1
+    initialEye = vec3 0 0.5 5
+    view = interactiveView initialEye
+    cpos = uniform (defaultProj .@ view) .@ app pos 1
+    eyePos = uniform $ eyeFromView view
 
     -- apply lighting shader of choice
     color = defaultBlinnPhong (frag pos) (normalize $ frag norm)
-                (normalize $ frag (uniform eyePos) - frag pos) 
+                (normalize $ frag eyePos - frag pos) 
 
     in triangles { indices = Just $ paramInds2D (cast res), position = cpos, color = color }
 

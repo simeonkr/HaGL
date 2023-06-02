@@ -28,13 +28,13 @@ paramInds2D res =
           (i + 1) * (res + 1) + (j + 1)] 
          | i <- [0..(res-1)], j <- [0..(res-1)]]
 
-uvSphere :: ConstExpr Float -> (Mesh, [ConstExpr (Vec 2 Float)])
-uvSphere radius = 
-    let res = 32
-        unifGrid = paramRange2D (vec2 0 (2 * pi)) (vec2 0 pi) res
+uvSphere :: ConstExpr Float -> ConstExpr Float -> (Mesh, FragExpr (Vec 2 Float))
+uvSphere res radius = 
+    let unifGrid = paramRange2D (vec2 0 (2 * pi)) (vec2 0 pi) res
         f (decon -> (u, v)) = radius .# vec3 (cos u * sin v) (sin u * sin v) (cos v)
         verts = map f unifGrid
         n uv = normalize uv
         normals = map n verts
         inds = paramInds2D $ cast res
-    in (Mesh verts normals inds, [vec2 i j | i <- [0..res], j <- [0..res]])
+        uvGrid = [vec2 i j | i <- [0..res], j <- [0..res]]
+    in (Mesh verts normals inds, frag $ vert uvGrid )

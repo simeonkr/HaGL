@@ -504,6 +504,43 @@ explosion =
 
 ### Drawing Curves and Surfaces
 
+A loxodrome (or a spherical spiral) is a curve in 3D space given by the 
+parametric equation
+$$
+(x, y, z) = \frac{1}{\sqrt{a^2 t^2}} \left( \cos t, \sin t ,- a t \right)
+$$
+for some constant. It can be drawn as a `lineStrip` where each position
+specifies the next endpoint of a series of connected line segments:
+
+```
+loxodrome :: GLObj
+loxodrome = let
+    -- specify uniform grid of input vertices
+    res = 10000
+    u = vert [i / res | i <- [0..res]]
+
+    -- transform vertices according to parametric equation
+    t = 100 * (u - 0.5)  -- t ∈ [-50, 50]
+    a = 0.1
+    x = (0.7 / sqrt (1 + a * a * t * t)) .# vec3 (cos t) (-a * t) (sin t)
+
+    -- apply camera transformation
+    eyePos = vec3 0 0.5 5
+    cpos = uniform (defaultProj .@ interactiveView eyePos) .@ app x 1
+
+    -- use fancy colors
+    red = vec3 0.8 0.2 0.2
+    cyan = vec3 0.2 0.7 0.5
+    c = smoothstep red cyan (frag u .# 1)
+
+    -- animate time variable of the equation
+    color = app c $ step (frag u) (uniform time / 5)
+
+    in lineStrip { position = cpos, color = color }
+```
+
+<img src="images/loxodrome.png" alt="loxodrome" width=50% height=50% />
+
 ### Shading
 
 ## Time-evolving State Using `prec`

@@ -15,39 +15,39 @@ import Graphics.HaGL.Lib.Objects3D
 import Graphics.HaGL.Examples.Common
 
 
+data ParamSurface = ParamSurface {
+    uRange :: ConstExpr (Vec 2 Float),
+    vRange :: ConstExpr (Vec 2 Float),
+    paramFunc :: VertExpr (Vec 2 Float) -> VertExpr (Vec 3 Float)
+}
+
 -- TODO: create a Mesh from a ParamSurface
 
 paramSurface :: ParamSurface -> GLObj
 paramSurface (ParamSurface uRange@(decon -> (ul, ur)) vRange@(decon -> (vl, vr)) f) = let
-    -- Specify uniform grid of input vertices
+    -- specify uniform grid of input vertices
     res = 100
     uv@(decon -> (u, v)) = vert $ paramRange2D uRange vRange res
 
-    -- Transform vertices according to parametric equation
+    -- transform vertices according to parametric equation
     pos = f uv
 
-    -- Compute normal
+    -- compute normal
     du = cnst $ (ur - ul) / res
     dv = cnst $ (vr - vl) / res
     dfdu = f (vec2 (u + du) v) - pos
     dfdv = f (vec2 u (v + dv)) - pos
     norm = normalize $ cross dfdv dfdu
 
-    -- Apply camera transformation
+    -- apply camera transformation
     eyePos = vec3 0 0.5 5
     cpos = uniform (defaultProj .@ interactiveView eyePos) .@ app pos 1
 
-    -- Apply lighting shader of choice
+    -- apply lighting shader of choice
     color = defaultBlinnPhong (frag pos) (normalize $ frag norm)
                 (normalize $ frag (uniform eyePos) - frag pos) 
 
     in triangles { indices = Just $ paramInds2D (cast res), position = cpos, color = color }
-
-data ParamSurface = ParamSurface {
-    uRange :: ConstExpr (Vec 2 Float),
-    vRange :: ConstExpr (Vec 2 Float),
-    paramFunc :: VertExpr (Vec 2 Float) -> VertExpr (Vec 3 Float)
-}
 
 paramSphere :: GLObj
 paramSphere = paramSurface (ParamSurface (vec2 0 (2 * pi)) (vec2 0 pi) f) where
@@ -83,26 +83,25 @@ paramPlot uRange@(decon -> (ul, ur)) vRange@(decon -> (vl, vr)) f = let
     
 loxodrome :: GLObj
 loxodrome = let
-    -- Specify uniform grid of input vertices
+    -- specify uniform grid of input vertices
     res = 10000
-    t = vert $ [i / res | i <- [0..res]]
+    u = vert [i / res | i <- [0..res]]
 
-    -- Transform vertices according to parametric equation
-    u = 100 * (t - 0.5)
+    -- transform vertices according to parametric equation
+    t = 100 * (u - 0.5)  -- t ∈ [-50, 50]
     a = 0.1
-    x = (0.7 / sqrt (1 + a * a * u * u)) .# vec3 (cos u) (-a * u) (sin u)
+    x = (0.7 / sqrt (1 + a * a * t * t)) .# vec3 (cos t) (-a * t) (sin t)
 
-    -- Apply camera transformation
+    -- apply camera transformation
     eyePos = vec3 0 0.5 5
     cpos = uniform (defaultProj .@ interactiveView eyePos) .@ app x 1
 
-    -- Use fancy colors
-    r = frag t
+    -- use fancy colors
     red = vec3 0.8 0.2 0.2
     cyan = vec3 0.2 0.7 0.5
-    c = smoothstep red cyan (r .# 1)
+    c = smoothstep red cyan (frag u .# 1)
 
-    -- Animate time variable of the equation
-    color = app (step r (uniform time / 5) .# c) 1
+    -- animate time variable of the equation
+    color = app c $ step (frag u) (uniform time / 5)
 
     in lineStrip { position = cpos, color = color }

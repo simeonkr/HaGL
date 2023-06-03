@@ -18,20 +18,24 @@ import Graphics.HaGL.Examples.Common
 
 checkeredSphere :: GLObj
 checkeredSphere = let
-    ((Mesh verts norms inds), (decon -> (u,v))) = uvSphere 32 1
-
+    ((Mesh verts _ inds), (decon -> (u,v))) = uvSphere 32 1
     pos = vert verts
-    cpos = uniform (defaultProj .@ interactiveView (vec3 0 0 5)) .@ app pos 1
 
-    c = cast $ (floor u + floor v) `mod` 2 .== 0
+    view = interactiveView (vec3 0 0 3)
+    cpos = uniform (defaultProj .@ view) .@ app pos 1
 
-    in triangles { indices = Just inds, position = cpos, color = app (c .# 1) 1 }
+    c = (floor u + floor v) `mod` 2 .# 1
+
+    in triangles { 
+        indices = Just inds, 
+        position = cpos, 
+        color = app c 1 }
 
 shadedSphere :: GLObj
 shadedSphere = let
     (mesh, _) = uvSphere 32 1
 
-    view = interactiveView (vec3 0 0 5)
+    view = interactiveView (vec3 0 0 3)
     eyePos = uniform $ eyeFromView view
 
     colorMap fpos fnorm = 
@@ -46,7 +50,7 @@ earthlike = let
     pos = vert verts
     norm = vert norms
 
-    view = interactiveView (vec3 0 0 7)
+    view = interactiveView (vec3 0 0 3)
     cpos = uniform (defaultProj .@ view) .@ app pos 1
 
     fpos = frag pos
@@ -71,7 +75,7 @@ earthlike = let
     eyePos = uniform $ eyeFromView view
     eyeDir = normalize $ frag eyePos - dispPos fpos
 
-    color = blinnPhong ka kd ks dispNorm eyeDir l pp
+    color = blinnPhong ka kd ks pp dispNorm eyeDir l
 
     in triangles { indices = Just inds, position = cpos, color = color }
 

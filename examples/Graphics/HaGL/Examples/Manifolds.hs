@@ -40,7 +40,7 @@ paramSurface (ParamSurface uRange@(decon -> (ul, ur)) vRange@(decon -> (vl, vr))
     norm = normalize $ cross dfdv dfdu
 
     -- apply camera transformation
-    initialEye = vec3 0 0.5 5
+    initialEye = vec3 0 0 3
     view = interactiveView initialEye
     cpos = uniform (defaultProj .@ view) .@ app pos 1
     eyePos = uniform $ eyeFromView view
@@ -69,8 +69,8 @@ paramPlot uRange@(decon -> (ul, ur)) vRange@(decon -> (vl, vr)) f = let
 
     pos = vec3 u (f u v) v 
 
-    eyePos = vec3 0 0.5 5
-    cpos = uniform (defaultProj .@ translate (-eyePos)) .@ app pos 1
+    initialEye = vec3 0 0 3
+    cpos = uniform (defaultProj .@ translate (-initialEye)) .@ app pos 1
 
     du = cnst $ (ur - ul) / res
     dv = cnst $ (vr - vl) / res
@@ -92,16 +92,16 @@ loxodrome = let
     -- transform vertices according to parametric equation
     t = 100 * (u - 0.5)  -- t ∈ [-50, 50]
     a = 0.1
-    x = (0.7 / sqrt (1 + a * a * t * t)) .# vec3 (cos t) (-a * t) (sin t)
+    x = (1 / sqrt (1 + a * a * t * t)) .# vec3 (cos t) (-a * t) (sin t)
 
     -- apply camera transformation
-    eyePos = vec3 0 0.5 5
-    cpos = uniform (defaultProj .@ interactiveView eyePos) .@ app x 1
+    initialEye = vec3 0 0 3
+    cpos = uniform (defaultProj .@ interactiveView initialEye) .@ app x 1
 
     -- use fancy colors
     red = vec3 0.8 0.2 0.2
-    cyan = vec3 0.2 0.7 0.5
-    c = smoothstep red cyan (frag u .# 1)
+    blue = vec3 0.2 0.2 0.8
+    c = smoothstep red blue (frag u .# 1)
 
     -- animate time variable of the equation
     color = app c $ step (frag u) (uniform time / 5)

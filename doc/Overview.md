@@ -315,7 +315,8 @@ windingsPaths = fromImage $ \(decon -> (x, y)) ->
 ### More Fragment Shading
 
 There are many interesting directions to explore with fragment shaders. 
-With the right equations, we can even draw 3D objects, as in the [the `fragSphere` example](../examples/Graphics/HaGL/Examples/Images.hs):
+With the right equations, we can even draw 3D objects, as in the 
+[the `fragSphere` example](../examples/Graphics/HaGL/Examples/Images.hs):
 
 <img src="images/frag_sphere.png" alt="frag_sphere" width=50% height=50% />
 
@@ -525,13 +526,13 @@ loxodrome = let
     x = (0.7 / sqrt (1 + a * a * t * t)) .# vec3 (cos t) (-a * t) (sin t)
 
     -- apply camera transformation
-    eyePos = vec3 0 0.5 5
-    cpos = uniform (defaultProj .@ interactiveView eyePos) .@ app x 1
+    initialEye = vec3 0 0.5 5
+    cpos = uniform (defaultProj .@ interactiveView initialEye) .@ app x 1
 
     -- use fancy colors
     red = vec3 0.8 0.2 0.2
-    cyan = vec3 0.2 0.7 0.5
-    c = smoothstep red cyan (frag u .# 1)
+    blue = vec3 0.2 0.2 0.8
+    c = smoothstep red blue (frag u .# 1)
 
     -- animate time variable of the equation
     color = app c $ step (frag u) (uniform time / 5)
@@ -541,7 +542,118 @@ loxodrome = let
 
 <img src="images/loxodrome.png" alt="loxodrome" width=50% height=50% />
 
+The HaGL library provides initial support for creating simple meshes and loading
+them from `obj` files, where a mesh is represented by the data type
+```
+data Mesh = Mesh {
+    meshVertices :: [ConstExpr (Vec 3 Float)],
+    meshNormals :: [ConstExpr (Vec 3 Float)],
+    meshFaces :: [ConstExpr UInt]
+}
+``` 
+
+For example,
+
+```
+uvSphere :: ConstExpr Float -> ConstExpr Float -> (Mesh, FragExpr (Vec 2 Float))
+```
+
+takes in a resolution parameter $res$ and radius $r$, and creates a `Mesh` for
+a sphere by mapping $u \in [0 \times res], v \in [0 \times res]$ to the vertices
+$$
+    (x, y, z) = r (\cos u \sin v, \sin u \sin v, \cos v)
+$$
+in a [similar way](../src/Graphics/HaGL/Lib/Objects3D.hs) as was done in the
+previous example. 
+In addition to the resulting mesh, it returns a `FragExpr` for a point on the
+sphere in terms of the $(u, v)$ coordinates so that we can map a texture to the 
+sphere by coloring its [parametric $uv$-plane](https://en.wikipedia.org/wiki/UV_mapping), 
+as in the following example:
+```
+checkeredSphere :: GLObj
+checkeredSphere = let
+    ((Mesh verts _ inds), (decon -> (u,v))) = uvSphere 32 1
+    pos = vert verts
+
+    view = interactiveView (vec3 0 0 5)
+    cpos = uniform (defaultProj .@ view) .@ app pos 1
+
+    c = (floor u + floor v) `mod` 2 .# 1
+
+    in triangles { 
+        indices = Just inds, 
+        position = cpos, 
+        color = app c 1 }
+```
+
+<img src="images/checkered_sphere.png" alt="checkered_sphere" width=50% height=50% />
+
 ### Shading
+
+The [Blinn-Phong shading model](https://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_reflection_model) 
+can be used to color a given
+point on a surface by modelling the properties of light hitting that
+point. It can be implemented in HaGL as the function taking `FragExpr`-typed parameters
+
+* $ka$, $kd$, $ks$ for the ambient, diffuse, and specular
+colors, respectively,
+* the scalar specular exponent $pp$,
+* the normal $n$ at the point,
+* the unit direction $e$ from the point to the eye, 
+* the unit light direction $l$:
+```
+blinnPhong ka kd ks pp n e l = app color 1 where
+    h = normalize (e + l)
+    color = max 0.0 (dot n l) .# kd + 
+            (max 0.0 (dot n h) ** pp) .# ks + 
+            0.4 .# ka
+```  
+
+Applying this to the same `uvSphere`:
+```
+shadedSphere :: GLObj
+shadedSphere = let
+    ((Mesh verts norms inds), _) = uvSphere 32 1
+
+    pos = vert verts
+    norm = vert norms
+
+    view = interactiveView (vec3 0 0 5)
+    eyePos = uniform $ eyeFromView view
+    cpos = uniform (defaultProj .@ view) .@ app pos 1
+
+    kd = vec3 0.8 0.6 0.6
+    ks = vec3 1 1 1
+    ka = vec3 0.2 0.8 0.5
+    pp = 1000
+    t = uniform time
+    xyRotLight off = vec3 (off * cos t) 0 (off * sin t)
+    l = normalize $ (xyRotLight 5) - p
+    col = blinnPhong kd ks ka pp norm eyePos l
+    
+    in triangles { 
+        indices = Just inds, 
+        position = cpos, 
+        color = col }
+```
+
+<img src="images/shaded_sphere.png" alt="shaded_sphere" width=50% height=50% />
+
+We can apply the same shading model to 
+[arbitrary meshes](../src/Graphics/HaGL/Lib/Mesh.hs) and 
+[parameteric surfaces](../examples/Graphics/HaGL/Examples/Manifolds.hs):
+
+<p float="left">
+    <img src="images/bunny.obj.png" alt="bunny" width=40% height=40% />
+    <img src="images/param_torus.png" alt="param_torus" width=40% height=40% />
+</p>
+
+By using noise to perturb the normals of the sphere and produce a procedurally
+generated texture similar to the 2D one we previously saw, we can use the same
+shading model to produce [planet-like surfaces](../examples/Graphics/HaGL/Examples/Spheres.hs):
+
+<img src="images/earth-like.png" alt="earth-like" width=50% height=50% />
+
 
 ## Time-evolving State Using `prec`
 
@@ -563,7 +675,8 @@ at discrete moments of time, then
 $$prec(x_0, x)_t = \begin{cases} x_0, & t = 0 \\ x_{t-1}, & t > 0 \end{cases}$$
 
 In other words, `prec x0 x` holds the value of `x` as it was a moment of time
-ago or $x_0$ if this is first such moment of time. In the case of a backend like GLUT, the discrete points of time correspond to updates in the main loop.
+ago or $x_0$ if this is first such moment of time. In the case of a backend like GLUT, 
+the discrete points of time correspond to updates in the main loop.
 For example, `prec 0 time` corresponds to the value of `time` one time-step ago.
 
 The main usefulness of `prec` lies in its ability to build self-referential
@@ -596,7 +709,7 @@ following Euler equations
 $$ 
 \begin{aligned} 
 \theta'_{t+1} &= \alpha \theta'_t - mg \sin \theta_t dt \\
-\theta_{t+1} &= \theta_{t} + \theta'_{t-1} dt,
+\theta_{t+1} &= \theta_{t} + \theta'_{t} dt,
 \end{aligned}
 $$
 
@@ -645,7 +758,8 @@ doublePendulum :: GLObj
 doublePendulum = [path doublePendPos, circles doublePendPos]
 ``` 
 
-where `circles` is defined in terms of `doublePendPos` a similar way to how we defined `pendulum` in terms of `pendPos`. As for `path`, we can define it as a
+where `circles` is defined in terms of `doublePendPos` a similar way to how we 
+defined `pendulum` in terms of `pendPos`. As for `path`, we can define it as a
 `lines` primitive, but we somehow need to keep track of the past positions of
 the outer pendulum throughout time. One possible solution is to (ab)use the 
 `prec` operator.
@@ -743,7 +857,8 @@ to exceed a magnitude of 2, thus calculating an escape time that can be used to
 color the pixel $(x_0,y_0)$ in a way that visualizes the Mandelbrot set.
 
 However if we were to call `mand` directly, the
-evaluation of such call would produce an infinite expression tree, which would lead to a crash or space leak. Instead we lift the 3-argument Haskell function 
+evaluation of such call would produce an infinite expression tree, which would 
+lead to a crash or space leak. Instead we lift the 3-argument Haskell function 
 `mand'` to a shader-level function `mand` using the higher-order function
 `glFunc3`:
 ```
@@ -780,7 +895,8 @@ We can use HaGL to generate noise in creative ways, following the ideas in
 
 The implementation of the  library function `perlinNoise` that we 
 used earlier is also implemented in terms of `glFunc`*n*, as is the
-function `fbm` for generating [fractal Brownian motion](https://en.wikipedia.org/wiki/Fractional_Brownian_motion):
+function `fbm` for generating 
+[fractal Brownian motion](https://en.wikipedia.org/wiki/Fractional_Brownian_motion):
 ```
 fbm :: GLExpr d Int -> GLExpr d Int -> GLExpr d (Vec 3 Float) -> GLExpr d Float
 fbm seed n xyz = f 0 0 1 1 where

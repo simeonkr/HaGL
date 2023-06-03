@@ -20,7 +20,7 @@ defaultBlinnPhong :: FragExpr (Vec 3 Float) ->
                      FragExpr (Vec 3 Float) -> 
                      FragExpr (Vec 3 Float) -> 
                      FragExpr (Vec 4 Float)
-defaultBlinnPhong p n e = blinnPhong ka kd ks n e l pp where
+defaultBlinnPhong p n e = blinnPhong ka kd ks pp n e l where
     kd = vec3 0.8 0.6 0.6
     ks = vec3 1 1 1
     ka = vec3 0.2 0.8 0.5

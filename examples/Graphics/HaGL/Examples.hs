@@ -117,5 +117,5 @@ exampleList =
      ("shaded_sphere", [shadedSphere]),
      ("earth-like", [earthlike]),
      ("param_sphere", [paramSphere]),
-     ("param_torus", [paramTorus 1.5 1])
+     ("param_torus", [paramTorus 1 0.5])
     ]

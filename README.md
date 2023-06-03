@@ -91,4 +91,4 @@ and appreciated.
 
 The best way to keep the project alive is to demonstrate its usefulness through
 a wide range of interesting examples. Another potential area to explore is the
-creation of high-level libraries for specific types of visual applications.
+creation of high-level libraries for specific types of visual applications, as well as improving the one that ships with HaGL.

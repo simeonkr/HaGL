@@ -1,9 +1,10 @@
 import Control.Monad (when)
-import Data.List (find)
+import Data.List (find, isSuffixOf)
 import System.Directory (createDirectoryIfMissing)
 import System.Environment (getArgs)
 import Graphics.Rendering.OpenGL (($=), clearColor, Color4(..))
 import Graphics.HaGL
+import Graphics.HaGL.Lib (loadMesh)
 import Graphics.HaGL.Examples
 
 
@@ -25,8 +26,17 @@ main = do
             "followed by an optional flag -s to capture a single frame, " ++
             "or -a to capture all frames"
     where
-        runExample runMode exampleName = 
-            case find ((== exampleName) . fst) exampleList of
+        runExample runMode exampleName
+            -- TODO: more flexible way to draw examples that need to load meshes
+            | ".obj" `isSuffixOf` exampleName = do
+                mesh <- loadMesh $ "examples/res/" ++ exampleName
+                let obj = shadedInteractiveMesh mesh
+                drawGlutCustom (defaultGlutOptions { 
+                    openGLSetup = do {
+                        clearColor $= Color4 1 1 1 1;
+                    },
+                    runMode = runMode }) obj
+            | otherwise = case find ((== exampleName) . fst) exampleList of
                 Just (_, example) ->
                     drawGlutCustom (defaultGlutOptions { 
                         openGLSetup = do {

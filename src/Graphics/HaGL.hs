@@ -32,7 +32,7 @@ where @d@ is the domain of computation and @t@ is the underlying numeric type,
 which is always an instance of 'GLType'. Here are some example expressions:
 
 @
-    -- A variable representing an individual vertex, initialized from four points
+    -- A variable representing an individual vertex, initialized from three points
     x :: GLExpr VertexDomain Float
     x = vert [-1, 0, 1]
 
@@ -561,22 +561,41 @@ true = cnst $ toEnum 1
 -- | The boolean value @false@
 false = cnst $ toEnum 0
 
--- | Lift a `HostExpr` to an arbitrary `GLExpr`.
+-- | Lift a `HostExpr` to an arbitrary @GLExpr@ whose value is the same across
+-- any primitive processed in a shader, if used in the context of one
 uniform :: GLType t => HostExpr t -> GLExpr d t
 uniform x = mkExpr GLAtom $ Uniform x
 
+-- | @prec x0 x@ is used to obtain a reference to the value @x@ one "time-step"
+-- in the past, or @x0@ at the zero-th point in time. The @prec@ operator is 
+-- usually used to define expressions recurrently; for example:
+-- @let x = prec 0 (x + 1)@ counts the total number of points in time. The
+-- interpretation of a time-step in a given backend is normally an interval
+-- that is on average equal to the length of time between two redraws.
 prec :: GLType t => HostExpr t -> HostExpr t -> HostExpr t
 prec x0 x = mkExpr GLAtom $ IOPrec x0 x
 
+
+-- | A vertex input variable (attribute) constructed from a stream of per-vertex 
+-- data. The number of vertices (the length of the stream) should be consistent
+-- across all vertex attributes used to construct a given @GLObj@.
 vert :: GLInputType t => [ConstExpr t] -> VertExpr t
 vert inp = mkExpr GLAtom $ Inp inp
 
+-- | A fragment input variable constructed from the output data of a vertex 
+-- variable, interpolated in a perspective-correct manner over the primitive
+-- being processed
 frag :: GLSupportsSmoothInterp t => VertExpr t -> FragExpr t
 frag x = mkExpr GLAtom $ Frag Smooth x
 
+-- | A fragment input variable constructed from the output data of a vertex 
+-- variable, interpolated linearly across the primitive being processed
 noperspFrag :: GLSupportsSmoothInterp t => GLInputType t => VertExpr t -> FragExpr t
 noperspFrag x = mkExpr GLAtom $ Frag NoPerspective x
 
+-- | A fragment input variable constructed from the output data of a vertex
+-- variable, having the same value across the primitive being processed
+-- (cf. the OpenGL API for which vertex is used to determine its value)
 flatFrag :: GLInputType t => VertExpr t -> FragExpr t
 flatFrag x = mkExpr GLAtom $ Frag Flat x
 
@@ -816,24 +835,33 @@ glLift6 f x y z w u v = mkExpr GLAtom $ GLLift6 f x y z w u v
 
 -- * Built-in I/O variables
 
+-- | Seconds elapsed since an initial point in time 
 time :: HostExpr Float
 time = mkExpr GLAtom $ IOFloat "time"
 
+-- | True if and only if the left mouse button is pressed
 mouseLeft :: HostExpr Bool
 mouseLeft = mkExpr GLAtom $ IOBool "mouseLeft"
 
+-- | True if and only if the right mouse button is pressed
 mouseRight :: HostExpr Bool
 mouseRight = mkExpr GLAtom $ IOBool "mouseRight"
 
+-- | A pulse signal, equal to 1 at the moment the mouse wheel scrolls up, -1 when 
+-- the mouse wheel scrolls down, and afterwards exponentially decaying to its 
+-- otherwise default value of 0
 mouseWheel :: HostExpr Float
 mouseWheel = mkExpr GLAtom $ IOFloat "mouseWheel"
 
+-- | The horizontal position of the mouse, not necessarily within the window bounds
 mouseX :: HostExpr Float
 mouseX = mkExpr GLAtom $ IOFloat "mouseX"
 
+-- | The vertical position of the mouse, not necessarily within the window bounds
 mouseY :: HostExpr Float
 mouseY = mkExpr GLAtom $ IOFloat "mouseY"
 
+-- | Equal to @vec2 mouseX mouseY@
 mousePos :: HostExpr (Vec 2 Float)
 mousePos = mkExpr GLGenExpr $ GLVec2 mouseX mouseY
 

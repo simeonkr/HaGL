@@ -5,12 +5,12 @@ where `d` is a label which specifies where the expression will be computed
 (its computational "domain") and `t` specifies the raw, underlying type that the
 expression wraps. The following table categorizes `GLExpr`s based on their domain:
 
-| `GLExpr d t`              | Synonym       | Semantics                                                              |
-| ------------------------- | ------------- | ---------------------------------------------------------------------- |
-| `GLExpr ConstDomain t`    | `ConstExpr t` | A constant of type `t` computed on the CPU host                        |
-| `GLExpr HostDomain t`     | `HostExpr t`  | A potentially I/O-dependent value of type `t` computed on the CPU host |
-| `GLExpr VertDomain t`     | `VertExpr t`  | A value of type `t` computed on the GPU, in a vertex shader            |
-| `GLExpr FragmentDomain t` | `FragExpr t`  | A value of type `t` computed on the GPU, in a fragment shader          | 
+| `GLExpr d t`              | Synonym       | Semantics                                                                |
+| ------------------------- | ------------- | -------------------------------------------------------------------------|
+| `GLExpr ConstDomain t`    | `ConstExpr t` | A constant of type `t` computed on the CPU host                          |
+| `GLExpr HostDomain t`     | `HostExpr t`  | A potentially I/O-dependent value of type `t` computed on the CPU host   |
+| `GLExpr VertDomain t`     | `VertExpr t`  | A vertex variable of `t` processed in a vertex shader on the GPU         |
+| `GLExpr FragmentDomain t` | `FragExpr t`  | A fragment variable of type `t` processed in a fragment shader on the GPU| 
 
 The underlying type `t` can be one of the following:
 
@@ -26,8 +26,8 @@ HaGL provides different ways to construct and convert between specific `GLExpr`
 types and at the same time allows them to be manipulated polymorphically through
 the use of generic functions. 
 
-For example, the following specifies a vertex corresponding to four input 
-points:
+For example, the following specifies an input vertex variable corresponding to 
+four vertices:
 
 ```
 x :: VertExpr (Vec 4 Float)
@@ -52,7 +52,7 @@ y' = vert [length (vec4 (-1) (-1) 0 1), length (vec4 (-1) 1 0 1), ...]
 ```
 However, `y` and `y'` will be computed in different ways since,
 based on the type signature `[ConstExpr t] -> VertExpr t ` of `vert`, we know 
-that type of the input vertex `length (vec4 (-1) (-1) 0 1)` must be `ConstExpr Float`
+that type of `length (vec4 (-1) (-1) 0 1)` must be `ConstExpr Float`
 and hence computed on the CPU. So we see that types, often implicitly inferred,
 play a very important role in determining how a HaGL expression is computed (and
 may in many situations also influence its semantics, as we shall see).
@@ -85,8 +85,8 @@ Let us draw two blue triangles, as in the opening example in Ch. 1 of the
 *OpenGL Programming Guide*. To do so, we need to specify the 
 [homogenous coordinates](https://en.wikipedia.org/wiki/Homogeneous_coordinates)
 `vec4 x y z w` of two triangles; in the `Triangles` primitive mode, this means 
-that the first three inputs to `position` will specify the first triangle and 
-the next three — the second:
+that the first three vertices represented by `position` will specify the first 
+triangle and the next three — the second:
 ```
 pos :: VertExpr (Vec 4 Float) 
 pos = vert 
@@ -108,11 +108,27 @@ We can then define our desired object as
 ```
 blueTriangles = triangles { position = pos, color = blue }
 ```
-and readily draw it using:
+and readily draw it by issuing:
 ```
 > drawGlut blueTriangles
 ```
 <img src="images/blue_triangles.png" alt="blue_triangles" width=50% height=50% />
+
+---
+**TIP**
+
+The examples in this page, often interactive, are most useful when run
+locally and modified in different ways, often as a starting point for independent
+experimentation. They are defined as identically named `GLObj`s (or generators
+thereof) in the module `Graphics.HaGL.Examples`, whose source is in the 
+[examples](examples) directory, and can be drawn using `draw` or convenience 
+functions such as `drawGlut` (for instance from a GHCi session).
+
+Note that the images on this page were produced by drawing on a non-default 
+white background (by setting the `openGLSetup` field of `GlutOptions` passed to
+`draw`).
+
+---
 
 To make this example more meaningful, let us try to color the fragments in a 
 position-dependent way. We can achieve this using the `frag` function which takes 
@@ -139,8 +155,6 @@ redBlueTriangles = triangles { position = pos, color = redBlue }
 
 <img src="images/red_blue_triangles.png" alt="red_blue_triangles" width=50% height=50% />
 
-Note that all examples on this page are drawn on a non-default white background 
-(by setting the `openGLSetup` field of `GlutOptions` passed to `draw`).
 
 ## Drawing Images
 
@@ -679,7 +693,7 @@ ago or $x_0$ if this is first such moment of time. In the case of a backend like
 the discrete points of time correspond to updates in the main loop.
 For example, `prec 0 time` corresponds to the value of `time` one time-step ago.
 
-The main usefulness of `prec` lies in its ability to build self-referential
+The main usefulness of `prec` lies in its ability to create self-referential
 expressions and thereby define sequences in terms of recurrence relations. For
 example, the expression
 ```
@@ -824,8 +838,8 @@ we would like to carry out an arbitrary computation that depends on the value
 of a shader variable and cannot easily be expressed as a composition of 
 built-in functions. For example, to draw the Mandelbrot set, we need to
 iterate a function a certain number of times on the value of a `FragExpr`
-representing a given pixel. In GLSL, we could write a loop; the Haskell
-equivalent would be to write a tail-recursive function of the form
+representing a given fragment (pixel). In GLSL, we could write a loop; the 
+Haskell equivalent would be to write a tail-recursive function of the form
 
 ```
 f x1 x2 ... = cond c b (f y1 y2 ...)

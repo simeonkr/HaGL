@@ -13,22 +13,22 @@ import Graphics.HaGL.GLExpr
 
 
 -- TODO: should the indices be bundled with the PrimitiveMode?
--- | A drawable object specified by a set of attributes of type 'GLExpr' and
--- the 'PrimitiveMode' according to which the 'indices' and 'position' attributes
--- should be interpreted. When using the convenience functions 'points',
--- 'triangles', etc., to define a 'GLObj' with the corresponding 'PrimitiveMode',
--- at the very minimum the fields 'position' and 'color' must be set before
--- drawing the 'GLObj'.
+-- | A drawable object specified by a set of variables of type 'GLExpr' and
+-- the 'PrimitiveMode' according to which output vertices of the variable 
+-- 'position', indexed by 'indices', should be interpreted. 
+-- When using the convenience functions 'points', 'triangles', etc., to define a 
+--'GLObj' with the corresponding 'PrimitiveMode', at the very minimum the fields 
+-- 'position' and 'color' must be set before drawing the 'GLObj'.
 data GLObj = GLObj {
     -- | The 'PrimitiveMode' that will be used to draw the object
     primitiveMode :: PrimitiveMode,
     -- | A set of position indices used to construct the primitives of the object
     indices :: Maybe [ConstExpr UInt],
-    -- | An expression specifying the position of an arbitrary vertex
+    -- | A vertex variable specifying the position of an arbitrary vertex
     position :: VertExpr (Vec 4 Float),
-    -- | An expression specifying the color of an arbitrary fragment
+    -- | A fragment variable specifying the color of an arbitrary fragment
     color :: FragExpr (Vec 4 Float),
-    -- | An expression specifying the condition for discarding an arbitrary
+    -- | An fragment variable specifying the condition for discarding an arbitrary
     -- fragment
     discardWhen :: FragExpr Bool
 }

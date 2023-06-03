@@ -139,7 +139,7 @@ main = draw GlutBackend redObj
 @
 
 A complete set of examples can be found in 
-the [Getting started](https://github.com/simeonkr/HaGL/Overview.md) guide.
+the ["Getting Started"](https://github.com/simeonkr/HaGL/Overview.md) guide.
 
 -}
 
@@ -253,8 +253,10 @@ module Graphics.HaGL (
     -- * Built-in operators and functions #builtins#
     -- | Most definitions here strive to be consistent with the corresponding
     -- built-in functions provided by GLSL
-    -- (cf. The OpenGL Shading Language, Version 4.60.7), in terms of semantics 
-    -- and typing constraints. The most notable exceptions to this rule are:
+    -- (cf. [The OpenGL Shading Language, Version 4.60.7]
+    -- (https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.pdf)), 
+    -- in terms of semantics and typing constraints. Some notable exceptions 
+    -- to this rule are:
     --
     --  * Typing restrictions may be stricter to prevent what would otherwise be
     --    runtime errors; for example, matrix multiplication is only defined on
@@ -492,7 +494,7 @@ instance {-# OVERLAPPING #-} (GLSigned (GLElt t), GLPrimOrVec t, Num t) => Num (
     signum x = mkExpr GLGenExpr $ Sign x
     fromInteger x = mkExpr GLAtom $ Const (fromInteger x)
 
--- Unsigned integers need to be handled separately as glsl does not
+-- Unsigned integers need to be handled separately as GLSL does not
 -- support all the operations corresponding to those required for Num
 
 instance {-# OVERLAPPING #-} Num (GLExpr d UInt) where
@@ -838,12 +840,18 @@ mousePos = mkExpr GLGenExpr $ GLVec2 mouseX mouseY
 
 -- * Drawables
 
+-- | Anything that can be drawn using a given 'Backend'
 class Drawable a where
     draw :: Backend -> a -> IO ()
 
+-- | A 'GLObj' is drawn by constructing primitives from its 'position' and
+-- 'indices' expressions, according to its 'primitiveMode', and coloring the
+-- resulting fragments according to its 'color' expression.
 instance Drawable GLObj where
     draw backend obj = draw backend [obj]
 
+-- | A set of 'GLObj's is drawn by drawing each 'GLObj' individually and with the
+-- same blending mode as that used to draw a single 'GLObj'.
 instance Drawable [GLObj] where
     draw (GlutBackend userInit) objs = runGlut userInit objs
 
@@ -855,29 +863,55 @@ defaultObj = GLObj {
     discardWhen = false
 }
 
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'Points'
 points = defaultObj { primitiveMode = OpenGL.Points }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'Lines'
 lines = defaultObj { primitiveMode = OpenGL.Lines }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'LineLoop'
 lineLoop = defaultObj { primitiveMode = OpenGL.LineLoop }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'LineStrip'
 lineStrip = defaultObj { primitiveMode = OpenGL.LineStrip }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'Triangles'
 triangles = defaultObj { primitiveMode = OpenGL.Triangles }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'TriangleStrip'
 triangleStrip = defaultObj { primitiveMode = OpenGL.TriangleStrip }
-triangleFan = defaultObj { primitiveMode = OpenGL.Points }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'TriangleFan'
+triangleFan = defaultObj { primitiveMode = OpenGL.TriangleFan }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'Quads'
 quads = defaultObj { primitiveMode = OpenGL.Quads }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'QuadStrip'
 quadStrip = defaultObj { primitiveMode = OpenGL.QuadStrip }
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'Polygon'
 polygon = defaultObj { primitiveMode = OpenGL.Polygon }
 
 
 -- * Backends
 
+-- | A backend that can interpret (draw) a 'Drawable'.
+-- Unless overridden the following OpenGL options are set by default in all backends:
+--
+--  * Clear color equal to black
+--
+--  * Depth testing enabled
+--
+--  * Blending enabled with blend equation equal to GL_FUNC_ADD 
+--
+--  * Source blending factor equal to GL_SRC_ALPHA
+--
+--  * Destination blending factor equal to  GL_ONE_MINUS_SRC_ALPHA
 data Backend =
+
     GlutBackend GlutOptions
 
+-- | Draw in a GLUT backend using default options
 drawGlut :: Drawable a => a -> IO ()
 drawGlut = draw (GlutBackend defaultGlutOptions)
 
+-- | Draw in a GLUT backend using specified options
 drawGlutCustom :: Drawable a => GlutOptions -> a -> IO ()
 drawGlutCustom options = draw (GlutBackend options)
 
+-- | Default options for a GLUT backend
 defaultGlutOptions :: GlutOptions
 defaultGlutOptions = GlutOptions {
     winPosition = Nothing,

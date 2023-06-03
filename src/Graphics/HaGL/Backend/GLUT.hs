@@ -27,19 +27,36 @@ import Graphics.HaGL.CodeGen (UniformVar(..))
 import qualified Graphics.HaGL.Util.DepMap as DepMap
 
 
+-- | Options specific to a GLUT window
 data GlutOptions = GlutOptions {
+    -- | The position of the window
     winPosition :: Maybe (GLint, GLint),
+    -- | The size of the window
     winSize :: (GLsizei, GLsizei),
+    -- | Whether to draw in fullscreen mode
     winFullscreen :: Bool,
+    -- | The title of the window
     winTitle :: Maybe String,
+    -- | The 'GlutRunMode' under which to run the application
     runMode :: GlutRunMode,
+    -- | Any additional OpenGL-specific setup to run just after the window has
+    -- been set up. The typical use-case is to import the OpenGL bindings
+    -- ('Graphics.Rendering.Opengl') and define a @StateVar@ such as @clearColor@
     openGLSetup :: IO ()
 }
 
+-- | 'GlutRunMode' specifies how to run the resulting application
 data GlutRunMode =
+    -- | Display the output in a window
     GlutNormal |
+    -- | Display the output in a window, saving the latest frame in the
+    -- specified file location
     GlutCaptureLatest String |
+    -- | Display the output in a window, saving all frames in the specified
+    -- directory
     GlutCaptureFrames String |
+    -- | Display the output in a window for a brief period time, saving the
+    -- latest frame in the specified file location
     GlutCaptureAndExit String
 
 
@@ -77,7 +94,7 @@ initWindow options = do
     when (winFullscreen options) fullScreen
     maybe (return ()) (windowTitle $=) (winTitle options)
     actionOnWindowClose $= MainLoopReturns 
-    -- TODO: make settings like these customizable
+    
     initialDisplayMode $= [RGBAMode, WithAlphaComponent]
     depthFunc $= Just Lequal
     blend $= Enabled

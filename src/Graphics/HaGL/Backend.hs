@@ -11,7 +11,7 @@ import Data.Functor.Identity
 import Data.IORef
 import Foreign.Marshal.Array (withArray)
 import Foreign.Ptr (Ptr, wordPtrToPtr)
-import Graphics.Rendering.OpenGL
+import Graphics.Rendering.OpenGL hiding (PrimitiveMode)
 
 import qualified Data.Set as Set
 

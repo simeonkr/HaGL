@@ -753,6 +753,7 @@ makeMatSetter rawSetter ul xs = do
     OpenGL.withMatrix m $ const $ rawSetter ul 1 0
 
 
+-- | A primitive type or a vector type
 class GLType t => GLPrimOrVec t
 
 instance GLPrimOrVec Float
@@ -772,6 +773,9 @@ instance GLPrimOrVec (Vec 2 UInt)
 instance GLPrimOrVec (Vec 3 UInt)
 instance GLPrimOrVec (Vec 4 UInt)
 
+-- | The underlying type of a vertex input variable.
+-- Double-precision types are currently not permitted due to an issue in the
+-- OpenGL bindings.
 class (GLPrimOrVec t, Storable (StoreElt t)) => GLInputType t where
     type StoreElt t
     toStorableList :: [t] -> [StoreElt t]
@@ -779,9 +783,11 @@ class (GLPrimOrVec t, Storable (StoreElt t)) => GLInputType t where
 instance GLInputType Float where
     type StoreElt Float = Float
     toStorableList = id
-instance GLInputType Double where
+-- Not currently supported due to 
+-- https://github.com/haskell-opengl/OpenGL/issues/94
+{-instance GLInputType Double where
     type StoreElt Double = Double
-    toStorableList = id
+    toStorableList = id-}
 instance GLInputType Int where
     type StoreElt Int = Int32
     toStorableList = map fromIntegral
@@ -797,7 +803,9 @@ instance GLInputType (Vec 3 Float) where
 instance GLInputType (Vec 4 Float) where
     type StoreElt (Vec 4 Float) = Float
     toStorableList = concatMap toList
-instance GLInputType (Vec 2 Double) where
+-- Not currently supported due to 
+-- https://github.com/haskell-opengl/OpenGL/issues/94
+{-instance GLInputType (Vec 2 Double) where
     type StoreElt (Vec 2 Double) = Double
     toStorableList = concatMap toList
 instance GLInputType (Vec 3 Double) where
@@ -805,7 +813,7 @@ instance GLInputType (Vec 3 Double) where
     toStorableList = concatMap toList
 instance GLInputType (Vec 4 Double) where
     type StoreElt (Vec 4 Double) = Double
-    toStorableList = concatMap toList
+    toStorableList = concatMap toList-}
 instance GLInputType (Vec 2 Int) where
     type StoreElt (Vec 2 Int) = Int32
     toStorableList = concatMap (map fromIntegral . toList)
@@ -825,6 +833,8 @@ instance GLInputType (Vec 4 UInt) where
     type StoreElt (Vec 4 UInt) = Word32
     toStorableList = concatMap toList
 
+-- | Any type whose values can be interpolated smoothly when constructing a 
+-- fragment variable
 class GLInputType t => GLSupportsSmoothInterp t
 
 instance GLSupportsSmoothInterp Float
@@ -832,6 +842,7 @@ instance GLSupportsSmoothInterp (Vec 2 Float)
 instance GLSupportsSmoothInterp (Vec 3 Float)
 instance GLSupportsSmoothInterp (Vec 4 Float)
 
+-- | Any type which supports bitwise operations
 class (GLType t, Integral (GLElt t), Bits (GLElt t)) => GLSupportsBitwiseOps t
 
 instance GLSupportsBitwiseOps Int
@@ -857,6 +868,7 @@ type family GLElt t where
 
 -- * Primitive GLTypes
 
+-- | Any primitive type
 class (GLType t, Storable t, Enum t, Eq t, Ord t) => GLPrim t where
     glCast :: GLPrim t0 => t0 -> t
 instance GLPrim Float where
@@ -870,12 +882,14 @@ instance GLPrim UInt where
 instance GLPrim Bool where
     glCast = (/= toEnum 0)
 
+-- | Any single-precision primitive type
 class (GLPrim t, Storable t, Enum t, Eq t, Ord t) => GLSingle t
 instance GLSingle Float
 instance GLSingle Int
 instance GLSingle UInt
 instance GLSingle Bool
 
+-- | Any numeric primitive type
 class (GLPrim t, Num t) => GLNumeric t where
     genDiv :: t -> t -> t
 instance GLNumeric Float where genDiv = (/)
@@ -883,19 +897,23 @@ instance GLNumeric Double where genDiv = (/)
 instance GLNumeric Int where genDiv = div
 instance GLNumeric UInt where genDiv = div
 
+-- | Any signed primitive type
 class GLNumeric t => GLSigned t where
 instance GLSigned Float
 instance GLSigned Double
 instance GLSigned Int
 
+-- | Any single- or double-precision floating-point type
 class (GLSigned t, RealFrac t, Floating t) => GLFloating t
 instance GLFloating Float
 instance GLFloating Double
 
+-- | Any single-precision signed primitive type
 class GLSigned t => GLSingleNumeric t
 instance GLSingleNumeric Float
 instance GLSingleNumeric Int
 
+-- | Any signed or unsigned integer type
 class (GLPrim t, Integral t, Bits t) => GLInteger t
 instance GLInteger Int
 instance GLInteger UInt

@@ -4,6 +4,7 @@ module Graphics.HaGL.Internal (
     printGLExpr,
     dumpGlsl,
     genericUniform,
+    IOEvaluator,
     GLExprException(..),
     GLObjException(..),
     EvalException(..)

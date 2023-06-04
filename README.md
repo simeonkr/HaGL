@@ -47,7 +47,7 @@ yet stable and complete enough to be used without modifications.)
 To check that all the packages have been installed correctly, run a single
 example as follows:
 ```
-cabal run run-example interactive_cube
+cabal run hagl-example interactive_cube
 ```
 
 ## Usage

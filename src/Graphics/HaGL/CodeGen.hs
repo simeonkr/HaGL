@@ -214,7 +214,7 @@ traverseGLAst _ (GLAstFunc fnID ti r params) =
                 paramExprs
                 scopeStmts 
                 rExpr
-traverseGLAst scopeID (GLAstFuncApp callID ti fn@(GLAstFunc _ _ _ params) args) = 
+traverseGLAst scopeID (GLAstFuncApp callID ti fn args) = 
     ifUndef scopeID callID $ do
         argExprs <- mapM (traverseGLAst scopeID) args
         _ <- traverseGLAst LocalScope fn

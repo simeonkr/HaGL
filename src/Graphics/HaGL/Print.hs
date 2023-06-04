@@ -6,11 +6,9 @@ import Prelude hiding (id)
 import Control.Monad.State.Lazy (State, execState, gets, modify)
 import qualified Data.Set as Set
 
-import Graphics.HaGL.GLType
 import Graphics.HaGL.GLExpr
 import Graphics.HaGL.ExprID
 import Graphics.HaGL.GLAst
-import Graphics.HaGL.Eval
 
 
 -- GLAst printers for debugging purposes

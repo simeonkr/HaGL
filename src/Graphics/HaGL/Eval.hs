@@ -4,6 +4,7 @@
 module Graphics.HaGL.Eval (
     constEval,
     hostEval,
+    IOEvaluator,
     EvalException(..)
 ) where
 
@@ -68,7 +69,7 @@ hEval ioev e@(GLAtom _ (IOUInt _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IOBool _)) = lift $ ioev e
 hEval ioev e@(GLAtom _ (IOPrec _ _)) = lift $ ioev e
 hEval ioev (GLAtom _ (Uniform x)) = hEval ioev x
-hEval ioev (GLAtom _ (GenericUniform _)) = throw GenericUniformEval
+hEval _ (GLAtom _ (GenericUniform _)) = throw GenericUniformEval
 hEval _ e = eval e
 
 

@@ -443,7 +443,7 @@ module Graphics.HaGL (
     -- * Drawables
     Drawable(..),
     GLObj(..),
-    PrimitiveMode(..),
+    PrimitiveMode,
     points,
     Graphics.HaGL.lines,
     lineLoop,

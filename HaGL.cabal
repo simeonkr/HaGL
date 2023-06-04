@@ -71,11 +71,14 @@ library
   default-language:    Haskell2010
   ghc-options: 
     -Wall 
-    -fwarn-incomplete-patterns
+    -- FIXME: enable -fwarn-incomplete-patterns 
+    -- and fix warnings
+    -Wno-incomplete-patterns
     -Wno-missing-signatures
     -Wno-unticked-promoted-constructors
     -Wno-partial-type-signatures
     -Wno-name-shadowing
+    -Wno-orphans
 
 test-suite HaGL-test
   type: exitcode-stdio-1.0

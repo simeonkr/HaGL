@@ -86,7 +86,7 @@ runGlut options glObjs = do
 
 initWindow :: GlutOptions -> IO ()
 initWindow options = do
-    (progName, args) <- getArgsAndInitialize
+    (progName, _) <- getArgsAndInitialize
     _ <- createWindow progName
     maybe (return ()) (\(x, y) -> windowPosition $= Position x y) 
         (winPosition options)
@@ -120,6 +120,7 @@ data IOState = IOState {
 defIOState :: IOState
 defIOState = IOState {
     initTime = 0,
+    precMap = undefined,
     mouseLeftDown = False,
     mouseRightDown = False,
     mouseWheel = 0,
@@ -252,7 +253,7 @@ motion ioState (Position x y) =
 
 ioEval :: IOState -> GLExpr HostDomain t -> IO t
 
-ioEval ioState e@(GLAtom _ (IOPrec x0 x)) = do
+ioEval ioState e@(GLAtom _ (IOPrec x0 _)) = do
     pm <- readIORef $ precMap ioState
     case DepMap.lookup e pm of
         Just val -> return $ runIdentity val

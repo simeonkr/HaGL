@@ -5,10 +5,7 @@ module Graphics.HaGL.Backend (
 ) where
 
 import Prelude hiding (id)
-import Control.Exception (assert)
 import Control.Monad (unless)
-import Data.Functor.Identity
-import Data.IORef
 import Foreign.Marshal.Array (withArray)
 import Foreign.Ptr (Ptr, wordPtrToPtr)
 import Graphics.Rendering.OpenGL hiding (PrimitiveMode)
@@ -21,8 +18,6 @@ import Graphics.HaGL.ExprID
 import Graphics.HaGL.GLObj
 import Graphics.HaGL.Eval
 import Graphics.HaGL.CodeGen (GLProgram(GLProgram), InpVar(..), UniformVar(..), genProgram)
-
-import qualified Graphics.HaGL.Util.DepMap as DepMap
 
 
 -- RunObj = GLProgram transformed to low-level OpenGL data

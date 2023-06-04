@@ -6,7 +6,7 @@ import subprocess
 from parse import parse
 
 
-INPUT_DIR = "output"
+INPUT_DIR = "output/images"
 OUTPUT_DIR = "doc/images"
 MAX_FRAMES = 200
 DELETE_INPUTS = False

@@ -11,8 +11,6 @@ module Graphics.HaGL.Examples (
     exampleList
 ) where
 
-import Data.Map
-
 import Graphics.HaGL
 import Graphics.HaGL.Lib.Camera
 import Graphics.HaGL.Lib.Mesh

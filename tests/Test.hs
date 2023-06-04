@@ -5,15 +5,13 @@ import Test.HUnit
 import Control.Monad (when)
 import Control.Exception (Exception, try)
 import System.Exit
-import System.Directory (removeFile)
+import System.Directory (removeFile, createDirectoryIfMissing)
 import qualified Data.ByteString as BS
 import qualified Data.List as List
 import qualified Graphics.UI.GLUT as GLUT
 
 import Graphics.HaGL hiding (not, abs, sin, cos, sqrt)
 import Graphics.HaGL.Internal
-import Graphics.HaGL.Lib.Image (fromImage)
-import Graphics.HaGL.Examples
 
 
 -- Test setup
@@ -64,10 +62,19 @@ mkObjExceptionTest (ObjExceptionTest label ex objs) =
             Left ex' | ex' == ex -> return ()
             _ -> assertFailure $ "Expected exception: " ++ show ex
 
+fromImage :: (FragExpr (Vec 2 Float) -> FragExpr (Vec 4 Float)) -> GLObj
+fromImage im = triangleStrip { position = pos $- vec2 0 1, color = color } where
+    pos = vert 
+        [vec2 (-1) (-1), 
+         vec2 (-1) 1, 
+         vec2 1 (-1), 
+         vec2 1 1] 
+    color = im (frag pos)
+
 runObjs :: Bool -> String -> [GLObj] -> IO Bool
 runObjs alwaysSave label objs = do
     mapM_ (dumpObj label) (zip [0..] objs)
-    let captureDst = "dist/test/test_" ++ label
+    let captureDst = "output/test/test_" ++ label
     -- TODO: use the same GLUT window instead of creating a new one every time
     GLUT.exit -- make sure GLUT has cleaned up, if a previous test errored
     -- TODO: calling drawGlut directly is inefficient 
@@ -83,8 +90,8 @@ dumpObj label (i, obj) = do
     let astDump = printGLExpr (position obj) ++ "\n" ++ printGLExpr (color obj)
         glsl = dumpGlsl obj
         objLabel = label ++ if i == 0 then "" else show i
-    writeFile ("dist/test/test_" ++ objLabel ++ ".dump") astDump
-    writeFile ("dist/test/test_" ++ objLabel ++ ".glsl") glsl
+    writeFile ("output/test/test_" ++ objLabel ++ ".dump") astDump
+    writeFile ("output/test/test_" ++ objLabel ++ ".glsl") glsl
 
 -- TODO: make these definitions part of GLType & use a smarter error estimate
 almostEqual x y = abs (x - y) .<= 1e-5
@@ -1196,6 +1203,7 @@ runTests tests = do
 
 main :: IO ()
 main = do
+    createDirectoryIfMissing True "output/test"
     runTests $ TestList $ map mkHostTest genericTests
     runTests $ TestList $ map mkHostTest hostTests
     runTests $ TestList $ map mkShaderTest genericTests
@@ -1203,4 +1211,3 @@ main = do
     runTests $ TestList $ map mkShaderExceptionTest shaderExceptionTests
     runTests $ TestList $ map mkObjTest objTests
     runTests $ TestList $ map mkObjExceptionTest objExceptionTests
-    runTests $ TestList $ map mkTestExample exampleList

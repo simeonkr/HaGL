@@ -14,13 +14,13 @@ main = do
         [exampleName] ->
             runExample GlutNormal exampleName
         [exampleName, "-s"] -> do
-            let captureFile = "output/" ++ exampleName
-            createDirectoryIfMissing True "output"
+            let captureFile = "output/images/" ++ exampleName
+            createDirectoryIfMissing True "output/images"
             runExample (GlutCaptureLatest captureFile) exampleName
         [exampleName, "-a"] -> do
-            let captureFile = "output/" ++ exampleName
+            let captureFile = "output/images/" ++ exampleName
             createDirectoryIfMissing True "output"
-            createDirectoryIfMissing True $ "output/" ++ exampleName
+            createDirectoryIfMissing True $ "output/images/" ++ exampleName
             runExample (GlutCaptureFrames captureFile) exampleName 
         _ -> fail $ "Please provide an example name as an argument, " ++
             "followed by an optional flag -s to capture a single frame, " ++

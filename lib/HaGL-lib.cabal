@@ -1,0 +1,40 @@
+name:                HaGL-lib
+version:             0.0.5.0
+synopsis:            Haskell-embedded OpenGL: Supporting library
+description:         A small library of useful HaGL constructions
+homepage:            https://github.com/simeonkr/HaGL
+license:             MIT
+license-file:        LICENSE
+author:              Simeon Krastnikov
+maintainer:          skrastnikov@gmail.com
+category:            Graphics
+build-type:          Simple
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: https://github.com/simeonkr/HaGL
+  subdir:   lib
+
+library
+  exposed-modules:
+    Graphics.HaGL.Lib
+    Graphics.HaGL.Lib.Image
+    Graphics.HaGL.Lib.Math
+    Graphics.HaGL.Lib.Camera
+    Graphics.HaGL.Lib.Random
+    Graphics.HaGL.Lib.Mesh
+    Graphics.HaGL.Lib.Objects3D
+    Graphics.HaGL.Lib.Shading
+  default-extensions:
+    GADTs, 
+    DataKinds,
+    ViewPatterns,
+    FlexibleContexts,
+    PartialTypeSignatures
+  build-depends:       
+    base,
+    HaGL,
+    parsec
+  hs-source-dirs:      src
+  default-language:    Haskell2010

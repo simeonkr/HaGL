@@ -4,18 +4,13 @@ synopsis:            Haskell-embedded OpenGL
 description:         A simple, functional approach to 
                      OpenGL programming in Haskell.
                      .
-                     All primitives and functions that comprise HaGL 
-                     are contained in the top-level "Graphics.HaGL" module.
-                     .
-                     A small library of useful HaGL constructions is provided 
-                     by "Graphics.HaGL.Lib". Examples demonstrating
-                     usage can be found under "Graphics.HaGL.Examples".
+                     All definitions that comprise HaGL are
+                     provided by the top-level "Graphics.HaGL" module.
 homepage:            https://github.com/simeonkr/HaGL
 license:             MIT
 license-file:        LICENSE
 author:              Simeon Krastnikov
 maintainer:          skrastnikov@gmail.com
--- copyright:
 category:            Graphics
 build-type:          Simple
 extra-source-files:  README.md, CHANGELOG.md
@@ -29,21 +24,6 @@ library
   exposed-modules:
     Graphics.HaGL
     Graphics.HaGL.Internal
-    Graphics.HaGL.Lib
-    Graphics.HaGL.Lib.Image
-    Graphics.HaGL.Lib.Math
-    Graphics.HaGL.Lib.Camera
-    Graphics.HaGL.Lib.Random
-    Graphics.HaGL.Lib.Mesh
-    Graphics.HaGL.Lib.Objects3D
-    Graphics.HaGL.Lib.Shading
-    Graphics.HaGL.Examples
-    Graphics.HaGL.Examples.Common
-    Graphics.HaGL.Examples.Images
-    Graphics.HaGL.Examples.Particles
-    Graphics.HaGL.Examples.Simulations
-    Graphics.HaGL.Examples.Manifolds
-    Graphics.HaGL.Examples.Spheres
   other-modules:
     Graphics.HaGL.TH.HaGL
     Graphics.HaGL.Util
@@ -86,9 +66,8 @@ library
     OpenGLRaw,
     GLUT,
     bytestring,
-    gl-capture,
-    parsec
-  hs-source-dirs:      src, examples
+    gl-capture
+  hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options: 
     -Wall 
@@ -123,12 +102,3 @@ test-suite HaGL-test
   hs-source-dirs: tests
   main-is: Test.hs
   default-language:    Haskell2010
-
-executable run-example
-  build-depends:
-    base,
-    directory,
-    HaGL,
-     -- due to use of openGLSetup
-    OpenGL
-  main-is: examples/Run.hs

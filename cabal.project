@@ -1,0 +1,6 @@
+packages:
+    HaGL.cabal
+
+optional-packages:
+    lib/HaGL-lib.cabal
+    examples/HaGL-examples.cabal

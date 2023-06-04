@@ -8,7 +8,7 @@ Stability   : experimental
 This module exports everything that comprises the core language.
 
 It is best used with the following extensions enabled: 
-@GADTs@, @DataKinds@, @ViewPatterns@.
+@GADTs@, @DataKinds@, @ViewPatterns@, @FlexibleContexts@.
 
 Note that quite a few of the exported functions clash with unrelated
 ones from Prelude ('max', 'length', 'mod', 'any', etc.) or class methods
@@ -21,6 +21,7 @@ In summary, this module can be imported as follows:
     &#x7b;-\# LANGUAGE GADTs \#-&#x7d;
     &#x7b;-\# LANGUAGE DataKinds \#-&#x7d;
     &#x7b;-\# LANGUAGE ViewPatterns \#-&#x7d;
+    &#x7b;-\# LANGUAGE FlexibleContexts \#-&#x7d;
 
     import Prelude hiding (max, sin, cos, ...)
 

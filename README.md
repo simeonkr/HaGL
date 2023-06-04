@@ -17,19 +17,34 @@ constituent parts are computed through the use of Haskell's expressive type syst
 
 ## Installation
 
-With the latest version of Haskell installed:
+With the latest version of [Haskell Cabal](https://www.haskell.org/cabal/) installed:
 
 ```
 cabal update
 cabal install HaGL
 ```
 
+To instead build locally from the sources, issue:
+```
+cabal build HaGL
+```
+from the top-level directory.
+
+The supporting library and examples can be built using:
+```
+cabal build HaGL-lib
+cabal build HaGL-examples
+```
+
+(It is recommended that these packages be built not installed, as they are not
+yet stable and complete enough to be used without modifications.)
+
 ## Usage
 
-To learn how to use HaGL please refer to the ["Getting Started" guide](Overview.md), 
-as well as the the [demo examples](examples/Graphics/HaGL/Examples) making use of 
-the [demo library](src/Graphics/HaGL/Lib). The complete documentation can be found 
-on [Hackage](https://hackage.haskell.org/package/HaGL).
+To learn how to use HaGL please refer to the 
+["Getting Started" guide](doc/Overview.md).
+The complete documentation can be found on 
+[Hackage](https://hackage.haskell.org/package/HaGL).
 
 ## Running the Test Suite
 
@@ -92,4 +107,4 @@ and appreciated.
 The best way to keep the project alive is to demonstrate its usefulness through
 a wide range of interesting examples. Another potential area to explore is the
 creation of high-level libraries for specific types of visual applications, as 
-well as improving the one that ships with HaGL.
+well as improving the supporting library that ships with HaGL.

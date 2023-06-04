@@ -65,6 +65,7 @@ First, we import the module and enable some useful extensions:
 {-# LANGUAGE GADTs GADTs -#}
 {-# LANGUAGE GADTs DataKinds -#}
 {-# LANGUAGE GADTs ViewPatterns -#}
+{-# LANGUAGE GADTs FlexibleContexts -#}
 
 import Graphics.HaGL
 ```
@@ -330,7 +331,7 @@ windingsPaths = fromImage $ \(decon -> (x, y)) ->
 
 There are many interesting directions to explore with fragment shaders. 
 With the right equations, we can even draw 3D objects, as in the 
-[the `fragSphere` example](../examples/Graphics/HaGL/Examples/Images.hs):
+[the `fragSphere` example](../examples/src/Graphics/HaGL/Examples/Images.hs):
 
 <img src="images/frag_sphere.png" alt="frag_sphere" width=50% height=50% />
 
@@ -577,7 +578,7 @@ a sphere by mapping $u \in [0 \times res], v \in [0 \times res]$ to the vertices
 $$
     (x, y, z) = r (\cos u \sin v, \sin u \sin v, \cos v)
 $$
-in a [similar way](../src/Graphics/HaGL/Lib/Objects3D.hs) as was done in the
+in a [similar way](../lib/src/Graphics/HaGL/Lib/Objects3D.hs) as was done in the
 previous example. 
 In addition to the resulting mesh, it returns a `FragExpr` for a point on the
 sphere in terms of the $(u, v)$ coordinates so that we can map a texture to the 
@@ -655,7 +656,7 @@ shadedSphere = let
 
 We can apply the same shading model to 
 [arbitrary meshes](../src/Graphics/HaGL/Lib/Mesh.hs) and 
-[parameteric surfaces](../examples/Graphics/HaGL/Examples/Manifolds.hs):
+[parameteric surfaces](../examples/src/Graphics/HaGL/Examples/Manifolds.hs):
 
 <p float="left">
     <img src="images/bunny.obj.png" alt="bunny" width=40% height=40% />
@@ -664,7 +665,7 @@ We can apply the same shading model to
 
 By using noise to perturb the normals of the sphere and produce a procedurally
 generated texture similar to the 2D one we previously saw, we can use the same
-shading model to produce [planet-like surfaces](../examples/Graphics/HaGL/Examples/Spheres.hs):
+shading model to produce [planet-like surfaces](../examples/src/Graphics/HaGL/Examples/Spheres.hs):
 
 <img src="images/earth-like.png" alt="earth-like" width=50% height=50% />
 
@@ -818,7 +819,7 @@ path (_, x2) =
 <img src="images/double_pendulum.png" alt="double_pendulum" width=50% height=50% />
 
 The full source of the simulation can be found in the definition of `doublePendulum` in
-[Graphics.HaGL.Examples.Simulations](../examples/Graphics/HaGL/Examples/Images.hs).
+[Graphics.HaGL.Examples.Simulations](../examples/src/Graphics/HaGL/Examples/Images.hs).
 
 ## Lifting Functions to Shaders
 

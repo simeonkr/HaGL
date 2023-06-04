@@ -17,7 +17,12 @@ constituent parts are computed through the use of Haskell's expressive type syst
 
 ## Installation
 
-With the latest version of [Haskell Cabal](https://www.haskell.org/cabal/) installed:
+Please make sure that you have installed the correct headers and static libraries 
+for OpenGL development on your system, as well as freeglut for running the GLUT
+backend. (For example, in Debian/Ubuntu, ensure that the packages `libgl-dev`, 
+`lib-glu1-mesa-dev`, and `freeglut3` are installed.)
+
+Then with the latest version of [Haskell Cabal](https://www.haskell.org/cabal/) installed:
 
 ```
 cabal update
@@ -38,6 +43,12 @@ cabal build HaGL-examples
 
 (It is recommended that these packages be built not installed, as they are not
 yet stable and complete enough to be used without modifications.)
+
+To check that all the packages have been installed correctly, run a single
+example as follows:
+```
+cabal run run-example interactive_cube
+```
 
 ## Usage
 

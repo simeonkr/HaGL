@@ -104,6 +104,8 @@ instance Show t => Show (Mat p q t) where
 toList :: Mat p q t -> [t]
 toList (Mat xs) = elems xs
 
+-- | Construct a matrix from a mapping that maps indices '(i, j)' to
+-- the element at row @i@ and column @j@
 fromMapping :: forall p q t. (KnownNat p, KnownNat q) => ((Int, Int) -> t) -> Mat p q t
 fromMapping f =
     let p = fromInteger $ natVal (Proxy :: Proxy p)
@@ -111,6 +113,7 @@ fromMapping f =
     in Mat $ array ((0, 0), (p-1, q-1))
         [(ind, f ind) | ind <- range ((0, 0), (p-1, q-1))]
 
+-- | Construct a matrix from a list of the matrix elements in row-major order
 fromList :: forall p q t. (KnownNat p, KnownNat q) => [t] -> Mat p q t
 fromList xs =
     let p = fromInteger $ natVal (Proxy :: Proxy p)

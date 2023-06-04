@@ -33,7 +33,7 @@ where @d@ is the domain of computation and @t@ is the underlying numeric type,
 which is always an instance of 'GLType'. Here are some example expressions:
 
 @
-    -- A variable representing an individual vertex, initialized from three points
+    -- A vertex attribute, constructed from three vertices
     x :: GLExpr VertexDomain Float
     x = vert [-1, 0, 1]
 
@@ -44,8 +44,10 @@ which is always an instance of 'GLType'. Here are some example expressions:
     y :: GLExpr VertexDomain Float
     y = sin (2 * x + 1)
 
-    -- 'frag x' has type 'GLExpr FragmentDomain Float' so the addition will be
-    -- computed in a fragment shader.
+    -- 'frag x' is a a fragment variable corresponding to fragments obtained by 
+    -- interpolating the vertices of x that define its containing primitive.
+    -- Because it has the type 'GLExpr FragmentDomain Float', the addition
+    -- will be computed in a fragment shader.
     z :: GLExpr FragmentDomain Float
     z = frag x + 3
 
@@ -57,7 +59,7 @@ which is always an instance of 'GLType'. Here are some example expressions:
     yPlusTime :: GLExpr VertexDomain Float
     yPlusTime = y + uniform time
 
-    -- Here 'uniform time' is inferred to have type 'GLExpr FragmentDomain Float'
+    -- Here 'uniform time' is inferred to be of type 'GLExpr FragmentDomain Float'
     zPlusTime :: GLExpr FragmentDomain Float
     zPlusTime = z + uniform time
 
@@ -76,11 +78,11 @@ which is always an instance of 'GLType'. Here are some example expressions:
     m = mat2x3 (vec2 1 2) (vec2 3 4) (vec2 5 6)
 
     -- Operators like (.+) and (.*) act component-wise on vectors and matrices:
-    mat2x2 1 1 .+ mat2x2 1 1 .== mat2x2 2 2
+    _ = mat2x2 1 1 .+ mat2x2 1 1 .== mat2x2 2 2
 
     -- Non-boolean primitives and vectors over such types are instances of Num;
-    -- in such cases operators like (+) can be used instead.
-    vec2 1 1 + 1 .== vec2 2 2
+    -- in such cases Num methods like (+) can be used instead.
+    _ = vec2 1 1 + 1 .== vec2 2 2
 
     -- The operator (.#) performs scalar multiplication:
     _ = 3 .# v
@@ -99,8 +101,9 @@ which is always an instance of 'GLType'. Here are some example expressions:
     m1m2v :: GLExpr VertexDomain (Vec 2 Float)
     m1m2v = m1m2 .\@ v
 
-    -- The inferred type of m1m2 is 'GLExpr HostDomain (Mat 2 4 Float)' so
-    -- the multiplication of m1 and m2 will take place on the CPU.
+    -- The inferred type of m1m2 in this expression is 
+    -- 'GLExpr HostDomain (Mat 2 4 Float)' so the multiplication of m1 and m2 
+    -- will take place on the CPU.
     -- The inferred type of uniform m1m2 is 'GLExpr VertexDomain (Mat 2 4 Float)'
     -- and that of v is 'GLExpr VertexDomain (Vec 2 Float)' so their
     -- multiplication will take place in a vertex shader.
@@ -263,11 +266,12 @@ module Graphics.HaGL (
     --    runtime errors; for example, matrix multiplication is only defined on
     --    matrices with the correct dimensions.
     --
-    --  * The operators @(+)@, @(-)@, @(*)@, being methods of @Num@, are only 
-    --    supported on expressions where the underlying type is one of:
-    --    'Int', 'UInt', 'Float', 'Double', or a vector of one of these types.
+    --  * The operators @(+)@, @(-)@, @(*)@, as well as the function @negate@,
+    --    being methods of @Num@, are only supported on expressions where the 
+    --    underlying type is one of 'Int', 'UInt', 'Float', 'Double', or a 
+    --    vector of one of these types.
     --    To perform these operations component-wise on matrices use the operators
-    --    @(.+)@, @(.-)@, @(.*)@, respectively.
+    --    @(.+)@, @(.-)@, @(.*)@, or the function @neg@ respectively.
     --
     --  * The operator @(/)@ is only supported when the underlying type is
     --    'Float' or 'Double'. The more general operator @(./)@ additionally 
@@ -397,9 +401,9 @@ module Graphics.HaGL (
     -- the factorial function can be computed within a vertex shader as follows:
     --
     -- @
-    -- fact = glFunc1 $ \n -> fact' n 1 where
+    -- fact = glFunc1 $ \\n -> fact' n 1 where
     --   fact' :: GLExpr VertexDomain Int -> GLExpr VertexDomain Int -> GLExpr VertexDomain Int
-    --   fact' = glFunc2 $ \n a -> cond (n .== 0) a (fact' (n - 1) (a * n))
+    --   fact' = glFunc2 $ \\n a -> cond (n .== 0) a (fact' (n - 1) (a * n))
     -- 
     -- x :: GLExpr VertexDomain Int
     -- x = fact 5
@@ -420,7 +424,7 @@ module Graphics.HaGL (
     --
     -- @
     -- a1 :: GLExpr HostDomain [Float]
-    -- a1 = (glLift2 $ \x y -> [x, y, x + y]) time time
+    -- a1 = (glLift2 $ \\x y -> [x, y, x + y]) time time
     -- a2 :: GLExpr HostDomain [Float]
     -- a2 = array [time, 2 * time, 3 * time]
     -- @
@@ -619,13 +623,17 @@ mat4x2 x y = mkExpr GLGenExpr $ GLMat4x2 x y
 mat4x3 x y z = mkExpr GLGenExpr $ GLMat4x3 x y z
 mat4x4 x y z w = mkExpr GLGenExpr $ GLMat4x4 x y z w
 
+-- | Extend a vector by prepending an element
 pre x y = mkExpr GLGenExpr $ Pre x y
+-- | Extend a vector by appending an element
 app x y = mkExpr GLGenExpr $ App x y
 
 infixr 8 $-
 
+-- | Concatenate two vectors together
 x $- y = mkExpr GLGenExpr $ Conc x y
 
+-- | Create an array from a list of 'HostExpr's
 array xs = mkExpr GLGenExpr $ GLArray xs
 
 
@@ -638,15 +646,23 @@ w_ v = mkExpr GLGenExpr $ OpCoord CoordW v
 $gen2DCoordDecls
 $gen3DCoordDecls
 
+-- | The first column of a matrix
 col0 m = mkExpr GLGenExpr $ OpCol Col0 m
+-- | The second column of a matrix
 col1 m = mkExpr GLGenExpr $ OpCol Col1 m
+-- | The third column of a matrix
 col2 m = mkExpr GLGenExpr $ OpCol Col2 m
+-- | The fourth column of a matrix
 col3 m = mkExpr GLGenExpr $ OpCol Col3 m
 
+-- | Array index operator, returning the @i@-th (0-indexed) element of the array
 arr .! i = mkExpr GLGenExpr $ OpArrayElt arr i
 
+-- | An expression that can be deconstructed into its components
 class Deconstructible t where
+    -- | The resulting type of the deconstruction
     type Decon t
+    -- | Deconstruct the given expression
     decon :: t -> Decon t
 
 instance (GLPrim t, GLType (Vec 2 t)) => Deconstructible (GLExpr d (Vec 2 t)) where
@@ -671,7 +687,9 @@ instance (GLPrim t, GLType (Mat p 4 t), GLType (Vec p t)) => Deconstructible (GL
 
 -- * Expression type conversion
 
+-- | Coerce the primitive type of a value to arbitrary primitive type
 cast x = mkExpr GLGenExpr $ Cast x
+-- | Coerce the element type of a matrix to an arbitrary primitive type
 matCast m = mkExpr GLGenExpr $ MatCast m
 
 
@@ -695,6 +713,7 @@ x .- y = mkExpr GLGenExpr $ OpSubt x y
 x .* y = mkExpr GLGenExpr $ OpMult x y
 x ./ y = mkExpr GLGenExpr $ OpDiv x y
 x .% y = mkExpr GLGenExpr $ OpMod x y
+-- | Arithmetic negation 
 neg x = mkExpr GLGenExpr $ OpNeg x
 x .< y = mkExpr GLGenExpr $ OpLessThan x y
 x .<= y = mkExpr GLGenExpr $ OpLessThanEqual x y
@@ -705,15 +724,21 @@ x ./= y = mkExpr GLGenExpr $ OpNotEqual x y
 x .&& y = mkExpr GLGenExpr $ OpAnd x y
 x .|| y = mkExpr GLGenExpr $ OpOr x y
 x .^^ y = mkExpr GLGenExpr $ OpXor x y
+-- | Logical not
 nt x = mkExpr GLGenExpr $ OpNot x
+-- | Conditional operator, evaluating and returning its second or third argument
+-- if the first evaluates to true or false, respectively
 cond x y z = mkExpr GLGenExpr $ OpCond x y z
 x .<< y = mkExpr GLGenExpr $ OpLshift x y
 x .>> y = mkExpr GLGenExpr $ OpRshift x y
 x .& y = mkExpr GLGenExpr $ OpBitAnd x y
 x .| y = mkExpr GLGenExpr $ OpBitOr x y
 x .^ y = mkExpr GLGenExpr $ OpBitXor x y
+-- | One's complement
 compl x = mkExpr GLGenExpr $ OpCompl x
+-- | Scalar multiplication
 x .# y = mkExpr GLGenExpr $ OpScalarMult x y
+-- | Matrix multiplication
 x .@ y = mkExpr GLGenExpr $ OpMatrixMult x y
 
 radians x = mkExpr GLGenExpr $ Radians x

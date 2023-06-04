@@ -1,33 +1,33 @@
 # Getting Started With HaGL
 
-HaGL consists of expressions having the parameterized type `GLExpr d t`,
+HaGL consists of expressions of the generalized algebraic type `GLExpr d t`,
 where `d` is a label which specifies where the expression will be computed
 (its computational "domain") and `t` specifies the raw, underlying type that the
-expression wraps. The following table categorizes `GLExpr`s based on their domain:
+expression represents. The following table categorizes `GLExpr`s based on their domain:
 
 | `GLExpr d t`              | Synonym       | Semantics                                                                |
 | ------------------------- | ------------- | -------------------------------------------------------------------------|
-| `GLExpr ConstDomain t`    | `ConstExpr t` | A constant of type `t` computed on the CPU host                          |
-| `GLExpr HostDomain t`     | `HostExpr t`  | A potentially I/O-dependent value of type `t` computed on the CPU host   |
-| `GLExpr VertDomain t`     | `VertExpr t`  | A vertex variable of `t` processed in a vertex shader on the GPU         |
+| `GLExpr ConstDomain t`    | `ConstExpr t` | A constant of type `t` computed on the host CPU                          |
+| `GLExpr HostDomain t`     | `HostExpr t`  | A potentially I/O-dependent value of type `t` computed on the host CPU   |
+| `GLExpr VertexDomain t`   | `VertExpr t`  | A vertex variable of type `t` processed in a vertex shader on the GPU    |
 | `GLExpr FragmentDomain t` | `FragExpr t`  | A fragment variable of type `t` processed in a fragment shader on the GPU| 
 
 The underlying type `t` can be one of the following:
 
 * A primitive type: `Float`, `Double`, `Int`, `UInt`, `Bool`
-* A vector `Vec n t` where $1 \leq n \leq 4$ is its length and `t` is a primitive type
+* A vector `Vec n t` with length $1 \leq n \leq 4$ and where `t` is a primitive type
 * A matrix `Mat p q t` with $1 \leq p \leq 4$ rows and $1 \leq q \leq 4$ columns 
-  and `t` is either `Float` or `Double`
+  and where `t` is either `Float` or `Double`
 
-Note that the `Vec` and `Mat` types are specific to HaGL but there is usually no
-need to work with them directly.
+The `Vec` and `Mat` types are specific to HaGL but there is usually no
+need to manipulate the values of such types directly.
 
 HaGL provides different ways to construct and convert between specific `GLExpr`
 types and at the same time allows them to be manipulated polymorphically through
 the use of generic functions. 
 
-For example, the following specifies an input vertex variable corresponding to 
-four vertices:
+For example, the following specifies an input vertex variable constructed from 
+a stream of four vertices:
 
 ```
 x :: VertExpr (Vec 4 Float)
@@ -38,24 +38,28 @@ Suppose that we call a built-in function such as
 ```
 length :: GLFloating t => GLExpr d (Vec n t) -> GLExpr d t 
 ```
-on `x` to obtain `y = length x`. This is well-typed because `Float` is an instance of
-`GLFloating` and `VertExpr (Vec 4 Float)` matches the input type `GLExpr d (Vec n t)`
-of `length`. So from the type signature, we can tell that `y` will have type
-`VertExpr Float`. 
+on `x` to obtain 
+```
+y :: VertExpr Float
+y = length x
+```
+This is well-typed because `Float` is an instance of
+`GLFloating` and `VertExpr (Vec 4 Float)` matches the argument type `GLExpr d (Vec n t)`
+of `length`. So from the type signature of `length`, we can tell that `y` is of 
+type `VertExpr Float`. 
 
-What does `y` represent? Because `x` specifies four vertices, we can think
-of `length x` as a parallel computation of the length of each vertex represented
-by `x`. So in some sense `y` is equivalent to
+As `x` represents four vertices, `y` in turn represents four independent 
+floating-point values corresponding to the length of each vertex, computed in
+parallel in a vertex shader. So semantically `y` is equivalent to
 ```
 y' :: VertExpr Float
 y' = vert [length (vec4 (-1) (-1) 0 1), length (vec4 (-1) 1 0 1), ...]
 ```
 However, `y` and `y'` will be computed in different ways since,
-based on the type signature `[ConstExpr t] -> VertExpr t ` of `vert`, we know 
-that type of `length (vec4 (-1) (-1) 0 1)` must be `ConstExpr Float`
-and hence computed on the CPU. So we see that types, often implicitly inferred,
-play a very important role in determining how a HaGL expression is computed (and
-may in many situations also influence its semantics, as we shall see).
+based on the type signature `[ConstExpr t] -> VertExpr t` of `vert`, we know 
+that type of `length (vec4 (-1) (-1) 0 1)`, for instance, must be `ConstExpr Float`
+and hence computed on the CPU. Thus we see that types, often implicitly inferred,
+play a very important role in determining how a HaGL expression is computed.
 
 
 ## First Example
@@ -70,11 +74,11 @@ First, we import the module and enable some useful extensions:
 import Graphics.HaGL
 ```
 
-To draw an object, all we need to is specify a `GLObj` that bundles all the
-`GLExpr`s that specify its properties. A `GLObj` also includes a choice for
-a `PrimitiveMode`, which specifies how the input vertices in its `position` field
+`GLExpr`s can be used to specify a `GLObj` which represents a drawable unit in
+an OpenGL application. A `GLObj` is defined by a choice of a `PrimitiveMode`, 
+which specifies how the vertices represented by its `position` field
 are to be interpreted. For example, in the primitive mode `Triangles` every
-three consecutive position vertices are the points of a triangle primitive. The
+three consecutive position vertices define the points of a triangle primitive. The
 easiest way to specify such a `GLObj` is using Haskell's record syntax on the
 pre-defined object `triangles`. The only fields we will consider in this guide are
 `position :: VertExpr (Vec 4 Float)` and `color :: FragExpr (Vec 4 Float)`:
@@ -86,7 +90,7 @@ Let us draw two blue triangles, as in the opening example in Ch. 1 of the
 *OpenGL Programming Guide*. To do so, we need to specify the 
 [homogenous coordinates](https://en.wikipedia.org/wiki/Homogeneous_coordinates)
 `vec4 x y z w` of two triangles; in the `Triangles` primitive mode, this means 
-that the first three vertices represented by `position` will specify the first 
+that the first three vertices represented by `position` specify the first 
 triangle and the next three — the second:
 ```
 pos :: VertExpr (Vec 4 Float) 
@@ -103,7 +107,7 @@ satisfy $-1 \leq x/w, y/w, z/w \leq 1$ or are otherwise clipped.
 Each of the two triangles will be colored in the same way, using the color blue:
 ```
 blue :: FragExpr (Vec 4 Float)
-blue = vert4 0 0 1 0
+blue = vert4 0 0 1 1
 ```
 We can then define our desired object as
 ```
@@ -186,7 +190,7 @@ fromImage im =
 ```
 In the `TriangleStrip` primitive mode every sliding window of three vertices 
 defines a triangle; in this case we use two triangles to draw a quad which we 
-use as a canvas with endpoints `(-1, -1), (-1, 1), (1, 1), (1, -1)` which we 
+use as a canvas with endpoints `(-1, -1), (-1, 1), (1, 1), (1, -1)` we can
 color by mapping an interior point `fpos` to `im fpos`.
 
 We can now draw any `Image`:
@@ -203,7 +207,7 @@ the operator (.<) for comparing expressions of type `GLExpr d Bool` and the
 operator (.#) for scalar multiplication.
 
 Suppose that we have two `Image`s and would like to combine them in some way;
-this to lifting an operator to the color co-domains of both images via helper
+this amounts to lifting an operator to the color co-domains of both images via helper
 functions of the form:
 ```
 liftToImage1 :: (ImageColor -> ImageColor) -> Image -> Image
@@ -215,7 +219,7 @@ liftToImage2 f im1 im2 x = f (im1 x) (im2 x)
 ...
 ```
 
-For instance we can define
+For instance, we can define
 ```
 bluePlusRedCircle :: GLObj
 bluePlusRedCircle = fromImage $ liftToImage2 (+) blueCircIm redCircIm where
@@ -225,8 +229,7 @@ bluePlusRedCircle = fromImage $ liftToImage2 (+) blueCircIm redCircIm where
 
 <img src="images/blue_plus_red_circle.png" alt="blue_plus_red_circle" width=50% height=50% />
 
-Note that one other way to combine images is to make use of their alpha component 
-and the fact that one can `draw` multiple objects at once:
+Note that one other way to combine images is to make use of their alpha component and `draw` multiple at once:
 
 ```
 blueOverRedCircle :: [GLObj]
@@ -280,9 +283,8 @@ rotatedCheckboard angle = fromImage $ checkboardImage . rotate angle
 
 ### Using Uniforms to Animate Images
 
-Many times we need to compute a value on the CPU and load it as an input-independent
-value in a shader. The `uniform` function takes in a `HostExpr` and produces
-an expression in an arbitrary domain:
+Many times we need to compute a value on the CPU that will be the same across
+all vertices or fragments. To this end, the `uniform` function takes in a `HostExpr` and produces an expression in an arbitrary domain:
 
 ```
 uniform :: GLType t => HostExpr t -> GLExpr d t 
@@ -330,7 +332,7 @@ windingsPaths = fromImage $ \(decon -> (x, y)) ->
 ### More Fragment Shading
 
 There are many interesting directions to explore with fragment shaders. 
-With the right equations, we can even draw 3D objects, as in the 
+With the right equations, we can even draw 3D objects, as in this 
 [the `fragSphere` example](../examples/src/Graphics/HaGL/Examples/Images.hs):
 
 <img src="images/frag_sphere.png" alt="frag_sphere" width=50% height=50% />
@@ -378,8 +380,8 @@ procgen2DWorld = fromImageInteractive $ \pos ->
 
 ## Vertex Processing
 
-So far we have shown how HaGL can be used to draw objects by operations at the 
-`FragmentDomain` level that define colors at individual points of an image. 
+So far we have shown how HaGL can be used to draw objects by means of operations 
+at the `FragmentDomain` level that define colors at individual points of an image. 
 In this section, we show how operations at the `VertexDomain` level can be used
 to manipulate the underlying geometry in interesting ways.
 
@@ -557,8 +559,8 @@ loxodrome = let
 
 <img src="images/loxodrome.png" alt="loxodrome" width=50% height=50% />
 
-The HaGL library provides initial support for creating simple meshes and loading
-them from `obj` files, where a mesh is represented by the data type
+The HaGL library provides initial support for creating simple meshes or loading
+them from OBJ files, where a mesh is represented by the data type
 ```
 data Mesh = Mesh {
     meshVertices :: [ConstExpr (Vec 3 Float)],
@@ -676,7 +678,7 @@ shading model to produce [planet-like surfaces](../examples/src/Graphics/HaGL/Ex
      consider moving parts of it to documentation !-->
 
 Though we have seen how to create animations by making expressions depend
-on `time`, this approach will not suffice if we want to keep track of a
+on `time`, this approach will not suffice if we want to keep track of some
 state that evolves as a function of itself, for example, to
 simulate and visualize a physical process. For this reason, HaGL provides the
 operator

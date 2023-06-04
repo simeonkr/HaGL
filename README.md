@@ -3,17 +3,16 @@
 HaGL (Haskell-embedded OpenGL, pronounced "haggle") aims to provide a simple,
 elegant, and composable way to create lightweight OpenGL visualizations in Haskell.
 
-By unifying the different types of numerical computations
-that comprise an OpenGL program — whether intended to run on the CPU or as a 
-shader program on the GPU — into a high-level language consisting of pure, 
-composable primitives, HaGL makes it easy to experiment with and prototype visual 
-graphical demos in a modular way.
+By unifying vertex, pixel, and uniform processing into a single high-level language 
+consisting of pure, composable primitives, HaGL makes it easy to experiment with 
+and prototype visual graphical demos in a modular way.
 
-Since the numerical functions provided by HaGL are highly consistent with those
-comprising GLSL, writing a HaGL program can be intuitively similar to writing a 
+Since the numerical functions provided by HaGL aim to be consistent with GLSL's, 
+writing a HaGL program can be intuitively similar to writing a 
 shader. Nonetheless, a HaGL program can easily specify not just a single 
-shader but an entire application, while at the same time making explicit where its
-constituent parts are computed through the use of Haskell's expressive type system.
+shader but all the major operations comprising an OpenGL application, while 
+making use of Haskell's expressive type system to make the nature of each 
+operation explicit.
 
 ## Installation
 
@@ -78,20 +77,19 @@ At the moment, the only way to interpret HaGL code is as GLUT application but
 other backends will be added in the future, as well as a backend-agnostic interface.
 
 HaGL prioritizes approachability and simplicity over completeness and is likely 
-unsuitable for use in a game engine, certainly not in its current state. For 
-more advanced graphics programming consider using, for example: 
+unsuitable for use in a game engine. 
+For more advanced graphics programming consider using, for example: 
 [LambdaCube 3D](http://lambdacube3d.com/), [FIR](https://gitlab.com/sheaf/fir),
 or the Haskell [OpenGL](https://hackage.haskell.org/package/OpenGL) bindings. 
 
 ## Current Status and Roadmap
 
-Implementation-wise the core of HaGL is comprised of
+Implementation-wise the core of HaGL consists of:
 
-* A high-level API consisting of parameterized expressions with strict
-type constraints
-* A code generator for vertex and fragment shaders, supporting variants of all 
-applicable GLSL built-in operators and functions
-* A numerical evaluator that can process these same functions on the CPU, thus
+* A high-level API consisting of both generic and domain-specific functions
+* A code generator for GLSL vertex and fragment shaders, supporting variants of 
+all applicable GLSL built-in operators and functions
+* A numerical evaluator for processing these same functions on the CPU, thus
 enabling the use of arbitrary uniforms
 * Various functions that enable initialization and transfer of 
 data, the specification of user-defined shader functions, and the use of basic 

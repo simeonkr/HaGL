@@ -327,9 +327,9 @@ data GLGenExpr (d :: GLDomain) (t :: *) where
 
 -- | A label for the domain where a given computation make take place
 data GLDomain = 
-    -- | Labels a constant value computed on the CPU host
+    -- | Labels a constant value computed on the host CPU
     ConstDomain | 
-    -- | Labels a potentially I/O-dependent value computed on the CPU host
+    -- | Labels a potentially I/O-dependent value computed on the host CPU
     HostDomain | 
     -- | Labels a vertex shader variable
     VertexDomain | 

@@ -966,12 +966,17 @@ drawGlutCustom :: Drawable a => GlutOptions -> a -> IO ()
 drawGlutCustom options = draw (GlutBackend options)
 
 -- | Default options for a GLUT backend
+--
+-- * @winSize = (768, 768)@
+-- * @clearCol = (0, 0, 0, 0)@
+-- * @runMode = GlutNormal@
 defaultGlutOptions :: GlutOptions
 defaultGlutOptions = GlutOptions {
     winPosition = Nothing,
     winSize = (768, 768),
     winFullscreen = False,
     winTitle = Nothing,
+    clearCol = (0, 0, 0, 0),
     runMode = GlutNormal,
     openGLSetup = return ()
 }

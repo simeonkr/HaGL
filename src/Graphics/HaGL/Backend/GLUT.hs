@@ -37,11 +37,13 @@ data GlutOptions = GlutOptions {
     winFullscreen :: Bool,
     -- | The title of the window
     winTitle :: Maybe String,
+    -- | The (background) color to use when clearing the screen
+    clearCol :: (Float, Float, Float, Float),
     -- | The 'GlutRunMode' under which to run the application
     runMode :: GlutRunMode,
     -- | Any additional OpenGL-specific setup to run just after the window has
     -- been set up. The typical use-case is to import the OpenGL bindings
-    -- ('Graphics.Rendering.Opengl') and define a @StateVar@ such as @clearColor@
+    -- ('Graphics.Rendering.Opengl') and define a @StateVar@ such as @lineWidth@
     openGLSetup :: IO ()
 }
 
@@ -74,6 +76,7 @@ runGlut options glObjs = do
     motionCallback $= Just (motion ioState)
     passiveMotionCallback $= Just (motion ioState)
 
+    clearColor $= let (r, g, b, a) = clearCol options in Color4 r g b a
     -- override default OpenGL values
     -- TODO: should access to values like these be provided
     -- directly, in the form of additional GlutOptions?

@@ -43,9 +43,7 @@ executable hagl-example
     directory,
     HaGL,
     HaGL-lib,
-    HaGL-examples,
-     -- due to use of openGLSetup
-    OpenGL
+    HaGL-examples
   main-is: Run.hs
   default-language:    Haskell2010
   ghc-options:

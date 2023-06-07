@@ -130,7 +130,7 @@ thereof) in the module `Graphics.HaGL.Examples`, whose source is in the
 functions such as `drawGlut` (for instance from a GHCi session).
 
 Note that the images on this page were produced by drawing on a non-default 
-white background (by setting the `openGLSetup` field of `GlutOptions` passed to
+white background (by setting the `clearCol` field of `GlutOptions` passed to
 `draw`).
 
 ---

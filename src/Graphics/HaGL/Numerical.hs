@@ -104,7 +104,7 @@ instance Show t => Show (Mat p q t) where
 toList :: Mat p q t -> [t]
 toList (Mat xs) = elems xs
 
--- | Construct a matrix from a mapping that maps indices '(i, j)' to
+-- | Construct a matrix from a mapping that maps indices @(i, j)@ to
 -- the element at row @i@ and column @j@
 fromMapping :: forall p q t. (KnownNat p, KnownNat q) => ((Int, Int) -> t) -> Mat p q t
 fromMapping f =

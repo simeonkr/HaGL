@@ -1,9 +1,9 @@
 # Getting Started With HaGL
 
 HaGL consists of expressions of the generalized algebraic type `GLExpr d t`,
-where `d` is a label which specifies where the expression will be computed
-(its computational "domain") and `t` specifies the raw, underlying type that the
-expression represents. The following table categorizes `GLExpr`s based on their domain:
+where `d` labels the "computational domain" associated with its value and 
+`t` specifies the raw, underlying type that it represents. The following table 
+categorizes `GLExpr`s based on their domain:
 
 | `GLExpr d t`              | Synonym       | Semantics                                                                |
 | ------------------------- | ------------- | -------------------------------------------------------------------------|
@@ -64,7 +64,7 @@ play a very important role in determining how a HaGL expression is computed.
 
 ## First Example
 
-First, we import the module and enable some useful extensions:
+First, we import the module and enable the recommended extensions:
 ```
 {-# LANGUAGE GADTs GADTs -#}
 {-# LANGUAGE GADTs DataKinds -#}
@@ -151,9 +151,9 @@ using the function `mix` to produce a red-blue gradient:
 
 ```
 -- normalize the x coordinate to lie in [0, 1]
-s = 0.5 * (x_ fpos + 1)
+u = 0.5 * (x_ fpos + 1)
 
-redBlue = mix red blue (vec4 s s s s)
+redBlue = mix red blue (vec4 u u u u)
 
 redBlueTriangles = triangles { position = pos, color = redBlue }
 ```
@@ -185,7 +185,7 @@ fromImage im =
              vec4 (-1) 1 0 1, 
              vec4 1 (-1) 0 1, 
              vec4 1 1 0 1]
-        fpos = frag quadPos
+        fpos = frag (xy_ pos)
     in triangleStrip { position = pos, color = im fpos }
 ```
 In the `TriangleStrip` primitive mode every sliding window of three vertices 
@@ -308,8 +308,6 @@ instead of a fixed constant:
 > drwGlut $ rotatedCheckboard (uniform time)
 ```
 
-<img src="images/rotating_checkboard.png" alt="rotating_checkboard" width=50% height=50% />
-
 Here is a slightly more interesting example:
 
 ```
@@ -431,7 +429,8 @@ coordinates; that is, our intention is to draw a cube with side length equal to
 two, centered at the origin of our world's coordinate system.
 
 To transform `pos` to *view space* (or eye space), we need to define a
-transformation matrix `view :: HostExpr` (assumed to lie in `HostDomain` since 
+transformation matrix `view :: HostExpr (Mat 4 4 Float)` 
+(assumed to lie in `HostDomain` since 
 we normally expect it to be updated in some interactive manner). We can use
 convenience functions defined in `Graphics.HaGL.Lib.Math` to create affine
 transformation matrices, for instance `rotate`, which creates a rotation matrix
@@ -475,13 +474,14 @@ cpos = uniform proj .@ vpos
 
 Note that `cpos` is equivalent to the expression
 ```
-(uniform proj .@ uniform view) .@ pos
+uniform proj .@ (uniform view .@ pos)
 ```
 where `unform proj` and `uniform view` are both of type `VertExpr (Mat 4 4 Float)`.
 This means that the two matrices will be multiplied in the vertex shader, which
 is not quite what we want since they do not depend on any vertex
 and can thus be pre-computed on the CPU. We can instead define `cpos` in terms
-of the equivalent but more efficient expression
+of the equivalent (by associativity of matrix mutliplication) 
+but more efficient expression
 ```
 uniform (proj .@ view) .@ pos
 ```
@@ -527,7 +527,7 @@ parametric equation
 $$
 (x, y, z) = \frac{1}{\sqrt{a^2 t^2}} \left( \cos t, \sin t ,- a t \right)
 $$
-for some constant. It can be drawn as a `lineStrip` where each position
+for some constant $a$. It can be drawn as a `lineStrip` where each position
 specifies the next endpoint of a series of connected line segments:
 
 ```
@@ -861,7 +861,7 @@ mand' pos0@(decon -> (x0, y0)) (decon -> (x, y)) n =
 ```
 is such that 
 ```
-mand (vec x0 y0) (vec2 0 0) 50
+mand' (vec x0 y0) (vec2 0 0) 50
 ```
 counts the number of iterations $n$, up to a maximum of 50, it takes for
 $$ 

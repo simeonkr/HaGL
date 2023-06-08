@@ -33,7 +33,7 @@ where @d@ is the domain of computation and @t@ is the underlying numeric type,
 which is always an instance of 'GLType'. Here are some example expressions:
 
 @
-    -- A vertex attribute, constructed from three vertices
+    -- A vertex attribute constructed from its input values on three vertices
     x :: GLExpr VertexDomain Float
     x = vert [-1, 0, 1]
 
@@ -44,10 +44,10 @@ which is always an instance of 'GLType'. Here are some example expressions:
     y :: GLExpr VertexDomain Float
     y = sin (2 * x + 1)
 
-    -- 'frag x' is a a fragment variable corresponding to fragments obtained by 
-    -- interpolating the vertices of x that define its containing primitive.
+    -- 'frag x' is a a fragment variable corresponding to an interpolation of
+    -- the value of x at the vertices that define its containing primitive.
     -- Because it has the type 'GLExpr FragmentDomain Float', the addition
-    -- will be computed in a fragment shader.
+    -- below will be computed in a fragment shader.
     z :: GLExpr FragmentDomain Float
     z = frag x + 3
 
@@ -59,7 +59,7 @@ which is always an instance of 'GLType'. Here are some example expressions:
     yPlusTime :: GLExpr VertexDomain Float
     yPlusTime = y + uniform time
 
-    -- Here 'uniform time' is inferred to be of type 'GLExpr FragmentDomain Float'
+    -- Here 'uniform time' is inferred to be of type 'GLExpr FragmentDomain Float':
     zPlusTime :: GLExpr FragmentDomain Float
     zPlusTime = z + uniform time
 
@@ -70,15 +70,15 @@ which is always an instance of 'GLType'. Here are some example expressions:
     -- A vector can be initialized from a numeric literal, so long as its
     -- underlying type 'Vec n t' is specified or can be inferred.
     -- Here is another way to define the same vector v:
-    v :: GLExpr d (Vec 4 Float)
-    v = 1
+    v' :: GLExpr d (Vec 4 Float)
+    v' = 1
 
     -- Matrices are constructed from their columns:
     m :: GLExpr d (Mat 2 3 Float)
     m = mat2x3 (vec2 1 2) (vec2 3 4) (vec2 5 6)
 
     -- Operators like (.+) and (.*) act component-wise on vectors and matrices:
-    _ = mat2x2 1 1 .+ mat2x2 1 1 .== mat2x2 2 2
+    _ = m .+ m .== mat2x3 (vec2 2 4) (vec2 6 8) (vec2 10 12)
 
     -- Non-boolean primitives and vectors over such types are instances of Num;
     -- in such cases Num methods like (+) can be used instead.
@@ -137,12 +137,12 @@ redObj = GLObj {
 redObj' :: GLObj
 redObj' = triangleStrip { position = pos, color = red }
 
--- we are now ready to draw the object
+-- we can now draw the object
 main :: IO ()
 main = draw GlutBackend redObj
 @
 
-A complete set of examples can be found in 
+A complete set of examples explained in more depth can be found in 
 the ["Getting Started"](https://github.com/simeonkr/HaGL/Overview.md) guide.
 
 -}
@@ -917,25 +917,25 @@ defaultObj = GLObj {
     discardWhen = false
 }
 
--- | An incompletely specified object with 'PrimitiveMode' equal to 'Points'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.Points'
 points = defaultObj { primitiveMode = OpenGL.Points }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'Lines'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.Lines'
 lines = defaultObj { primitiveMode = OpenGL.Lines }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'LineLoop'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.LineLoop'
 lineLoop = defaultObj { primitiveMode = OpenGL.LineLoop }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'LineStrip'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.LineStrip'
 lineStrip = defaultObj { primitiveMode = OpenGL.LineStrip }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'Triangles'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.Triangles'
 triangles = defaultObj { primitiveMode = OpenGL.Triangles }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'TriangleStrip'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.TriangleStrip'
 triangleStrip = defaultObj { primitiveMode = OpenGL.TriangleStrip }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'TriangleFan'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.TriangleFan'
 triangleFan = defaultObj { primitiveMode = OpenGL.TriangleFan }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'Quads'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.Quads'
 quads = defaultObj { primitiveMode = OpenGL.Quads }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'QuadStrip'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.QuadStrip'
 quadStrip = defaultObj { primitiveMode = OpenGL.QuadStrip }
--- | An incompletely specified object with 'PrimitiveMode' equal to 'Polygon'
+-- | An incompletely specified object with 'PrimitiveMode' equal to 'OpenGL.Polygon'
 polygon = defaultObj { primitiveMode = OpenGL.Polygon }
 
 

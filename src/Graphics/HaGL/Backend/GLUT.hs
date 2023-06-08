@@ -43,7 +43,7 @@ data GlutOptions = GlutOptions {
     runMode :: GlutRunMode,
     -- | Any additional OpenGL-specific setup to run just after the window has
     -- been set up. The typical use-case is to import the OpenGL bindings
-    -- ('Graphics.Rendering.Opengl') and define a @StateVar@ such as @lineWidth@
+    -- ('Graphics.Rendering.OpenGL') and define a @StateVar@ such as @lineWidth@
     openGLSetup :: IO ()
 }
 

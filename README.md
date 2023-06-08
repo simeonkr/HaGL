@@ -1,18 +1,14 @@
 # HaGL: Haskell-embedded OpenGL
 
 HaGL (Haskell-embedded OpenGL, pronounced "haggle") aims to provide a simple,
-elegant, and composable way to create lightweight OpenGL visualizations in Haskell.
+elegant, and modular way to create lightweight OpenGL visualizations in Haskell.
 
-By unifying vertex, pixel, and uniform processing into a single high-level language 
-consisting of pure, composable primitives, HaGL makes it easy to experiment with 
-and prototype visual graphical demos in a modular way.
+By unifying vertex, fragment, and uniform processing into an expressively
+typed GLSL-like language consisting of pure, composable primitives, HaGL makes
+it easy to experiment with and prototype visual graphical demos.
 
-Since the numerical functions provided by HaGL aim to be consistent with GLSL's, 
-writing a HaGL program can be intuitively similar to writing a 
-shader. Nonetheless, a HaGL program can easily specify not just a single 
-shader but all the major operations comprising an OpenGL application, while 
-making use of Haskell's expressive type system to make the nature of each 
-operation explicit.
+To see it in action, please skip straight to the 
+["Getting Started" guide](doc/Overview.md).
 
 ## Installation
 
@@ -73,39 +69,35 @@ HaGL is best suited for the production of simple non-reactive visual animations;
 in this regard, its use-cases somewhat resemble those of the [VisPy](https://vispy.org/) 
 and [Glumpy](https://glumpy.github.io/) Python libraries.
 
-At the moment, the only way to interpret HaGL code is as GLUT application but 
+At the moment, the only way to interpret HaGL code is as a GLUT application but 
 other backends will be added in the future, as well as a backend-agnostic interface.
 
 HaGL prioritizes approachability and simplicity over completeness and is likely 
 unsuitable for use in a game engine. 
-For more advanced graphics programming consider using, for example: 
+For more advanced graphics programming consider using, for example, 
 [LambdaCube 3D](http://lambdacube3d.com/), [FIR](https://gitlab.com/sheaf/fir),
 or the Haskell [OpenGL](https://hackage.haskell.org/package/OpenGL) bindings. 
 
-## Current Status and Roadmap
+## Scope of OpenGL Support
 
-Implementation-wise the core of HaGL consists of:
+HaGL models a simple OpenGL pipeline that supports basic vertex and fragment 
+processing and exposes a generic API similar to that of GLSL that can be 
+used for both shader programming and host numerical computation (of uniforms).
+In addition, it provides various operations of its own to model certain 
+imperative constructs in a functional manner.
 
-* A high-level API consisting of both generic and domain-specific functions
-* A code generator for GLSL vertex and fragment shaders, supporting variants of 
-all applicable GLSL built-in operators and functions
-* A numerical evaluator for processing these same functions on the CPU, thus
-enabling the use of arbitrary uniforms
-* Various functions that enable initialization and transfer of 
-data, the specification of user-defined shader functions, and the use of basic 
-interactivity
-
-An "engine" for running HaGL code is provided in the form of GLUT backend built
-using the the [OpenGL](https://hackage.haskell.org/package/OpenGL) and 
+An "interpreter" for running HaGL code is provided in the form of GLUT backend 
+built using the [OpenGL](https://hackage.haskell.org/package/OpenGL) and 
 [GLUT](https://hackage.haskell.org/package/GLUT) bindings for Haskell. 
 
-In the future, support will hopefully be added for:
+Features that are currently missing but could possibly be added in the future:
 
-* Textures in fragment shaders
-* Tessellation shaders
-* Geometry shaders
-* Compute shaders
-* New backends and a backend-agnostic interface
+* Texture mapping using sampler objects
+* Instanced rendering
+* Tessellation shading
+* Geometry shading
+* Compute shading
+* Non-GLUT backends and a backend-agnostic interface
 * Integration with an FRP framework such as [Yampa](https://hackage.haskell.org/package/Yampa)
 
 ## Contributing
@@ -114,6 +106,6 @@ Contributions in the form of pull requests, suggestions, or feedback are welcome
 and appreciated.
 
 The best way to keep the project alive is to demonstrate its usefulness through
-a wide range of interesting examples. Another potential area to explore is the
-creation of high-level libraries for specific types of visual applications, as 
-well as improving the supporting library that ships with HaGL.
+a wide range of interesting examples and tutorials. Another potential area to
+explore is the creation of high-level libraries for specific types of visual 
+applications, as well as improving the supporting library that ships with HaGL.

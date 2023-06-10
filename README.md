@@ -8,7 +8,7 @@ typed GLSL-like language consisting of pure, composable primitives, HaGL makes
 it easy to experiment with and prototype visual graphical demos.
 
 To see it in action, please skip straight to the 
-["Getting Started" guide](doc/Overview.md).
+["Getting Started" guide](https://github.com/simeonkr/HaGL/blob/master/doc/Overview.md).
 
 ## Installation
 
@@ -48,7 +48,7 @@ cabal run hagl-example interactive_cube
 ## Usage
 
 To learn how to use HaGL please refer to the 
-["Getting Started" guide](doc/Overview.md).
+["Getting Started" guide](https://github.com/simeonkr/HaGL/blob/master/doc/Overview.md).
 The complete documentation can be found on 
 [Hackage](https://hackage.haskell.org/package/HaGL).
 

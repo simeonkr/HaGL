@@ -143,7 +143,7 @@ main = draw GlutBackend redObj
 @
 
 A complete set of examples explained in more depth can be found in 
-the ["Getting Started"](https://github.com/simeonkr/HaGL/Overview.md) guide.
+the ["Getting Started"](https://github.com/simeonkr/HaGL/blob/master/doc/Overview.md) guide.
 
 -}
 

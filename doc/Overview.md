@@ -524,9 +524,11 @@ explosion =
 
 A loxodrome (or a spherical spiral) is a curve in 3D space given by the 
 parametric equation
+
 $$
 (x, y, z) = \frac{1}{\sqrt{a^2 t^2}} \left( \cos t, \sin t ,- a t \right)
 $$
+
 for some constant $a$. It can be drawn as a `lineStrip` where each position
 specifies the next endpoint of a series of connected line segments:
 
@@ -577,9 +579,9 @@ uvSphere :: ConstExpr Float -> ConstExpr Float -> (Mesh, FragExpr (Vec 2 Float))
 
 takes in a resolution parameter $res$ and radius $r$, and creates a `Mesh` for
 a sphere by mapping $u \in [0 \times res], v \in [0 \times res]$ to the vertices
-$$
-    (x, y, z) = r (\cos u \sin v, \sin u \sin v, \cos v)
-$$
+
+$$(x, y, z) = r (\cos u \sin v, \sin u \sin v, \cos v)$$
+
 in a [similar way](../lib/src/Graphics/HaGL/Lib/Objects3D.hs) as was done in the
 previous example. 
 In addition to the resulting mesh, it returns a `FragExpr` for a point on the
@@ -689,7 +691,8 @@ which loosely corresponds to the function $prec$ defined as follows:
 
 If $x_0, x_1, \ldots, x_t$ represent the values of expression $x$
 at discrete moments of time, then
-$$prec(x_0, x)_t = \begin{cases} x_0, & t = 0 \\ x_{t-1}, & t > 0 \end{cases}$$
+
+$$prec(x_0, x)_ t = \begin{cases} x_0, & t = 0 \\\ x_ {t-1}, & t > 0 \end{cases}$$
 
 In other words, `prec x0 x` holds the value of `x` as it was a moment of time
 ago or $x_0$ if this is first such moment of time. In the case of a backend like GLUT, 
@@ -725,10 +728,11 @@ following Euler equations
 
 $$ 
 \begin{aligned} 
-\theta'_{t+1} &= \alpha \theta'_t - mg \sin \theta_t dt \\
-\theta_{t+1} &= \theta_{t} + \theta'_{t} dt,
+\theta'_ {t+1} &= \alpha \theta'_ t - mg \sin \theta_ t dt \\\
+\theta_ {t+1} &= \theta_ t + \theta'_ t dt,
 \end{aligned}
 $$
+
 
 and its position equals
 
@@ -783,7 +787,8 @@ the outer pendulum throughout time. One possible solution is to (ab)use the
 
 Note that a consequence of the definition of $prec$ is that
 
-$$prec^{(n)}(x_0, x)_t = \begin{cases} x_0, & t < n \\ x_{t-n}, & t \geq n \end{cases}$$
+$$prec^{(n)}(x_0, x)_ t = \begin{cases} x_0, & t < n \\\ x_ {t-n}, & t \geq n \end{cases}$$
+
 where $prec^{(n)}$ corresponds to the Haskell function
 ```
 \x0 x -> iterate (prec x0) x !! n
@@ -864,12 +869,14 @@ is such that
 mand' (vec x0 y0) (vec2 0 0) 50
 ```
 counts the number of iterations $n$, up to a maximum of 50, it takes for
+
 $$ 
 \begin{aligned} 
 z_0 &= 0 \\
 z_{n+1} &= z_n + (x + iy)
 \end{aligned}
 $$
+
 to exceed a magnitude of 2, thus calculating an escape time that can be used to
 color the pixel $(x_0,y_0)$ in a way that visualizes the Mandelbrot set.
 
@@ -923,6 +930,7 @@ fbm seed n xyz = f 0 0 1 1 where
 `fbm` caclulates the sum
 
 $$\sum_{i=0}^{n} \frac{1}{2^i} \texttt{perlinNoise}(seed, 2^i (x,y,z))$$
+
 which combines suitably scaled amounts of continuous noise in a 
 fractal-like fashion:
 

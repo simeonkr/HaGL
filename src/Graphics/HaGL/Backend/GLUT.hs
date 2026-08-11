@@ -94,11 +94,7 @@ initWindow options = do
 #ifdef darwin_HOST_OS
     -- Borderless ends up setting GLUT_3_2_CORE_PROFILE on Apple GLUT.
     initialDisplayMode $= [RGBAMode, WithAlphaComponent, Borderless]
-
-    -- Apple GLUT doesn't support MainLoopReturns
 #else
-    actionOnWindowClose $= MainLoopReturns
-
     initialDisplayMode $= [RGBAMode, WithAlphaComponent]
 #endif
     _ <- createWindow progName

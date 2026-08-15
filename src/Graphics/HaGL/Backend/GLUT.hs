@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Graphics.HaGL.Backend.GLUT (
@@ -90,15 +91,21 @@ runGlut options glObjs = do
 initWindow :: GlutOptions -> IO ()
 initWindow options = do
     (progName, _) <- getArgsAndInitialize
+#ifdef darwin_HOST_OS
+    -- Borderless ends up setting GLUT_3_2_CORE_PROFILE on Apple GLUT.
+    initialDisplayMode $= [RGBAMode, WithAlphaComponent, Borderless]
+#else
+    initialDisplayMode $= [RGBAMode, WithAlphaComponent]
+#endif
     _ <- createWindow progName
-    maybe (return ()) (\(x, y) -> windowPosition $= Position x y) 
+    maybe (return ()) (\(x, y) -> windowPosition $= Position x y)
         (winPosition options)
     windowSize $= (\(x, y) -> Size x y) (winSize options)
     when (winFullscreen options) fullScreen
     maybe (return ()) (windowTitle $=) (winTitle options)
-    actionOnWindowClose $= MainLoopReturns 
-    
-    initialDisplayMode $= [RGBAMode, WithAlphaComponent]
+#ifndef darwin_HOST_OS
+    actionOnWindowClose $= MainLoopReturns
+#endif
     depthFunc $= Just Lequal
     blend $= Enabled
     blendEquation $= FuncAdd

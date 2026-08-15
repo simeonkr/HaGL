@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Graphics.HaGL.Shader (
     Shader(..),
     ShaderFn(..),
@@ -51,7 +53,11 @@ type VarName = String
 
 instance Show Shader where
     show (Shader fns decls stmts) =
+#ifdef darwin_HOST_OS
+        "#version 150 core\n\n" ++
+#else
         "#version 430 core\n\n" ++
+#endif
         endWith "\n" (concatMap (\s -> show s ++ "\n") decls) ++
         concatMap (\s -> show s ++ "\n\n") fns ++
         "void main() {\n" ++
